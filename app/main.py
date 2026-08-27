@@ -16,7 +16,7 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from .config import LOCK_POLICY, Settings, get_settings
+from .config import LOCK_PROFILES, Settings, get_settings
 from .generation import STYLES, GenerationError
 from .models import AnalyzeResponse, GenerateResponse
 from .pipeline import analyze_room, prepare_image, run_pipeline
@@ -81,13 +81,16 @@ async def health():
 
 @app.get("/api/styles")
 async def list_styles():
-    return {"styles": [{"id": k, "description": v} for k, v in STYLES.items()],
-            "lock_policy": LOCK_POLICY}
+    return {
+        "styles": [{"id": k, "description": v} for k, v in STYLES.items()],
+        "lock_profiles": LOCK_PROFILES,
+    }
 
 
 @app.post("/api/analyze", response_model=AnalyzeResponse)
 async def analyze_endpoint(
     photo: UploadFile = File(...),
+    profile: str | None = Form(None),
     keep_mask_ids: str | None = Form(None),
     replace_mask_ids: str | None = Form(None),
 ):
@@ -99,6 +102,7 @@ async def analyze_endpoint(
         analysis, _ = await analyze_room(
             image,
             settings,
+            profile=profile,
             keep_mask_ids=_parse_ids(keep_mask_ids),
             replace_mask_ids=_parse_ids(replace_mask_ids),
         )
@@ -117,19 +121,26 @@ async def generate_endpoint(
     style: str = Form(...),
     extra_prompt: str = Form(""),
     seed: int | None = Form(None),
+    variants: int | None = Form(None),
+    profile: str | None = Form(None),
     keep_mask_ids: str | None = Form(None),
     replace_mask_ids: str | None = Form(None),
 ):
-    """Upload -> analyze -> masked generation. Returns the image and the JSON."""
+    """Upload -> analyze -> masked generation.
+
+    Returns N design options plus the structured JSON they were built from.
+    """
     settings = get_settings()
     data = await _read_upload(photo, settings)
     try:
-        analysis, generation = await run_pipeline(
+        analysis, generations = await run_pipeline(
             data,
             style,
             settings,
             extra_prompt=extra_prompt,
             seed=seed,
+            variants=variants,
+            profile=profile,
             keep_mask_ids=_parse_ids(keep_mask_ids),
             replace_mask_ids=_parse_ids(replace_mask_ids),
         )
@@ -141,4 +152,4 @@ async def generate_endpoint(
         raise HTTPException(502, f"Generation failed: {exc}") from exc
     except RuntimeError as exc:
         raise HTTPException(502, str(exc)) from exc
-    return GenerateResponse(analysis=analysis, generation=generation)
+    return GenerateResponse(analysis=analysis, generations=generations)

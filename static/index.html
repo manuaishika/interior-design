@@ -29,6 +29,11 @@
   .style b { display: block; margin-bottom: .2rem; }
   .style span { color: var(--muted); font-size: .8rem; }
   .actions { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; }
+  .actions label { display: flex; align-items: center; gap: .35rem; color: var(--muted);
+    font-size: .84rem; }
+  .actions select { padding: .5rem .6rem; border: 1px solid var(--line); border-radius: 8px;
+    background: #fff; font: inherit; color: var(--ink); }
+  .pill.clutter { background: rgba(180,68,46,.08); color: #8a5a2b; }
   button.go { background: var(--accent); color: #fff; border: 0; border-radius: 9px;
     padding: .7rem 1.3rem; font: inherit; font-weight: 600; cursor: pointer; }
   button.ghost { background: #fff; color: var(--ink); border: 1px solid var(--line);
@@ -58,7 +63,7 @@
 <body>
 <main>
   <h1>AI Interior Design</h1>
-  <p class="sub">Upload a room photo, pick a style, and generate — doors, windows and walkways stay put.</p>
+  <p class="sub">Upload a room photo, pick a style, and get a few renovation options — doors, windows and walkways stay put.</p>
 
   <section class="step">
     <h2>Step 1 · Upload a room photo</h2>
@@ -79,6 +84,19 @@
   <section class="step">
     <h2>Step 3 · Analyze &amp; generate</h2>
     <div class="actions">
+      <label>Options
+        <select id="variants">
+          <option value="2" selected>2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+        </select>
+      </label>
+      <label>Depth
+        <select id="profile">
+          <option value="renovate" selected>Full renovation</option>
+          <option value="restyle">Restyle only</option>
+        </select>
+      </label>
       <button class="go" id="generate" disabled>Analyze &amp; generate</button>
       <button class="ghost" id="analyze" disabled>Analyze only</button>
     </div>
@@ -158,25 +176,32 @@ function renderAnalysis(analysis) {
       <td><code>${o.mask_id}</code></td>
       <td>${bb.x}, ${bb.y} · ${bb.width}×${bb.height}</td>
       <td>${o.confidence.toFixed(2)}</td>
-      <td><span class="pill ${o.locked ? 'locked' : 'unlocked'}">${o.locked ? 'locked' : 'editable'}</span></td>`;
+      <td><span class="pill ${o.locked ? 'locked' : (o.category === 'clutter' ? 'clutter' : 'unlocked')}">${
+        o.locked ? 'locked' : (o.category === 'clutter' ? 'cleared' : 'editable')}</span></td>`;
     $('rows').append(tr);
   });
   const locked = analysis.objects.filter(o => o.locked).length;
+  const clutter = analysis.objects.filter(o => o.category === 'clutter').length;
   $('counts').textContent =
     `${analysis.objects.length} regions labeled (${locked} locked, ` +
-    `${analysis.objects.length - locked} editable) from ${analysis.masks_returned} SAM2 masks.`;
+    `${analysis.objects.length - locked} editable` +
+    `${clutter ? `, ${clutter} cleared as clutter` : ''}) ` +
+    `from ${analysis.masks_returned} SAM2 masks · profile: ${analysis.lock_profile}.`;
   $('json').textContent = JSON.stringify(analysis, null, 2);
   $('detected').classList.remove('hidden');
 }
 
-function renderImages(generation) {
+function renderImages(generations) {
   const original = $('photo').files[0] ? URL.createObjectURL($('photo').files[0]) : '';
+  const options = generations.map((g, i) => `
+    <figure><img src="data:image/png;base64,${g.image_base64}" alt="Option ${i + 1}">
+      <figcaption>Option ${i + 1} · seed ${g.seed ?? '—'}</figcaption></figure>`).join('');
   $('images').innerHTML = `
     <figure><img src="${original}" alt="Original room"><figcaption>Original</figcaption></figure>
-    <figure><img src="data:image/png;base64,${generation.image_base64}" alt="Generated room">
-      <figcaption>Generated</figcaption></figure>
-    <figure><img src="data:image/png;base64,${generation.inpaint_mask_base64}" alt="Inpainting mask">
-      <figcaption>Inpainting mask — white was regenerated, black was preserved</figcaption></figure>`;
+    ${options}
+    <figure><img src="data:image/png;base64,${generations[0].inpaint_mask_base64}" alt="Inpainting mask">
+      <figcaption>Inpainting mask — white was regenerated, black was preserved.
+      Every option used this same mask.</figcaption></figure>`;
   $('results').classList.remove('hidden');
 }
 
@@ -196,6 +221,7 @@ async function post(url, form, pending) {
 $('analyze').onclick = async () => {
   const form = new FormData();
   form.append('photo', $('photo').files[0]);
+  form.append('profile', $('profile').value);
   try {
     const { analysis } = await post('/api/analyze', form, 'Segmenting and labeling the room…');
     renderAnalysis(analysis);
@@ -208,12 +234,14 @@ $('generate').onclick = async () => {
   form.append('photo', $('photo').files[0]);
   form.append('style', selectedStyle);
   form.append('extra_prompt', $('extra').value);
+  form.append('variants', $('variants').value);
+  form.append('profile', $('profile').value);
   try {
-    const { analysis, generation } = await post(
-      '/api/generate', form, 'Segmenting, labeling, then generating — this takes a minute…');
+    const { analysis, generations } = await post(
+      '/api/generate', form, 'Segmenting, labeling, then rendering options — this takes a minute…');
     renderAnalysis(analysis);
-    renderImages(generation);
-    setStatus('Done.');
+    renderImages(generations);
+    setStatus(`Done — ${generations.length} option${generations.length > 1 ? 's' : ''}.`);
   } catch (e) { setStatus(e.message, true); }
 };
 </script>

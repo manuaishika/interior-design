@@ -17,8 +17,14 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # The closed set of categories the vision-language model is allowed to return.
 # "furniture" additionally carries a free-form `name` ("sofa", "coffee table").
+#
+# "clutter" is deliberately separate from "furniture": real room photos are full
+# of laundry, carrier bags, water bottles, loose cables and stacked paperwork. A
+# renovation render is supposed to make those disappear, so they need a category
+# of their own rather than being swept into "other" (which is preserved).
 CATEGORIES = (
     "furniture",
+    "clutter",
     "door",
     "window",
     "wall",
@@ -27,30 +33,50 @@ CATEGORIES = (
     "other",
 )
 
-# Which categories are structurally locked, i.e. must survive generation
-# untouched.
+# Lock profiles decide which categories survive generation untouched.
 #
-# The spec pins four of these explicitly:
+# Both profiles pin the four categories from the spec:
 #   locked   -> door, window, walkway
 #   unlocked -> furniture, floor ("open floor space")
 #
-# `wall` was not specified either way. It defaults to UNLOCKED here because
-# repainting / re-wallpapering walls is a core interior-design edit, and locking
-# them would prevent the generator from restyling the largest surface in most
-# rooms. Flip it to True if you would rather freeze room geometry completely.
+# They differ only in how much benefit of the doubt they give a region:
 #
-# `other` (the model's escape hatch when it cannot confidently classify a
-# region) defaults to LOCKED — an unrecognised region is safer preserved than
-# regenerated.
-LOCK_POLICY: dict[str, bool] = {
-    "furniture": False,
-    "door": True,
-    "window": True,
-    "wall": False,
-    "floor": False,
-    "walkway": True,
-    "other": True,
+#   "renovate"  full redesign. Strip everything that is not structure. An
+#               unidentified region gets regenerated, because leaving frozen
+#               islands scattered through a full renovation looks worse than
+#               re-imagining them.
+#   "restyle"   conservative. An unidentified region is preserved. Use when the
+#               room should stay recognisably itself.
+#
+# `wall` is unlocked in both: repainting is a core interior-design edit, and
+# locking walls would freeze the largest surface in most rooms.
+LOCK_PROFILES: dict[str, dict[str, bool]] = {
+    "renovate": {
+        "furniture": False,
+        "clutter": False,
+        "door": True,
+        "window": True,
+        "wall": False,
+        "floor": False,
+        "walkway": True,
+        "other": False,
+    },
+    "restyle": {
+        "furniture": False,
+        "clutter": False,
+        "door": True,
+        "window": True,
+        "wall": False,
+        "floor": False,
+        "walkway": True,
+        "other": True,
+    },
 }
+
+DEFAULT_PROFILE = "renovate"
+
+# Backwards-compatible alias for the active default profile.
+LOCK_POLICY = LOCK_PROFILES[DEFAULT_PROFILE]
 
 
 class Settings(BaseSettings):
@@ -101,6 +127,10 @@ class Settings(BaseSettings):
     invert_inpaint_mask: bool = False
 
     # --- generation --------------------------------------------------------
+    # How many design options to render per request. Each is a separate call to
+    # the generator, run concurrently, differing by seed.
+    default_variants: int = 2
+    max_variants: int = 4
     generation_steps: int = 30
     generation_guidance: float = 7.5
 
@@ -120,6 +150,16 @@ def get_settings() -> Settings:
     return settings
 
 
-def is_locked(category: str) -> bool:
-    """Lock decision for a category, defaulting to locked when unknown."""
-    return LOCK_POLICY.get(category, True)
+def resolve_profile(profile: str | None) -> dict[str, bool]:
+    """Look up a lock profile by name, falling back to the default."""
+    return LOCK_PROFILES.get((profile or DEFAULT_PROFILE).strip().lower(),
+                             LOCK_PROFILES[DEFAULT_PROFILE])
+
+
+def is_locked(category: str, profile: str | None = None) -> bool:
+    """Lock decision for a category, defaulting to locked when unknown.
+
+    An unknown category is always locked regardless of profile: the profiles
+    only speak for categories they actually list.
+    """
+    return resolve_profile(profile).get(category, True)

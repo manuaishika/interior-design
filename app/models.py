@@ -55,6 +55,7 @@ class RoomAnalysis(BaseModel):
     image_width: int
     image_height: int
     objects: list[RoomObject]
+    lock_profile: str = "renovate"
 
     # Debugging counters — how many masks SAM2 produced vs. how many survived
     # filtering and got labeled.
@@ -79,6 +80,8 @@ class GenerationResult(BaseModel):
         ),
     )
     prompt: str
+    seed: int | None = None
+    variant_index: int = 0
 
 
 class AnalyzeResponse(BaseModel):
@@ -86,7 +89,13 @@ class AnalyzeResponse(BaseModel):
 
 
 class GenerateResponse(BaseModel):
-    """Both halves of the deliverable: the image and the structured JSON."""
+    """Both halves of the deliverable: the images and the structured JSON.
+
+    One analysis, N rendered options. The analysis is shared because every
+    option is constrained by the same locked-region mask — the options differ
+    in what the generator invents inside the editable area, never in which
+    parts of the room are allowed to change.
+    """
 
     analysis: RoomAnalysis
-    generation: GenerationResult
+    generations: list[GenerationResult]

@@ -1,7 +1,7 @@
 # AI Interior Design — room-aware generation
 
-Upload a room photo, pick a style, get a restyled room back — with doors,
-windows and walkways left untouched.
+Upload a room photo, pick a style, get back a few renovation options — with
+doors, windows and walkways left untouched.
 
 The flow is `upload → analyze → style → generate`. The analysis step segments
 the room, labels each region with a vision-language model, and turns the locked
@@ -31,9 +31,9 @@ Open http://localhost:8000.
 
 | Endpoint | Purpose |
 | --- | --- |
-| `POST /api/generate` | upload + style → generated image **and** analysis JSON |
+| `POST /api/generate` | upload + style → N design options **and** analysis JSON |
 | `POST /api/analyze` | upload → analysis JSON only (inspect what was detected) |
-| `GET /api/styles` | style presets and the active lock policy |
+| `GET /api/styles` | style presets and both lock profiles |
 | `GET /api/health` | which credentials and models are configured |
 
 ```bash
@@ -58,14 +58,27 @@ curl -X POST localhost:8000/api/generate \
         "locked": true,  "category": "window",   "confidence": 0.97 }
     ]
   },
-  "generation": {
-    "image_base64": "iVBORw0…",
-    "inpaint_mask_base64": "iVBORw0…",
-    "image_url": "https://replicate.delivery/…",
-    "prompt": "Interior design photograph of this room restyled in Japandi…"
-  }
+  "generations": [
+    { "image_base64": "iVBORw0…", "seed": 88412, "variant_index": 0,
+      "inpaint_mask_base64": "iVBORw0…",
+      "prompt": "Interior design photograph of this room restyled in Japandi…" },
+    { "image_base64": "iVBORw0…", "seed": 88413, "variant_index": 1,
+      "inpaint_mask_base64": "iVBORw0…", "prompt": "…" }
+  ]
 }
 ```
+
+### Options
+
+`variants=N` (default 2, max 4) renders N design options. Analysis runs **once**
+and is shared: segmentation and labeling are the slow, expensive part, and every
+option is constrained by the same locked-region mask. The options differ only in
+what the generator invents inside the editable area — never in which parts of
+the room are allowed to change.
+
+Options are rendered concurrently and differ by seed. Passing `seed=` anchors
+the run so a set of options can be reproduced exactly. If one option fails, the
+others are still returned; only a clean sweep of failures is an error.
 
 `inpaint_mask_base64` is the mask actually sent to the generator — white was
 regenerated, black was preserved. The UI renders it next to the result, which
@@ -73,14 +86,28 @@ is the fastest way to see whether a door really got protected.
 
 ## How the locking works
 
-Each labeled category maps to a lock decision in `app/config.py:LOCK_POLICY`:
+Each labeled category maps to a lock decision in `app/config.py:LOCK_PROFILES`:
 
-| Category | Locked | Why |
-| --- | --- | --- |
-| `door`, `window`, `walkway` | **yes** | per spec — structure and circulation stay put |
-| `furniture`, `floor` | no | per spec — the things being restyled |
-| `wall` | no | *see note below* |
-| `other` | **yes** | an unidentified region is safer preserved |
+| Category | `renovate` | `restyle` | Why |
+| --- | --- | --- | --- |
+| `door`, `window`, `walkway` | **locked** | **locked** | structure and circulation stay put |
+| `furniture`, `floor` | editable | editable | the things being redesigned |
+| `clutter` | editable | editable | laundry, bags, bottles — a renovation clears these away |
+| `wall` | editable | editable | *see note below* |
+| `other` | editable | **locked** | the only difference between the profiles |
+
+Two profiles, selected per request with `profile=`:
+
+- **`renovate`** (default) — full redesign. An unidentified region gets
+  regenerated, because frozen islands scattered through a renovation look worse
+  than re-imagined ones.
+- **`restyle`** — conservative. An unidentified region is preserved. Use when
+  the room should stay recognisably itself.
+
+`clutter` is a category of its own rather than a flavour of `furniture` or
+`other`. Real room photos are full of carrier bags, laundry and water bottles,
+and a renovation render is supposed to make them disappear. Sweeping them into
+`other` would have preserved them under `restyle`.
 
 Two deliberate choices in `imaging.build_inpaint_mask`:
 
@@ -100,7 +127,7 @@ The spec named doors, windows and walkways as locked, and furniture and open
 floor as unlocked. Walls were not specified, so they default to **unlocked** —
 repainting walls is a core interior-design edit and locking them would freeze
 the largest surface in most rooms. If you would rather preserve room geometry
-completely, flip `"wall": True` in `LOCK_POLICY`.
+completely, flip `"wall": True` in the relevant profile in `LOCK_PROFILES`.
 
 ## Cost control
 
@@ -124,7 +151,7 @@ the mask ids.
 .venv/bin/python -m pytest
 ```
 
-82 tests, no network calls. SAM2, the VLM, and the generator are stubbed;
+95 tests, no network calls. SAM2, the VLM, and the generator are stubbed;
 everything between the upload bytes and the generator payload is real code —
 image normalisation, mask filtering, bbox extraction, lock policy, and mask
 composition.
@@ -141,6 +168,29 @@ composition.
 - **Inpainting** defaults to `stability-ai/stable-diffusion-inpainting`. If you
   swap in an endpoint that treats black as "repaint this", set
   `INVERT_INPAINT_MASK=true`.
+
+## Where a product catalog plugs in
+
+Catalog matching is not implemented. The seam is already there, though: every
+unlocked `furniture` object in the analysis JSON carries exactly the fields a
+product lookup needs.
+
+```
+{ "label": "sofa", "mask_id": "mask_003", "category": "furniture",
+  "bounding_box": {...}, "area_frac": 0.075, "locked": false }
+```
+
+`label` is the query key, `bounding_box` gives the slot's position and rough
+scale, and `locked: false` marks it as something being replaced. A matching
+layer would sit between `analyze_room` and `compose_inpaint_mask` in
+`pipeline.py`, resolving each unlocked furniture label to a catalog SKU and
+feeding the chosen product names into `build_prompt`, so the render reflects
+products that actually exist.
+
+Note that this changes the generation strategy: text-prompted inpainting can be
+steered *towards* a product ("a low walnut platform bed") but cannot reproduce a
+specific SKU faithfully. Rendering the actual catalog item generally needs a
+reference-image-conditioned model rather than a text prompt.
 
 ## Not implemented
 

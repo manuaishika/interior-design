@@ -55,8 +55,9 @@ class TestMetaEndpoints:
     def test_styles_include_lock_policy(self, client):
         body = client.get("/api/styles").json()
         assert any(s["id"] == "japandi" for s in body["styles"])
-        assert body["lock_policy"]["door"] is True
-        assert body["lock_policy"]["furniture"] is False
+        assert body["lock_profiles"]["renovate"]["door"] is True
+        assert body["lock_profiles"]["renovate"]["furniture"] is False
+        assert body["lock_profiles"]["renovate"]["clutter"] is False
 
     def test_ui_is_served(self, client):
         res = client.get("/")
@@ -66,27 +67,57 @@ class TestMetaEndpoints:
 class TestGenerateEndpoint:
     def test_returns_image_and_json(self, client, monkeypatch):
         async def fake_pipeline(data, style, settings, **kwargs):
-            return ANALYSIS, GENERATION
+            return ANALYSIS, [GENERATION]
 
         monkeypatch.setattr("app.main.run_pipeline", fake_pipeline)
         res = client.post("/api/generate", files=upload(), data={"style": "japandi"})
         assert res.status_code == 200
 
         body = res.json()
-        assert body["generation"]["image_base64"] == "aW1hZ2U="
-        assert body["generation"]["inpaint_mask_base64"] == "bWFzaw=="
+        assert body["generations"][0]["image_base64"] == "aW1hZ2U="
+        assert body["generations"][0]["inpaint_mask_base64"] == "bWFzaw=="
         assert len(body["analysis"]["objects"]) == 2
 
         door = next(o for o in body["analysis"]["objects"] if o["label"] == "door")
         assert door["locked"] is True
         assert door["bounding_box"] == {"x": 40, "y": 5, "width": 12, "height": 40}
 
+    def test_returns_several_options(self, client, monkeypatch):
+        async def fake_pipeline(data, style, settings, **kwargs):
+            return ANALYSIS, [
+                GENERATION.model_copy(update={"variant_index": i, "seed": 100 + i})
+                for i in range(3)
+            ]
+
+        monkeypatch.setattr("app.main.run_pipeline", fake_pipeline)
+        body = client.post(
+            "/api/generate", files=upload(),
+            data={"style": "japandi", "variants": 3},
+        ).json()
+        assert [g["variant_index"] for g in body["generations"]] == [0, 1, 2]
+        assert [g["seed"] for g in body["generations"]] == [100, 101, 102]
+
+    def test_forwards_variant_and_profile(self, client, monkeypatch):
+        captured = {}
+
+        async def fake_pipeline(data, style, settings, **kwargs):
+            captured.update(kwargs)
+            return ANALYSIS, [GENERATION]
+
+        monkeypatch.setattr("app.main.run_pipeline", fake_pipeline)
+        client.post(
+            "/api/generate", files=upload(),
+            data={"style": "japandi", "variants": 4, "profile": "restyle"},
+        )
+        assert captured["variants"] == 4
+        assert captured["profile"] == "restyle"
+
     def test_forwards_user_keep_replace_choices(self, client, monkeypatch):
         captured = {}
 
         async def fake_pipeline(data, style, settings, **kwargs):
             captured.update(kwargs)
-            return ANALYSIS, GENERATION
+            return ANALYSIS, [GENERATION]
 
         monkeypatch.setattr("app.main.run_pipeline", fake_pipeline)
         client.post(

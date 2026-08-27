@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from PIL import Image
 
-from app.config import LOCK_POLICY, Settings, is_locked
+from app.config import LOCK_PROFILES, Settings, is_locked
 from app.imaging import Mask
 from app.labeling import RegionLabel, _clean
 from app.generation import STYLES, build_prompt, _extract_image_ref, GenerationError
@@ -28,9 +28,22 @@ class TestLockPolicy:
     def test_unknown_category_defaults_locked(self):
         assert is_locked("chandelier-of-mystery") is True
 
-    def test_other_is_locked(self):
-        """A region the VLM could not identify is preserved, not regenerated."""
-        assert LOCK_POLICY["other"] is True
+    def test_clutter_is_always_unlocked(self):
+        """A renovation clears the mess out; it never preserves it."""
+        assert is_locked("clutter", "renovate") is False
+        assert is_locked("clutter", "restyle") is False
+
+    def test_profiles_differ_only_on_unidentified_regions(self):
+        assert is_locked("other", "restyle") is True
+        assert is_locked("other", "renovate") is False
+
+    def test_structure_is_locked_in_every_profile(self):
+        for name in LOCK_PROFILES:
+            for category in ("door", "window", "walkway"):
+                assert is_locked(category, name) is True, (name, category)
+
+    def test_unknown_profile_falls_back_to_default(self):
+        assert is_locked("door", "nonsense-profile") is True
 
 
 class TestLabelCleaning:
@@ -57,8 +70,17 @@ class TestLabelCleaning:
     def test_missing_name_falls_back_to_category(self):
         assert _clean({"category": "furniture"}, "m1").name == "furniture"
 
-    def test_unknown_fallback_is_locked_category(self):
-        assert is_locked(RegionLabel.unknown("m1", "boom").category) is True
+    def test_unknown_fallback_lands_in_other_at_zero_confidence(self):
+        label = RegionLabel.unknown("m1", "boom")
+        assert label.category == "other" and label.confidence == 0.0
+        # "restyle" preserves it; "renovate" re-imagines it.
+        assert is_locked(label.category, "restyle") is True
+        assert is_locked(label.category, "renovate") is False
+
+    def test_clutter_keeps_a_specific_name(self):
+        label = _clean({"category": "clutter", "name": "carrier bag",
+                        "confidence": 0.7, "notes": ""}, "m1")
+        assert label.category == "clutter" and label.name == "carrier bag"
 
 
 class TestOutputNormalisers:
@@ -230,16 +252,59 @@ class TestAnalyzeRoom:
         assert analysis.objects[0].locked is True
         assert arr[50, 50] == 0
 
-    async def test_failed_label_region_is_locked(self, monkeypatch, settings):
+    async def test_failed_label_is_preserved_under_restyle(
+        self, monkeypatch, settings
+    ):
         masks = [Mask("mask_000", region(100, 100, 10, 40, 10, 40))]
         labels = {"mask_000": RegionLabel.unknown("mask_000", "api error")}
+        FakeAnalysis(monkeypatch, masks, labels)
+        image = Image.new("RGB", (100, 100))
+        analysis, mask_map = await analyze_room(image, settings, profile="restyle")
+        arr = np.array(compose_inpaint_mask(analysis, mask_map, settings))
+
+        assert analysis.objects[0].locked is True
+        assert arr[25, 25] == 0
+
+    async def test_failed_label_is_regenerated_under_renovate(
+        self, monkeypatch, settings
+    ):
+        masks = [Mask("mask_000", region(100, 100, 10, 40, 10, 40))]
+        labels = {"mask_000": RegionLabel.unknown("mask_000", "api error")}
+        FakeAnalysis(monkeypatch, masks, labels)
+        image = Image.new("RGB", (100, 100))
+        analysis, mask_map = await analyze_room(image, settings, profile="renovate")
+        arr = np.array(compose_inpaint_mask(analysis, mask_map, settings))
+
+        assert analysis.objects[0].locked is False
+        assert arr[25, 25] == 255
+
+    async def test_clutter_is_cleared_away(self, monkeypatch, settings):
+        """The carrier bag on the floor must not survive a renovation."""
+        masks = [
+            Mask("mask_000", region(100, 100, 70, 90, 70, 90)),   # carrier bag
+            Mask("mask_001", region(100, 100, 20, 80, 0, 12)),    # door
+        ]
+        labels = {
+            "mask_000": RegionLabel("mask_000", "clutter", "carrier bag", 0.8),
+            "mask_001": RegionLabel("mask_001", "door", "door", 0.9),
+        }
         FakeAnalysis(monkeypatch, masks, labels)
         image = Image.new("RGB", (100, 100))
         analysis, mask_map = await analyze_room(image, settings)
         arr = np.array(compose_inpaint_mask(analysis, mask_map, settings))
 
-        assert analysis.objects[0].locked is True
-        assert arr[25, 25] == 0
+        bag = next(o for o in analysis.objects if o.mask_id == "mask_000")
+        assert bag.locked is False
+        assert arr[80, 80] == 255   # bag regenerated away
+        assert arr[50, 5] == 0      # door still protected
+
+    async def test_profile_is_reported_in_the_json(self, monkeypatch, settings, scene):
+        masks, labels = scene
+        FakeAnalysis(monkeypatch, masks, labels)
+        analysis, _ = await analyze_room(
+            Image.new("RGB", (100, 100)), settings, profile="restyle"
+        )
+        assert analysis.lock_profile == "restyle"
 
     async def test_counters_report_filtering(self, monkeypatch, settings, scene):
         masks, labels = scene

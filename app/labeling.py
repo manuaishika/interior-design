@@ -31,21 +31,28 @@ You get two images of the SAME region:
 2. CROP — a close-up of that region.
 
 Classify the region into exactly one category:
-- "furniture"  a movable furnishing or decor object (sofa, chair, table, bed,
-               rug, lamp, plant, artwork, cushion, shelf, cabinet)
+- "furniture"  a movable furnishing or decor object in reasonable condition
+               (sofa, chair, table, bed, wardrobe, rug, lamp, plant, artwork,
+               cushion, shelf, cabinet, ceiling fan)
+- "clutter"    loose mess that a renovation would clear away: laundry, carrier
+               bags, bin bags, stacked paperwork, water bottles, loose cables,
+               shoes on the floor, worn bedding, odds and ends on a desk
 - "door"       a doorway, door leaf, or door frame
 - "window"     a window, its frame, or its glazing
 - "wall"       a flat vertical wall surface
 - "floor"      a floor surface with nothing standing on it
 - "walkway"    open circulation space people walk through: the path between
                furniture, in front of a door, or through the middle of a room
-- "other"      none of the above, or too ambiguous to call (ceiling, clutter,
-               a segmentation artefact, a region spanning several things)
+- "other"      none of the above, or too ambiguous to call (ceiling, a
+               segmentation artefact, a region spanning several things)
 
 Rules:
 - Judge the region inside the red box, not the whole room.
-- For "furniture", set `name` to the specific item ("sofa", "coffee table",
-  "floor lamp"). For every other category, set `name` to the category itself.
+- For "furniture" and "clutter", set `name` to the specific thing ("sofa",
+  "coffee table", "laundry pile", "carrier bag"). For every other category,
+  set `name` to the category itself.
+- Distinguish the two by whether a designer would keep the object or bin it: a
+  wardrobe is furniture, the clothes draped over its door are clutter.
 - Prefer "walkway" over "floor" when the area reads as a route between or
   around furniture rather than incidental floor.
 - Use "other" rather than guessing. A wrong "floor" on a doorway is worse than
@@ -82,9 +89,9 @@ class RegionLabel:
     def unknown(cls, mask_id: str, reason: str) -> "RegionLabel":
         """Fallback when labeling fails.
 
-        Deliberately "other" with zero confidence: config.LOCK_POLICY locks
-        "other", so a region we failed to identify is preserved rather than
-        regenerated.
+        Deliberately "other" with zero confidence, which the "restyle" profile
+        preserves and the "renovate" profile regenerates. Either way the region
+        is flagged with confidence 0.0 so it is obvious in the debug JSON.
         """
         return cls(
             mask_id=mask_id,
@@ -102,9 +109,9 @@ def _clean(raw: dict, mask_id: str) -> RegionLabel:
         category = "other"
 
     name = str(raw.get("name") or "").strip() or category
-    if category != "furniture":
-        # Only furniture carries a distinct item name; keep the rest canonical
-        # so downstream label comparisons stay simple.
+    if category not in ("furniture", "clutter"):
+        # Only furniture and clutter carry a distinct item name; keep the rest
+        # canonical so downstream label comparisons stay simple.
         name = category
 
     try:
@@ -181,8 +188,8 @@ async def label_masks(
 ) -> list[RegionLabel]:
     """Label every mask concurrently, bounded by `label_concurrency`.
 
-    One mask failing never fails the batch — it comes back as an "other" region,
-    which the lock policy treats as locked.
+    One mask failing never fails the batch — it comes back as an "other" region
+    at zero confidence, which the active lock profile then rules on.
     """
     if not masks:
         return []

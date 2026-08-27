@@ -6,11 +6,13 @@ is unchanged.
 
 from __future__ import annotations
 
+import asyncio
 import logging
+import random
 
 from PIL import Image
 
-from .config import Settings, is_locked
+from .config import DEFAULT_PROFILE, Settings, is_locked
 from .generation import build_prompt, encode_mask, generate_with_mask
 from .imaging import (
     Mask,
@@ -44,6 +46,7 @@ async def analyze_room(
     image: Image.Image,
     settings: Settings,
     *,
+    profile: str | None = None,
     keep_mask_ids: set[str] | None = None,
     replace_mask_ids: set[str] | None = None,
 ) -> tuple[RoomAnalysis, dict[str, Mask]]:
@@ -96,7 +99,7 @@ async def analyze_room(
         mask = by_id[label.mask_id]
         box = boxes[label.mask_id]
 
-        locked = is_locked(label.category)
+        locked = is_locked(label.category, profile)
         lock_source = "policy"
         if label.mask_id in keep_mask_ids:
             locked, lock_source = True, "user_override"
@@ -125,6 +128,7 @@ async def analyze_room(
         image_width=width,
         image_height=height,
         objects=objects,
+        lock_profile=(profile or DEFAULT_PROFILE).strip().lower(),
         masks_returned=len(raw_masks),
         masks_labeled=len(objects),
     )
@@ -162,28 +166,69 @@ async def run_pipeline(
     *,
     extra_prompt: str = "",
     seed: int | None = None,
+    variants: int | None = None,
+    profile: str | None = None,
     keep_mask_ids: set[str] | None = None,
     replace_mask_ids: set[str] | None = None,
-) -> tuple[RoomAnalysis, GenerationResult]:
-    """Full flow. Returns both the analysis JSON and the generated image."""
+) -> tuple[RoomAnalysis, list[GenerationResult]]:
+    """Full flow. Returns the analysis JSON and N rendered design options.
+
+    Analysis runs once and is shared across the options: segmentation and
+    labeling are the expensive, slow part, and every option is constrained by
+    the same locked-region mask anyway.
+    """
+    count = settings.default_variants if variants is None else variants
+    count = max(1, min(count, settings.max_variants))
+
     image = prepare_image(data, settings)
     analysis, masks = await analyze_room(
         image,
         settings,
+        profile=profile,
         keep_mask_ids=keep_mask_ids,
         replace_mask_ids=replace_mask_ids,
     )
 
     inpaint_mask = compose_inpaint_mask(analysis, masks, settings)
     prompt = build_prompt(style, extra_prompt)
-    image_b64, image_url = await generate_with_mask(
-        image, inpaint_mask, prompt, settings, seed=seed
+    mask_b64 = encode_mask(inpaint_mask)
+
+    # Distinct seeds are what make the options differ. A caller-supplied seed
+    # anchors the run so a set of options can be reproduced exactly.
+    base = seed if seed is not None else random.randrange(1, 2**31 - 1)
+    seeds = [base + offset for offset in range(count)]
+
+    log.info("Rendering %d option(s) with seeds %s", count, seeds)
+    rendered = await asyncio.gather(
+        *(
+            generate_with_mask(image, inpaint_mask, prompt, settings, seed=s)
+            for s in seeds
+        ),
+        return_exceptions=True,
     )
 
-    generation = GenerationResult(
-        image_base64=image_b64,
-        image_url=image_url,
-        inpaint_mask_base64=encode_mask(inpaint_mask),
-        prompt=prompt,
-    )
-    return analysis, generation
+    generations: list[GenerationResult] = []
+    failures: list[BaseException] = []
+    for index, (result, used_seed) in enumerate(zip(rendered, seeds)):
+        if isinstance(result, BaseException):
+            log.warning("Option %d failed: %s", index, result)
+            failures.append(result)
+            continue
+        image_b64, image_url = result
+        generations.append(
+            GenerationResult(
+                image_base64=image_b64,
+                image_url=image_url,
+                inpaint_mask_base64=mask_b64,
+                prompt=prompt,
+                seed=used_seed,
+                variant_index=index,
+            )
+        )
+
+    # Partial success is still useful — one usable option beats an error page.
+    # Only a clean sweep of failures is fatal.
+    if not generations:
+        raise failures[0]
+
+    return analysis, generations

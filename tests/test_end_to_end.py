@@ -66,11 +66,13 @@ def stub_services(monkeypatch):
     async def fake_label(image, masks, boxes, settings):
         return [labels[m.mask_id] for m in masks]
 
+    captured["seeds"] = []
+
     async def fake_generate(image, inpaint_mask, prompt, settings, seed=None):
         captured["image"] = image
         captured["mask"] = inpaint_mask
         captured["prompt"] = prompt
-        captured["seed"] = seed
+        captured["seeds"].append(seed)
         out = io.BytesIO()
         Image.new("RGB", image.size, (120, 130, 140)).save(out, format="PNG")
         return base64.b64encode(out.getvalue()).decode(), "https://example.test/o.png"
@@ -84,13 +86,15 @@ def stub_services(monkeypatch):
 @pytest.mark.asyncio
 class TestFullFlow:
     async def test_returns_both_image_and_json(self, settings, stub_services):
-        analysis, generation = await run_pipeline(
+        analysis, generations = await run_pipeline(
             upload_bytes(), "japandi", settings, seed=7
         )
         assert len(analysis.objects) == 4
-        assert base64.b64decode(generation.image_base64)[:4] == b"\x89PNG"
-        assert base64.b64decode(generation.inpaint_mask_base64)[:4] == b"\x89PNG"
-        assert "Japandi" in generation.prompt or "japandi" in generation.prompt.lower()
+        assert len(generations) == settings.default_variants
+        for generation in generations:
+            assert base64.b64decode(generation.image_base64)[:4] == b"\x89PNG"
+            assert base64.b64decode(generation.inpaint_mask_base64)[:4] == b"\x89PNG"
+            assert "japandi" in generation.prompt.lower()
 
     async def test_mask_and_image_dimensions_agree(self, settings, stub_services):
         analysis, _ = await run_pipeline(upload_bytes(), "japandi", settings)
@@ -141,10 +145,52 @@ class TestFullFlow:
     ):
         await run_pipeline(
             upload_bytes(), "industrial", settings,
-            extra_prompt="add a tall bookshelf", seed=1234,
+            extra_prompt="add a tall bookshelf", seed=1234, variants=2,
         )
-        assert stub_services["seed"] == 1234
+        # A caller-supplied seed anchors the run; each option steps off it.
+        assert sorted(stub_services["seeds"]) == [1234, 1235]
         assert "tall bookshelf" in stub_services["prompt"]
+
+    async def test_each_option_gets_a_distinct_seed(self, settings, stub_services):
+        _, generations = await run_pipeline(
+            upload_bytes(), "japandi", settings, variants=3
+        )
+        seeds = [g.seed for g in generations]
+        assert len(set(seeds)) == 3
+        assert [g.variant_index for g in generations] == [0, 1, 2]
+
+    async def test_variants_are_capped(self, settings, stub_services):
+        _, generations = await run_pipeline(
+            upload_bytes(), "japandi", settings, variants=99
+        )
+        assert len(generations) == settings.max_variants
+
+    async def test_every_option_shares_one_mask(self, settings, stub_services):
+        """Options differ in content, never in which regions may change."""
+        _, generations = await run_pipeline(
+            upload_bytes(), "japandi", settings, variants=3
+        )
+        assert len({g.inpaint_mask_base64 for g in generations}) == 1
+
+    async def test_one_failed_option_does_not_sink_the_batch(
+        self, settings, stub_services, monkeypatch
+    ):
+        calls = {"n": 0}
+        original = stub_services
+
+        async def flaky(image, mask, prompt, settings, seed=None):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                raise RuntimeError("generator hiccup")
+            out = io.BytesIO()
+            Image.new("RGB", image.size, (10, 20, 30)).save(out, format="PNG")
+            return base64.b64encode(out.getvalue()).decode(), None
+
+        monkeypatch.setattr("app.pipeline.generate_with_mask", flaky)
+        _, generations = await run_pipeline(
+            upload_bytes(), "japandi", settings, variants=3
+        )
+        assert len(generations) == 2
 
     async def test_user_keep_override_protects_the_sofa(self, settings, stub_services):
         analysis, _ = await run_pipeline(
