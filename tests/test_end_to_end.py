@@ -1,4 +1,4 @@
-"""End-to-end run of the full flow with only the two network calls stubbed.
+"""End-to-end run of the full flow with only the model calls stubbed.
 
 Everything between the upload bytes and the generator payload is real code:
 image normalisation, mask filtering, bbox extraction, lock policy, and mask
@@ -41,21 +41,6 @@ def stub_services(monkeypatch):
     """Stub SAM2 and the VLM; capture what the generator actually receives."""
     captured = {}
 
-    async def fake_segment(image, settings):
-        h, w = image.size[1], image.size[0]
-
-        def band(y0, y1, x0, x1):
-            arr = np.zeros((h, w), dtype=bool)
-            arr[int(h * y0):int(h * y1), int(w * x0):int(w * x1)] = True
-            return arr
-
-        return [
-            Mask("mask_000", band(0.55, 0.95, 0.02, 0.40)),  # sofa
-            Mask("mask_001", band(0.10, 0.70, 0.80, 0.98)),  # window
-            Mask("mask_002", band(0.45, 0.60, 0.00, 1.00)),  # walkway
-            Mask("mask_003", band(0.00, 0.35, 0.05, 0.35)),  # wall
-        ]
-
     labels = {
         "mask_000": RegionLabel("mask_000", "furniture", "sofa", 0.94),
         "mask_001": RegionLabel("mask_001", "window", "window", 0.91),
@@ -63,8 +48,21 @@ def stub_services(monkeypatch):
         "mask_003": RegionLabel("mask_003", "wall", "wall", 0.85),
     }
 
-    async def fake_label(image, masks, boxes, settings):
-        return [labels[m.mask_id] for m in masks]
+    async def fake_read(image, settings):
+        h, w = image.size[1], image.size[0]
+
+        def band(y0, y1, x0, x1):
+            arr = np.zeros((h, w), dtype=bool)
+            arr[int(h * y0):int(h * y1), int(w * x0):int(w * x1)] = True
+            return arr
+
+        masks = [
+            Mask("mask_000", band(0.55, 0.95, 0.02, 0.40)),  # sofa
+            Mask("mask_001", band(0.10, 0.70, 0.80, 0.98)),  # window
+            Mask("mask_002", band(0.45, 0.60, 0.00, 1.00)),  # walkway
+            Mask("mask_003", band(0.00, 0.35, 0.05, 0.35)),  # wall
+        ]
+        return masks, [labels[m.mask_id] for m in masks]
 
     captured["seeds"] = []
 
@@ -77,9 +75,8 @@ def stub_services(monkeypatch):
         Image.new("RGB", image.size, (120, 130, 140)).save(out, format="PNG")
         return base64.b64encode(out.getvalue()).decode(), "https://example.test/o.png"
 
-    monkeypatch.setattr("app.pipeline.segment_room", fake_segment)
-    monkeypatch.setattr("app.pipeline.label_masks", fake_label)
-    monkeypatch.setattr("app.pipeline.generate_with_mask", fake_generate)
+    monkeypatch.setattr("app.pipeline.read_room", fake_read)
+    monkeypatch.setattr("app.pipeline.render", fake_generate)
     return captured
 
 
@@ -186,7 +183,7 @@ class TestFullFlow:
             Image.new("RGB", image.size, (10, 20, 30)).save(out, format="PNG")
             return base64.b64encode(out.getvalue()).decode(), None
 
-        monkeypatch.setattr("app.pipeline.generate_with_mask", flaky)
+        monkeypatch.setattr("app.pipeline.render", flaky)
         _, generations = await run_pipeline(
             upload_bytes(), "japandi", settings, variants=3
         )

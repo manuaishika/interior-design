@@ -17,6 +17,38 @@ photo ──► SAM2 (Replicate)      ──► N masks
                        └──► locked regions ──► inpainting mask ──► generation
 ```
 
+## Two backends
+
+| | `hosted` (default) | `local` |
+| --- | --- | --- |
+| Segment | SAM2 on Replicate | SegFormer / ADE20K, in-process |
+| Label | GPT-4o, one call per region | *same pass as segmentation* |
+| Generate | SD inpainting on Replicate | SD inpainting via `diffusers` |
+| Needs | two paid accounts | **nothing** |
+| Speed | seconds | seconds on a GPU, minutes on CPU |
+
+Set with `BACKEND=local` or `Settings(backend="local")`.
+
+The keyless backend collapses the read and name passes into one: ADE20K's class
+list already names walls, floors, doors, windows and furnishings, so a single
+forward pass returns regions *already labelled* and the per-region
+vision-language calls disappear entirely.
+
+It is weaker in three specific ways, all of them worth knowing before you judge
+the output:
+
+- **Coarser labels.** `table`, never "reclaimed oak coffee table".
+- **Semantic, not per-instance.** Two chairs merge into one `chair` region.
+- **Walkways are inferred, not recognised.** ADE20K has no walkway class, so
+  circulation is derived as floor-minus-furniture (`local_models.derive_walkway`).
+  This is the one place the hosted backend is genuinely better.
+
+### Run it free, in Colab
+
+`notebooks/second_draft_colab.ipynb` runs the whole pipeline on Colab's free
+GPU with no keys and no card. Upload a room photo, pick a style, get several
+versions back. Open it from the repo with `File → Open notebook → GitHub`.
+
 ## Setup
 
 ```bash
@@ -151,7 +183,7 @@ the mask ids.
 .venv/bin/python -m pytest
 ```
 
-95 tests, no network calls. SAM2, the VLM, and the generator are stubbed;
+131 tests, no network calls. SAM2, the VLM, and the generator are stubbed;
 everything between the upload bytes and the generator payload is real code —
 image normalisation, mask filtering, bbox extraction, lock policy, and mask
 composition.
@@ -165,6 +197,10 @@ composition.
 - **GPT-4V**: the original `gpt-4-vision-preview` checkpoint has been retired
   by OpenAI. `gpt-4o` is its vision-capable successor and speaks the same
   message format; override with `VLM_MODEL`.
+- **Keyless models** default to `nvidia/segformer-b4-finetuned-ade-512-512` and
+  `runwayml/stable-diffusion-inpainting`, both open weights. SD 1.x inpainting is
+  trained at 512px, so the local backend generates at `LOCAL_GENERATION_SIZE` and
+  resizes back — generating larger than the model's native size produces mush.
 - **Inpainting** defaults to `stability-ai/stable-diffusion-inpainting`. If you
   swap in an endpoint that treats black as "repaint this", set
   `INVERT_INPAINT_MASK=true`.

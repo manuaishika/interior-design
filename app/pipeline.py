@@ -13,7 +13,7 @@ import random
 from PIL import Image
 
 from .config import DEFAULT_PROFILE, Settings, is_locked
-from .generation import build_prompt, encode_mask, generate_with_mask
+from .generation import build_prompt, encode_mask
 from .imaging import (
     Mask,
     build_inpaint_mask,
@@ -24,11 +24,67 @@ from .imaging import (
     mask_bounding_box,
     snap_to_multiple,
 )
-from .labeling import label_masks
 from .models import GenerationResult, RoomAnalysis, RoomObject
-from .segmentation import segment_room
 
 log = logging.getLogger(__name__)
+
+
+def _is_local(settings: Settings) -> bool:
+    return settings.backend.strip().lower() == "local"
+
+
+async def read_room(image: Image.Image, settings: Settings):
+    """Passes 1a-1b: get regions and their labels, whichever backend is active.
+
+    The hosted backend segments and labels in two steps (SAM2, then a VLM per
+    region); the keyless one does both in a single forward pass. Everything
+    downstream sees the same masks and labels either way.
+
+    Imports are deferred so that neither backend's dependencies are required by
+    the other — a keyless Colab run never imports `replicate` or `openai`.
+    """
+    if _is_local(settings):
+        from .local_models import segment_and_label_local
+
+        return await segment_and_label_local(image, settings)
+
+    from .labeling import label_masks
+    from .segmentation import segment_room
+
+    raw_masks = await segment_room(image, settings)
+    kept = filter_masks(
+        raw_masks,
+        image_area=image.size[0] * image.size[1],
+        min_area_frac=settings.min_mask_area_frac,
+        max_area_frac=settings.max_mask_area_frac,
+        dedupe_iou_thresh=settings.dedupe_iou_thresh,
+        max_masks=settings.max_masks,
+    )
+    log.info("Kept %d of %d masks after filtering", len(kept), len(raw_masks))
+
+    boxes = {}
+    labelable = []
+    for mask in kept:
+        box = mask_bounding_box(mask.array)
+        if box is None:
+            continue
+        boxes[mask.mask_id] = box
+        labelable.append(mask)
+
+    labels = await label_masks(image, labelable, boxes, settings)
+    return labelable, labels
+
+
+async def render(image, inpaint_mask, prompt, settings, seed=None):
+    """Pass 4, on whichever backend is active."""
+    if _is_local(settings):
+        from .local_models import generate_with_mask_local
+
+        return await generate_with_mask_local(image, inpaint_mask, prompt, settings, seed=seed)
+
+    from .generation import generate_with_mask
+
+    return await generate_with_mask(image, inpaint_mask, prompt, settings, seed=seed)
 
 
 def prepare_image(data: bytes, settings: Settings) -> Image.Image:
@@ -67,35 +123,24 @@ async def analyze_room(
     width, height = image.size
     image_area = width * height
 
-    # 1a — SAM2
-    raw_masks = await segment_room(image, settings)
-
-    kept = filter_masks(
-        raw_masks,
-        image_area=image_area,
-        min_area_frac=settings.min_mask_area_frac,
-        max_area_frac=settings.max_mask_area_frac,
-        dedupe_iou_thresh=settings.dedupe_iou_thresh,
-        max_masks=settings.max_masks,
-    )
-    log.info("Kept %d of %d masks after filtering", len(kept), len(raw_masks))
+    # 1a + 1b — regions and their labels
+    masks, labels = await read_room(image, settings)
 
     boxes = {}
-    labelable: list[Mask] = []
-    for mask in kept:
+    usable = []
+    for mask in masks:
         box = mask_bounding_box(mask.array)
         if box is None:
             continue
         boxes[mask.mask_id] = box
-        labelable.append(mask)
-
-    # 1b — vision-language labeling
-    labels = await label_masks(image, labelable, boxes, settings)
+        usable.append(mask)
 
     # 1c — structured JSON
-    by_id = {mask.mask_id: mask for mask in labelable}
+    by_id = {mask.mask_id: mask for mask in usable}
     objects: list[RoomObject] = []
     for label in labels:
+        if label.mask_id not in by_id:
+            continue
         mask = by_id[label.mask_id]
         box = boxes[label.mask_id]
 
@@ -129,7 +174,7 @@ async def analyze_room(
         image_height=height,
         objects=objects,
         lock_profile=(profile or DEFAULT_PROFILE).strip().lower(),
-        masks_returned=len(raw_masks),
+        masks_returned=len(masks),
         masks_labeled=len(objects),
     )
     return analysis, by_id
@@ -201,7 +246,7 @@ async def run_pipeline(
     log.info("Rendering %d option(s) with seeds %s", count, seeds)
     rendered = await asyncio.gather(
         *(
-            generate_with_mask(image, inpaint_mask, prompt, settings, seed=s)
+            render(image, inpaint_mask, prompt, settings, seed=s)
             for s in seeds
         ),
         return_exceptions=True,

@@ -86,6 +86,19 @@ class Settings(BaseSettings):
     replicate_api_token: str = ""
     openai_api_key: str = ""
 
+    # --- backend -----------------------------------------------------------
+    # "hosted" calls Replicate + OpenAI and needs two paid accounts.
+    # "local"  runs open-weight models in-process and needs no keys at all.
+    backend: str = "hosted"
+
+    # --- keyless (local) models ---------------------------------------------
+    # One ADE20K segmentation model replaces both SAM2 and the VLM: its class
+    # list already names walls, floors, doors, windows and furnishings.
+    local_seg_model: str = "nvidia/segformer-b4-finetuned-ade-512-512"
+    local_inpaint_model: str = "runwayml/stable-diffusion-inpainting"
+    # SD 1.x inpainting is trained at 512; generating larger produces mush.
+    local_generation_size: int = 512
+
     # --- hosted models -----------------------------------------------------
     # SAM2 in automatic-mask-generation mode. Unpinned so Replicate resolves the
     # latest version; pin to "meta/sam-2:<version-sha>" for reproducibility.

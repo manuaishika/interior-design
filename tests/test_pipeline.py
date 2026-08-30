@@ -124,17 +124,17 @@ class TestPrompt:
 
 
 class FakeAnalysis:
-    """Drives analyze_room with stubbed SAM2 + VLM calls."""
+    """Drives analyze_room with the read pass stubbed.
+
+    `read_room` is the seam both backends meet at, so patching it exercises the
+    same code whichever backend would have produced the regions.
+    """
 
     def __init__(self, monkeypatch, masks, labels):
-        async def fake_segment(image, settings):
-            return masks
+        async def fake_read(image, settings):
+            return masks, [labels[m.mask_id] for m in masks]
 
-        async def fake_label(image, ms, boxes, settings):
-            return [labels[m.mask_id] for m in ms]
-
-        monkeypatch.setattr("app.pipeline.segment_room", fake_segment)
-        monkeypatch.setattr("app.pipeline.label_masks", fake_label)
+        monkeypatch.setattr("app.pipeline.read_room", fake_read)
 
 
 @pytest.fixture
