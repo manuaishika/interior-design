@@ -1,7 +1,8 @@
 """FastAPI surface for the interior-design prototype.
 
 Endpoints:
-    GET  /                 the upload -> style -> generate UI
+    GET  /                 the site: hero, studio (upload -> style -> generate),
+                           method, gallery
     GET  /api/styles       available style presets
     POST /api/analyze      upload -> structured room JSON (analysis only)
     POST /api/generate     upload + style -> generated image AND room JSON
@@ -58,7 +59,8 @@ async def _read_upload(photo: UploadFile, settings: Settings) -> bytes:
 
 @app.get("/", include_in_schema=False)
 async def index():
-    page = STATIC_DIR / "index.html"
+    """The site. The studio section posts back to the endpoints below."""
+    page = STATIC_DIR / "showcase.html"
     if not page.is_file():
         raise HTTPException(404, "UI not installed")
     return FileResponse(page)

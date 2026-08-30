@@ -4,7 +4,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,300;1,6..72,400&family=Karla:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
 
 <style>
-  /* ---- light palette (complete, on bare :root) ---------------------- */
+  /* ---------- tokens: complete light palette on bare :root ---------- */
   :root {
     --paper:      #FBFAF7;
     --plaster:    #F1EEE8;
@@ -12,11 +12,12 @@
     --line:       #DCD7CC;
     --ink:        #1D2127;
     --graphite:   #5D6470;
-    --pigment:    #3E5C70;   /* the room's blue wall, desaturated */
+    --pigment:    #3E5C70;
     --pigment-lo: #7A96A8;
-    --brass:      #9C7A4E;   /* reserved: things that are held */
+    --brass:      #9C7A4E;
     --brass-lo:   #C4A87E;
     --field:      rgba(62, 92, 112, .34);
+    --scrim:      rgba(251, 250, 247, .88);
 
     --shadow: 0 1px 2px rgba(29,33,39,.04), 0 8px 24px rgba(29,33,39,.06);
 
@@ -24,42 +25,35 @@
     --step-0:  clamp(1rem, .97rem + .16vw, 1.09rem);
     --step-1:  clamp(1.28rem, 1.2rem + .38vw, 1.55rem);
     --step-2:  clamp(1.7rem, 1.5rem + .9vw, 2.4rem);
-    --step-3:  clamp(2.4rem, 1.9rem + 2.3vw, 4.2rem);
+    --step-3:  clamp(2.3rem, 1.85rem + 2.2vw, 4rem);
     --measure: 63ch;
+    --nav-h: 58px;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --paper:      #14171B;
-      --plaster:    #1B1F24;
-      --plaster-2:  #232830;
-      --line:       #2E343D;
-      --ink:        #EDEAE4;
-      --graphite:   #9AA2AE;
-      --pigment:    #93B4C8;
-      --pigment-lo: #5D7C90;
-      --brass:      #CFAC79;
-      --brass-lo:   #8E7248;
-      --field:      rgba(147, 180, 200, .30);
+      --paper: #14171B; --plaster: #1B1F24; --plaster-2: #232830;
+      --line: #2E343D; --ink: #EDEAE4; --graphite: #9AA2AE;
+      --pigment: #93B4C8; --pigment-lo: #5D7C90;
+      --brass: #CFAC79; --brass-lo: #8E7248;
+      --field: rgba(147, 180, 200, .30);
+      --scrim: rgba(20, 23, 27, .88);
       --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 28px rgba(0,0,0,.34);
     }
   }
   :root[data-theme="dark"] {
-    --paper:      #14171B;
-    --plaster:    #1B1F24;
-    --plaster-2:  #232830;
-    --line:       #2E343D;
-    --ink:        #EDEAE4;
-    --graphite:   #9AA2AE;
-    --pigment:    #93B4C8;
-    --pigment-lo: #5D7C90;
-    --brass:      #CFAC79;
-    --brass-lo:   #8E7248;
-    --field:      rgba(147, 180, 200, .30);
+    --paper: #14171B; --plaster: #1B1F24; --plaster-2: #232830;
+    --line: #2E343D; --ink: #EDEAE4; --graphite: #9AA2AE;
+    --pigment: #93B4C8; --pigment-lo: #5D7C90;
+    --brass: #CFAC79; --brass-lo: #8E7248;
+    --field: rgba(147, 180, 200, .30);
+    --scrim: rgba(20, 23, 27, .88);
     --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 28px rgba(0,0,0,.34);
   }
 
   * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
   body {
+    margin: 0;
     background: var(--paper);
     color: var(--ink);
     font-family: "Karla", ui-sans-serif, system-ui, sans-serif;
@@ -71,219 +65,282 @@
 
   h1, h2, h3 {
     font-family: "Newsreader", Georgia, serif;
-    font-weight: 400;
-    text-wrap: balance;
-    line-height: 1.12;
-    letter-spacing: -.012em;
+    font-weight: 400; text-wrap: balance; line-height: 1.12;
+    letter-spacing: -.012em; margin: 0;
   }
-  em { font-style: italic; }
   p { max-width: var(--measure); }
-
   .eyebrow {
     font-family: "JetBrains Mono", ui-monospace, monospace;
-    font-size: var(--step--1);
-    letter-spacing: .14em;
-    text-transform: uppercase;
-    color: var(--graphite);
+    font-size: var(--step--1); letter-spacing: .14em;
+    text-transform: uppercase; color: var(--graphite);
   }
 
-  /* ---- masthead ------------------------------------------------------ */
-  .masthead {
-    display: flex; align-items: baseline; justify-content: space-between;
-    gap: 1rem; flex-wrap: wrap;
-    padding: 1.6rem 0 0;
+  /* ---------- navigation ---------- */
+  .nav {
+    position: sticky; top: 0; z-index: 40;
+    height: var(--nav-h);
+    display: flex; align-items: center;
+    background: var(--scrim);
+    backdrop-filter: blur(9px);
+    border-bottom: 1px solid var(--line);
   }
-  .mark {
+  .nav .wrap { display: flex; align-items: center; justify-content: space-between; gap: 1rem; width: 100%; }
+  .brand {
     font-family: "Newsreader", Georgia, serif;
-    font-size: var(--step-1);
-    letter-spacing: -.02em;
+    font-size: 1.2rem; letter-spacing: -.02em;
+    text-decoration: none; color: var(--ink); white-space: nowrap;
   }
-  .mark span { color: var(--pigment); font-style: italic; }
-  .studio {
+  .brand i { color: var(--pigment); font-style: italic; }
+  .nav-links { display: flex; gap: 1.5rem; align-items: center; }
+  .nav-links a {
     font-family: "JetBrains Mono", monospace;
-    font-size: var(--step--1);
-    color: var(--graphite);
-    letter-spacing: .06em;
+    font-size: var(--step--1); letter-spacing: .06em;
+    color: var(--graphite); text-decoration: none;
+    padding: .2rem 0; border-bottom: 1px solid transparent;
+    transition: color .16s, border-color .16s;
   }
+  .nav-links a:hover, .nav-links a.on { color: var(--ink); border-bottom-color: var(--pigment); }
+  .nav-cta {
+    font-family: "JetBrains Mono", monospace; font-size: var(--step--1);
+    letter-spacing: .08em; text-transform: uppercase;
+    text-decoration: none; color: var(--paper); background: var(--pigment);
+    padding: .48rem .95rem; border-radius: 2px; white-space: nowrap;
+  }
+  .nav-cta:hover { opacity: .88; }
+  @media (max-width: 820px) { .nav-links { display: none; } }
 
-  /* ---- hero ---------------------------------------------------------- */
-  .hero { padding: clamp(3rem, 8vw, 6.5rem) 0 clamp(2rem, 5vw, 4rem); }
+  /* ---------- layout primitives ---------- */
+  section { padding: clamp(3.5rem, 8vw, 6.5rem) 0; scroll-margin-top: var(--nav-h); }
+  .rule { border: 0; border-top: 1px solid var(--line); margin: 0; }
+  .sec-head { margin-bottom: clamp(2rem, 4vw, 3.2rem); }
+  .sec-head h2 { font-size: var(--step-2); margin-top: .7rem; max-width: 20ch; }
+
+  /* ---------- hero ---------- */
+  .hero { padding: clamp(3rem, 7vw, 5.5rem) 0 clamp(2rem, 4vw, 3rem); }
   .hero h1 { font-size: var(--step-3); margin: .8rem 0 1.4rem; max-width: 17ch; }
   .hero h1 em { color: var(--pigment); }
   .lede { font-size: var(--step-1); color: var(--graphite); line-height: 1.5; max-width: 46ch; }
+  .hero-actions { display: flex; gap: .7rem; flex-wrap: wrap; margin-top: 1.8rem; }
 
-  /* ---- the demonstration --------------------------------------------- */
+  .btn {
+    font-family: "JetBrains Mono", monospace; font-size: var(--step--1);
+    letter-spacing: .08em; text-transform: uppercase;
+    padding: .7rem 1.25rem; border-radius: 2px; cursor: pointer;
+    text-decoration: none; display: inline-block; border: 1px solid transparent;
+    transition: opacity .16s, border-color .16s, color .16s;
+  }
+  .btn.solid { background: var(--pigment); color: var(--paper); }
+  .btn.solid:hover { opacity: .88; }
+  .btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+  .btn.ghost:hover { border-color: var(--pigment); color: var(--pigment); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn:focus-visible, a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
+    outline: 2px solid var(--pigment); outline-offset: 2px;
+  }
+
+  /* ---------- the physics demonstration ---------- */
   .demo {
-    position: relative;
-    margin: clamp(2.5rem, 6vw, 4.5rem) 0 0;
-    background: var(--plaster);
-    border: 1px solid var(--line);
-    border-radius: 3px;
-    box-shadow: var(--shadow);
-    overflow: hidden;
+    position: relative; margin-top: clamp(2.5rem, 5vw, 4rem);
+    background: var(--plaster); border: 1px solid var(--line);
+    border-radius: 3px; box-shadow: var(--shadow); overflow: hidden;
   }
   .stage { position: relative; aspect-ratio: 1000 / 560; }
   .stage svg, .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
   .stage canvas { pointer-events: none; }
-
   .demo-foot {
-    display: flex; flex-wrap: wrap; gap: 1.4rem 2rem;
+    display: flex; flex-wrap: wrap; gap: 1rem 2rem;
     align-items: center; justify-content: space-between;
-    padding: .95rem 1.15rem;
-    border-top: 1px solid var(--line);
-    background: var(--paper);
+    padding: .9rem 1.1rem; border-top: 1px solid var(--line); background: var(--paper);
   }
   .keys { display: flex; gap: 1.4rem; flex-wrap: wrap; }
   .key {
     display: flex; align-items: center; gap: .5rem;
-    font-family: "JetBrains Mono", monospace;
-    font-size: var(--step--1);
-    color: var(--graphite);
+    font-family: "JetBrains Mono", monospace; font-size: var(--step--1); color: var(--graphite);
   }
   .swatch { width: 22px; height: 3px; border-radius: 2px; }
   .swatch.held { background: var(--brass); }
   .swatch.open { background: var(--pigment); }
 
-  .toggle {
-    font-family: "JetBrains Mono", monospace;
-    font-size: var(--step--1);
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    background: transparent;
+  /* ---------- studio (the working tool) ---------- */
+  .studio-bg { background: var(--plaster); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .status {
+    display: inline-flex; align-items: center; gap: .55rem;
+    font-family: "JetBrains Mono", monospace; font-size: var(--step--1);
+    color: var(--graphite); border: 1px solid var(--line);
+    background: var(--paper); border-radius: 2px; padding: .4rem .75rem;
+    margin-bottom: 1.6rem;
+  }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--graphite); flex: none; }
+  .dot.live { background: #4B7F52; }
+  .dot.warn { background: var(--brass); }
+
+  .studio { display: grid; gap: 1.1rem; }
+  @media (min-width: 900px) { .studio { grid-template-columns: 1fr 1.15fr; align-items: start; } }
+  .panel { background: var(--paper); border: 1px solid var(--line); border-radius: 3px; padding: 1.3rem; }
+  .panel > h3 { font-size: var(--step-1); margin-bottom: .3rem; }
+  .panel .hint { color: var(--graphite); font-size: var(--step--1); margin: 0 0 1.1rem; }
+
+  .drop {
+    border: 1px dashed var(--line); border-radius: 3px; background: var(--plaster);
+    padding: 2rem 1.2rem; text-align: center; cursor: pointer;
+    transition: border-color .16s, background .16s;
+  }
+  .drop:hover, .drop.over { border-color: var(--pigment); background: var(--plaster-2); }
+  .drop .big { font-family: "Newsreader", Georgia, serif; font-size: var(--step-1); display: block; }
+  .drop .sm { font-family: "JetBrains Mono", monospace; font-size: var(--step--1); color: var(--graphite); }
+  .drop img { max-width: 100%; border-radius: 2px; display: block; margin: 0 auto; }
+  input[type=file] { display: none; }
+
+  .styles { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: .55rem; }
+  .style-btn {
+    text-align: left; font: inherit; cursor: pointer;
+    background: var(--paper); border: 1px solid var(--line); border-radius: 2px;
+    padding: .65rem .75rem; transition: border-color .16s, box-shadow .16s;
     color: var(--ink);
-    border: 1px solid var(--line);
-    border-radius: 2px;
-    padding: .5rem .9rem;
-    cursor: pointer;
-    transition: border-color .18s, color .18s;
   }
-  .toggle:hover { border-color: var(--pigment); color: var(--pigment); }
-  .toggle:focus-visible { outline: 2px solid var(--pigment); outline-offset: 2px; }
+  .style-btn:hover { border-color: var(--pigment-lo); }
+  .style-btn[aria-pressed="true"] { border-color: var(--pigment); box-shadow: inset 0 0 0 1px var(--pigment); }
+  .style-btn b { font-family: "Newsreader", Georgia, serif; font-weight: 400; font-size: 1.05rem; display: block; }
+  .style-btn span { font-size: .74rem; color: var(--graphite); line-height: 1.4; display: block; margin-top: .15rem; }
 
-  /* ---- generic section ------------------------------------------------ */
-  section { padding: clamp(3.5rem, 8vw, 6.5rem) 0; }
-  .rule { border: 0; border-top: 1px solid var(--line); margin: 0; }
-  .sec-head { margin-bottom: clamp(2rem, 4vw, 3.2rem); }
-  .sec-head h2 { font-size: var(--step-2); margin: .7rem 0 0; max-width: 20ch; }
-
-  /* ---- sequence ------------------------------------------------------- */
-  .steps { display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 3px; }
-  @media (min-width: 760px) { .steps { grid-template-columns: repeat(4, 1fr); } }
-  .step { background: var(--paper); padding: 1.6rem 1.4rem 1.8rem; }
-  .step .n {
-    font-family: "JetBrains Mono", monospace;
-    font-size: var(--step--1);
-    color: var(--pigment);
-    display: block; margin-bottom: .9rem;
-    font-variant-numeric: tabular-nums;
+  .controls { display: grid; gap: .85rem; margin-top: 1.2rem; }
+  @media (min-width: 520px) { .controls { grid-template-columns: 1fr 1fr; } }
+  .ctrl { display: flex; flex-direction: column; gap: .35rem; }
+  .ctrl label {
+    font-family: "JetBrains Mono", monospace; font-size: .72rem;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--graphite);
   }
-  .step h3 { font-size: var(--step-1); margin: 0 0 .5rem; }
-  .step p { font-size: var(--step--1); color: var(--graphite); line-height: 1.6; margin: 0; }
+  .ctrl select, .ctrl input[type=text] {
+    font: inherit; font-size: var(--step--1); color: var(--ink);
+    background: var(--paper); border: 1px solid var(--line);
+    border-radius: 2px; padding: .55rem .6rem; width: 100%;
+  }
+  .full { grid-column: 1 / -1; }
+  .go-row { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-top: 1.2rem; }
+  .msg { font-family: "JetBrains Mono", monospace; font-size: var(--step--1); color: var(--graphite); }
+  .msg.err { color: #A5442E; }
+  :root[data-theme="dark"] .msg.err { color: #E08A72; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .msg.err { color: #E08A72; } }
 
-  /* ---- lock table ------------------------------------------------------ */
+  /* ---------- results ---------- */
+  .results { margin-top: 1.1rem; }
+  .shots { display: grid; gap: .9rem; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+  figure { margin: 0; }
+  figure img { width: 100%; display: block; border: 1px solid var(--line); border-radius: 2px; background: var(--plaster); }
+  figcaption {
+    font-family: "JetBrains Mono", monospace; font-size: .72rem;
+    color: var(--graphite); margin-top: .4rem; letter-spacing: .04em;
+  }
+
   .table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 3px; }
   table { width: 100%; border-collapse: collapse; min-width: 520px; }
-  th, td { text-align: left; padding: .85rem 1.1rem; border-bottom: 1px solid var(--line); }
+  th, td { text-align: left; padding: .8rem 1rem; border-bottom: 1px solid var(--line); }
   thead th {
-    font-family: "JetBrains Mono", monospace;
-    font-size: var(--step--1);
+    font-family: "JetBrains Mono", monospace; font-size: var(--step--1);
     letter-spacing: .1em; text-transform: uppercase;
-    color: var(--graphite); font-weight: 500;
-    background: var(--plaster);
+    color: var(--graphite); font-weight: 500; background: var(--plaster);
   }
   tbody tr:last-child td { border-bottom: 0; }
   td.item { font-family: "Newsreader", Georgia, serif; font-size: 1.06rem; }
   td.note { color: var(--graphite); font-size: var(--step--1); }
+  td.mono { font-family: "JetBrains Mono", monospace; font-size: .76rem; color: var(--graphite); font-variant-numeric: tabular-nums; }
   .tag {
-    font-family: "JetBrains Mono", monospace;
-    font-size: .72rem; letter-spacing: .1em; text-transform: uppercase;
+    font-family: "JetBrains Mono", monospace; font-size: .72rem;
+    letter-spacing: .1em; text-transform: uppercase;
     padding: .22rem .55rem; border-radius: 2px; white-space: nowrap;
   }
-  .tag.held    { color: var(--brass);  border: 1px solid var(--brass-lo); }
-  .tag.open    { color: var(--pigment); border: 1px solid var(--pigment-lo); }
+  .tag.held { color: var(--brass); border: 1px solid var(--brass-lo); }
+  .tag.open { color: var(--pigment); border: 1px solid var(--pigment-lo); }
+  details { margin-top: 1rem; }
+  details summary { cursor: pointer; font-family: "JetBrains Mono", monospace; font-size: var(--step--1); color: var(--graphite); }
+  pre {
+    background: var(--plaster-2); color: var(--ink); border: 1px solid var(--line);
+    padding: 1rem; border-radius: 2px; overflow: auto; max-height: 22rem;
+    font-family: "JetBrains Mono", monospace; font-size: .74rem; line-height: 1.6;
+  }
 
-  /* ---- gallery --------------------------------------------------------- */
+  /* ---------- method ---------- */
+  .steps { display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 3px; }
+  @media (min-width: 760px) { .steps { grid-template-columns: repeat(4, 1fr); } }
+  .pass { background: var(--paper); padding: 1.6rem 1.4rem 1.8rem; }
+  .pass .n {
+    font-family: "JetBrains Mono", monospace; font-size: var(--step--1);
+    color: var(--pigment); display: block; margin-bottom: .9rem; font-variant-numeric: tabular-nums;
+  }
+  .pass h3 { font-size: var(--step-1); margin-bottom: .5rem; }
+  .pass p { font-size: var(--step--1); color: var(--graphite); line-height: 1.6; margin: 0; }
+
+  /* ---------- gallery ---------- */
   .gallery { display: grid; gap: 1.1rem; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
   .slot {
-    border: 1px dashed var(--line);
-    border-radius: 3px;
-    background: var(--plaster);
-    aspect-ratio: 4 / 3;
-    display: flex; flex-direction: column; justify-content: flex-end;
-    padding: 1.1rem;
-    position: relative;
+    border: 1px dashed var(--line); border-radius: 3px; background: var(--plaster);
+    aspect-ratio: 4 / 3; display: flex; flex-direction: column; justify-content: flex-end;
+    padding: 1.1rem; position: relative;
   }
   .slot::before {
-    content: "";
-    position: absolute; inset: 0;
-    background:
-      repeating-linear-gradient(-45deg,
-        transparent 0 11px,
-        color-mix(in srgb, var(--line) 55%, transparent) 11px 12px);
+    content: ""; position: absolute; inset: 0;
+    background: repeating-linear-gradient(-45deg, transparent 0 11px,
+      color-mix(in srgb, var(--line) 55%, transparent) 11px 12px);
     opacity: .5;
   }
-  .slot .lbl {
-    position: relative;
-    font-family: "JetBrains Mono", monospace;
-    font-size: var(--step--1);
-    color: var(--graphite);
-  }
   .slot .room { position: relative; font-family: "Newsreader", Georgia, serif; font-size: var(--step-1); }
+  .slot .lbl { position: relative; font-family: "JetBrains Mono", monospace; font-size: var(--step--1); color: var(--graphite); }
 
-  /* ---- fit ------------------------------------------------------------- */
+  /* ---------- about ---------- */
   .fit { display: grid; gap: clamp(1.5rem, 4vw, 3rem); }
   @media (min-width: 860px) { .fit { grid-template-columns: 1fr 1fr; align-items: start; } }
   .pullquote {
-    font-family: "Newsreader", Georgia, serif;
-    font-size: var(--step-2);
-    line-height: 1.24;
-    color: var(--ink);
-    border-left: 2px solid var(--pigment);
-    padding-left: 1.4rem;
-    margin: 0;
-    max-width: none;
+    font-family: "Newsreader", Georgia, serif; font-size: var(--step-2);
+    line-height: 1.24; border-left: 2px solid var(--pigment);
+    padding-left: 1.4rem; margin: .9rem 0 0; max-width: none;
   }
 
-  footer {
-    border-top: 1px solid var(--line);
-    padding: 2.2rem 0 3.5rem;
-    color: var(--graphite);
-    font-size: var(--step--1);
-  }
-  footer p { max-width: 60ch; }
+  footer { border-top: 1px solid var(--line); padding: 2.2rem 0 3.5rem; color: var(--graphite); font-size: var(--step--1); }
 
   .reveal { opacity: 0; transform: translateY(14px); transition: opacity .7s ease, transform .7s cubic-bezier(.2,.7,.3,1); }
   .reveal.in { opacity: 1; transform: none; }
+  .hidden { display: none !important; }
 
   @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
     .reveal { opacity: 1; transform: none; transition: none; }
     * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
   }
 </style>
 
-<div class="wrap">
-  <header class="masthead">
-    <div class="mark">Second <span>Draft</span></div>
-    <div class="studio">A new capability &middot; [ Studio name ]</div>
-  </header>
+<nav class="nav">
+  <div class="wrap">
+    <a class="brand" href="#top">Second <i>Draft</i></a>
+    <div class="nav-links">
+      <a href="#studio">Studio</a>
+      <a href="#method">Method</a>
+      <a href="#rule">What we hold</a>
+      <a href="#work">Work</a>
+      <a href="#about">About</a>
+    </div>
+    <a class="nav-cta" href="#studio">Redraw a room</a>
+  </div>
+</nav>
 
+<div id="top" class="wrap">
   <div class="hero">
-    <div class="eyebrow">Room analysis &amp; generation</div>
+    <div class="eyebrow">AI interior design</div>
     <h1>The walls stay. Everything else is <em>a draft</em>.</h1>
     <p class="lede">
       Photograph a room as it is — clutter, bad light and all — and get it back
       redesigned. Doors, windows and the paths people walk stay exactly where the
       building put them.
     </p>
+    <div class="hero-actions">
+      <a class="btn solid" href="#studio">Redraw a room</a>
+      <a class="btn ghost" href="#method">See the method</a>
+    </div>
 
     <div class="demo">
       <div class="stage">
-        <svg viewBox="0 0 1000 560" role="img" aria-label="Diagram of a bedroom. The door, window and walkway are marked as held; the bed, wardrobe, desk, wall and floor are marked as open to change.">
-          <!-- ground + ceiling -->
+        <svg viewBox="0 0 1000 560" role="img" aria-label="Diagram of a bedroom. The door, window and walkway are marked as held; the bed, wardrobe, desk, wall and floor are open to change.">
           <line x1="0" y1="462" x2="1000" y2="462" stroke="var(--line)" stroke-width="1.5"/>
           <line x1="0" y1="62" x2="1000" y2="62" stroke="var(--line)" stroke-width="1.5"/>
-
-          <!-- open: wardrobe, bed, desk, art -->
           <g fill="none" stroke="var(--pigment-lo)" stroke-width="1.5" opacity=".9">
             <rect x="268" y="132" width="132" height="330"/>
             <rect x="430" y="352" width="272" height="110"/>
@@ -291,8 +348,6 @@
             <rect x="760" y="336" width="172" height="126"/>
             <rect x="540" y="176" width="66" height="62"/>
           </g>
-
-          <!-- held: window, door, walkway -->
           <g fill="none" stroke="var(--brass)" stroke-width="2">
             <rect x="58" y="120" width="172" height="212"/>
             <line x1="144" y1="120" x2="144" y2="332"/>
@@ -300,7 +355,6 @@
             <circle cx="950" cy="292" r="4" fill="var(--brass)" stroke="none"/>
             <path d="M404 500 H932" stroke-dasharray="7 7"/>
           </g>
-
           <g font-family="JetBrains Mono, monospace" font-size="15" fill="var(--brass)" letter-spacing="1.4">
             <text x="58" y="352">window · held</text>
             <text x="836" y="76">door · held</text>
@@ -314,65 +368,125 @@
         </svg>
         <canvas id="field" aria-hidden="true"></canvas>
       </div>
-
       <div class="demo-foot">
         <div class="keys">
           <div class="key"><span class="swatch held"></span> held — reproduced exactly</div>
           <div class="key"><span class="swatch open"></span> open — redrawn by the model</div>
         </div>
-        <button class="toggle" id="settle" type="button">Redraw</button>
+        <button class="btn ghost" id="settle" type="button">Redraw</button>
       </div>
     </div>
   </div>
 </div>
 
-<hr class="rule">
+<!-- ============ STUDIO ============ -->
+<div class="studio-bg">
+  <div class="wrap">
+    <section id="studio">
+      <div class="sec-head">
+        <div class="eyebrow">Studio</div>
+        <h2>Bring us a room.</h2>
+      </div>
 
+      <div class="status" id="status"><span class="dot" id="dot"></span><span id="statusText">Checking the engine…</span></div>
+
+      <div class="studio">
+        <div class="panel">
+          <h3>The room</h3>
+          <p class="hint">A single photograph. Wide enough to show a door or a window.</p>
+          <div class="drop" id="drop" role="button" tabindex="0" aria-label="Choose a room photograph">
+            <span class="big" id="dropBig">Drop a photograph</span>
+            <span class="sm" id="dropSm">or click to choose · JPG, PNG</span>
+            <img id="preview" class="hidden" alt="The room you uploaded">
+          </div>
+          <input type="file" id="photo" accept="image/*">
+        </div>
+
+        <div class="panel">
+          <h3>The direction</h3>
+          <p class="hint">Pick a language for the room to be redrawn in.</p>
+          <div class="styles" id="styles"></div>
+
+          <div class="controls">
+            <div class="ctrl">
+              <label for="profile">Depth</label>
+              <select id="profile">
+                <option value="renovate" selected>Full renovation</option>
+                <option value="restyle">Restyle only</option>
+              </select>
+            </div>
+            <div class="ctrl">
+              <label for="variants">Options</label>
+              <select id="variants">
+                <option value="2" selected>2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+              </select>
+            </div>
+            <div class="ctrl full">
+              <label for="extra">Anything else</label>
+              <input type="text" id="extra" placeholder="a reading nook by the window">
+            </div>
+          </div>
+
+          <div class="go-row">
+            <button class="btn solid" id="generate" disabled>Redraw the room</button>
+            <button class="btn ghost" id="analyze" disabled>Analyse only</button>
+          </div>
+          <p class="msg" id="msg" style="margin-top:.9rem"></p>
+        </div>
+      </div>
+
+      <div class="results hidden" id="results">
+        <div class="shots" id="shots"></div>
+      </div>
+
+      <div class="results hidden" id="detected">
+        <h3 style="font-size:var(--step-1); margin:2rem 0 1rem">What we found in the room</h3>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Region</th><th>Where</th><th>Confidence</th><th>Treatment</th></tr></thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+        <p class="msg" id="counts" style="margin-top:.8rem"></p>
+        <details><summary>The structured reading, in full</summary><pre id="json"></pre></details>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- ============ METHOD ============ -->
 <div class="wrap">
-  <section class="reveal">
+  <section id="method" class="reveal">
     <div class="sec-head">
       <div class="eyebrow">Method</div>
       <h2>Four passes, one photograph.</h2>
     </div>
     <div class="steps">
-      <div class="step">
-        <span class="n">Pass 01</span>
-        <h3>Read</h3>
-        <p>The photograph is cut into regions — every surface and object separated from its neighbours.</p>
-      </div>
-      <div class="step">
-        <span class="n">Pass 02</span>
-        <h3>Name</h3>
-        <p>Each region is identified. A wardrobe, a doorway, a pile of laundry: each one named for what it actually is.</p>
-      </div>
-      <div class="step">
-        <span class="n">Pass 03</span>
-        <h3>Hold</h3>
-        <p>Structure and circulation are locked. The model is given a boundary it cannot paint across.</p>
-      </div>
-      <div class="step">
-        <span class="n">Pass 04</span>
-        <h3>Draw</h3>
-        <p>Everything unheld is redrawn in the chosen style. Several options at once, from the one reading.</p>
-      </div>
+      <div class="pass"><span class="n">Pass 01</span><h3>Read</h3>
+        <p>The photograph is cut into regions — every surface and object separated from its neighbours.</p></div>
+      <div class="pass"><span class="n">Pass 02</span><h3>Name</h3>
+        <p>Each region is identified. A wardrobe, a doorway, a pile of laundry: each named for what it actually is.</p></div>
+      <div class="pass"><span class="n">Pass 03</span><h3>Hold</h3>
+        <p>Structure and circulation are locked. The model is given a boundary it cannot paint across.</p></div>
+      <div class="pass"><span class="n">Pass 04</span><h3>Draw</h3>
+        <p>Everything unheld is redrawn in the chosen style. Several options at once, from the one reading.</p></div>
     </div>
   </section>
 
   <hr class="rule">
 
-  <section class="reveal">
+  <!-- ============ THE RULE ============ -->
+  <section id="rule" class="reveal">
     <div class="sec-head">
       <div class="eyebrow">The rule</div>
       <h2>What a renovation is allowed to touch.</h2>
     </div>
-    <p style="margin-bottom:2rem; color:var(--graphite)">
-      Every region falls on one side of a line. The line is the product.
-    </p>
+    <p style="margin-bottom:2rem; color:var(--graphite)">Every region falls on one side of a line. The line is the product.</p>
     <div class="table-scroll">
       <table>
-        <thead>
-          <tr><th>Region</th><th>Treatment</th><th>Why</th></tr>
-        </thead>
+        <thead><tr><th>Region</th><th>Treatment</th><th>Why</th></tr></thead>
         <tbody>
           <tr><td class="item">Doors</td><td><span class="tag held">Held</span></td><td class="note">The opening is where the building says it is.</td></tr>
           <tr><td class="item">Windows</td><td><span class="tag held">Held</span></td><td class="note">Daylight and sightlines are fixed facts.</td></tr>
@@ -387,7 +501,8 @@
 
   <hr class="rule">
 
-  <section class="reveal">
+  <!-- ============ WORK ============ -->
+  <section id="work" class="reveal">
     <div class="sec-head">
       <div class="eyebrow">Selected work</div>
       <h2>Rooms we have redrawn.</h2>
@@ -404,55 +519,40 @@
 
   <hr class="rule">
 
-  <section class="reveal">
+  <!-- ============ ABOUT ============ -->
+  <section id="about" class="reveal">
     <div class="fit">
       <div>
         <div class="eyebrow">Where it sits</div>
-        <blockquote class="pullquote" style="margin-top:.9rem">
-          It does not replace the designer. It gets the client to the conversation
-          faster.
-        </blockquote>
+        <blockquote class="pullquote">It does not replace the designer. It gets the client to the conversation faster.</blockquote>
       </div>
       <div>
-        <p>
-          A client sends a photograph of the room they already live in and sees it
-          three ways before the first meeting. The awkward part of the brief — what
-          could this even look like — is answered up front, in their own room, at
-          their own proportions.
-        </p>
-        <p>
-          What comes back is not a mood board. It is that room, with its door and its
-          window and its walkway intact, furnished differently.
-        </p>
+        <p>A client sends a photograph of the room they already live in and sees it three
+          ways before the first meeting. The awkward part of the brief — what could this
+          even look like — is answered up front, in their own room, at their own proportions.</p>
+        <p>What comes back is not a mood board. It is that room, with its door and its window
+          and its walkway intact, furnished differently.</p>
+        <p style="color:var(--graphite); font-size:var(--step--1)">
+          Second Draft is a new capability from <strong>[ Studio name ]</strong>, sitting
+          alongside the studio's existing design practice.</p>
       </div>
     </div>
   </section>
 </div>
 
-<footer>
-  <div class="wrap">
-    <p>
-      Second Draft · a room-analysis and generation pipeline. Prototype build —
-      gallery pending first renders.
-    </p>
-  </div>
-</footer>
+<footer><div class="wrap"><p>Second Draft — room analysis and generation. Prototype build; gallery pending first renders.</p></div></footer>
 
 <script>
+/* ---------------- hero: particles that cannot cross a held region --------- */
 (function () {
-  var canvas = document.getElementById('field');
-  var ctx = canvas.getContext('2d');
+  var canvas = document.getElementById('field'), ctx = canvas.getContext('2d');
   var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  // Held regions, in the SVG's 1000x560 coordinate space. Particles never
-  // enter these — the same rule the generator's mask enforces.
   var HELD = [
-    { x: 48,  y: 110, w: 192, h: 232 },   // window
-    { x: 926, y: 78,  w: 82,  h: 394 },   // door
-    { x: 394, y: 470, w: 548, h: 70  }    // walkway
+    { x: 48,  y: 110, w: 192, h: 232 },
+    { x: 926, y: 78,  w: 82,  h: 394 },
+    { x: 394, y: 470, w: 548, h: 70  }
   ];
-
-  var W = 1000, H = 560, dpr = 1, parts = [], raf = null;
+  var W = 1000, H = 560, dpr = 1, parts = [];
 
   function held(x, y) {
     for (var i = 0; i < HELD.length; i++) {
@@ -461,93 +561,228 @@
     }
     return false;
   }
-
   function seed(n) {
-    parts = [];
-    var guard = 0;
+    parts = []; var guard = 0;
     while (parts.length < n && guard < n * 40) {
       guard++;
-      var x = Math.random() * W;
-      var y = 62 + Math.random() * (498 - 62);
+      var x = Math.random() * W, y = 62 + Math.random() * 436;
       if (held(x, y)) continue;
-      parts.push({
-        x: x, y: y,
-        hx: x, hy: y,                        // home position
-        vx: 0, vy: 0,
-        r: 0.7 + Math.random() * 1.5,
-        a: 0.25 + Math.random() * 0.55
-      });
+      parts.push({ x: x, y: y, hx: x, hy: y, vx: 0, vy: 0,
+                   r: .7 + Math.random() * 1.5, a: .25 + Math.random() * .55 });
     }
   }
-
   function resize() {
     var rect = canvas.getBoundingClientRect();
     dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
+    canvas.width = rect.width * dpr; canvas.height = rect.height * dpr;
   }
-
   function draw() {
     var rect = canvas.getBoundingClientRect();
     var sx = (rect.width / W) * dpr, sy = (rect.height / H) * dpr;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    var color = getComputedStyle(document.documentElement)
-                  .getPropertyValue('--field').trim() || 'rgba(62,92,112,.34)';
+    var color = getComputedStyle(document.documentElement).getPropertyValue('--field').trim() || 'rgba(62,92,112,.34)';
+    ctx.fillStyle = color;
     for (var i = 0; i < parts.length; i++) {
       var p = parts[i];
       ctx.globalAlpha = p.a;
-      ctx.fillStyle = color;
       ctx.beginPath();
       ctx.arc(p.x * sx, p.y * sy, p.r * Math.min(sx, sy), 0, 6.2832);
       ctx.fill();
     }
     ctx.globalAlpha = 1;
   }
-
-  // Spring back toward home, with drift. Anything that wanders into a held
-  // region is pushed straight back out.
   function step() {
     for (var i = 0; i < parts.length; i++) {
       var p = parts[i];
-      p.vx += (p.hx - p.x) * 0.006 + (Math.random() - 0.5) * 0.16;
-      p.vy += (p.hy - p.y) * 0.006 + (Math.random() - 0.5) * 0.16;
-      p.vx *= 0.94; p.vy *= 0.94;
+      p.vx += (p.hx - p.x) * .006 + (Math.random() - .5) * .16;
+      p.vy += (p.hy - p.y) * .006 + (Math.random() - .5) * .16;
+      p.vx *= .94; p.vy *= .94;
       var nx = p.x + p.vx, ny = p.y + p.vy;
-      if (!held(nx, ny) && ny > 62 && ny < 500 && nx > 4 && nx < 996) {
-        p.x = nx; p.y = ny;
-      } else {
-        p.vx *= -0.4; p.vy *= -0.4;
-      }
+      if (!held(nx, ny) && ny > 62 && ny < 500 && nx > 4 && nx < 996) { p.x = nx; p.y = ny; }
+      else { p.vx *= -.4; p.vy *= -.4; }
     }
-    draw();
-    raf = requestAnimationFrame(step);
+    draw(); requestAnimationFrame(step);
   }
-
-  function scatter() {
-    for (var i = 0; i < parts.length; i++) {
-      var p = parts[i];
-      p.vx += (Math.random() - 0.5) * 13;
-      p.vy += (Math.random() - 0.5) * 13;
-    }
-  }
-
-  resize();
-  seed(reduced ? 150 : 340);
-  draw();
-  if (!reduced) raf = requestAnimationFrame(step);
-
+  resize(); seed(reduced ? 150 : 340); draw();
+  if (!reduced) requestAnimationFrame(step);
   window.addEventListener('resize', function () { resize(); draw(); });
-
   document.getElementById('settle').addEventListener('click', function () {
     if (reduced) { seed(150); draw(); return; }
-    scatter();
+    for (var i = 0; i < parts.length; i++) {
+      parts[i].vx += (Math.random() - .5) * 13;
+      parts[i].vy += (Math.random() - .5) * 13;
+    }
+  });
+})();
+
+/* ---------------- nav: mark the section you are in ----------------------- */
+(function () {
+  var links = [].slice.call(document.querySelectorAll('.nav-links a'));
+  var targets = links.map(function (a) { return document.querySelector(a.getAttribute('href')); }).filter(Boolean);
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (!e.isIntersecting) return;
+      links.forEach(function (a) { a.classList.toggle('on', a.getAttribute('href') === '#' + e.target.id); });
+    });
+  }, { rootMargin: '-45% 0px -50% 0px' });
+  targets.forEach(function (t) { io.observe(t); });
+
+  var rio = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); rio.unobserve(e.target); } });
+  }, { threshold: .12 });
+  document.querySelectorAll('.reveal').forEach(function (el) { rio.observe(el); });
+})();
+
+/* ---------------- studio ------------------------------------------------- */
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var style = null, live = false;
+
+  /* The studio talks to the pipeline when this page is served by the app.
+     Opened as a standalone page there is no engine behind it, so say that
+     plainly rather than failing at the first click. */
+  fetch('/api/health').then(function (r) { return r.ok ? r.json() : Promise.reject(); }).then(function (h) {
+    var ready = h.replicate_configured && h.openai_configured;
+    live = true;
+    $('dot').className = 'dot ' + (ready ? 'live' : 'warn');
+    $('statusText').textContent = ready
+      ? 'Engine ready · ' + h.models.segmentation + ' → ' + h.models.labeling + ' → ' + h.models.generation
+      : 'Engine running, credentials missing — add REPLICATE_API_TOKEN and OPENAI_API_KEY to .env';
+  }).catch(function () {
+    live = false;
+    $('dot').className = 'dot';
+    $('statusText').textContent = 'Preview — run the app locally to redraw a room';
   });
 
-  // Scroll reveals
-  var io = new IntersectionObserver(function (entries) {
-    entries.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
-  }, { threshold: 0.12 });
-  document.querySelectorAll('.reveal').forEach(function (el) { io.observe(el); });
+  fetch('/api/styles').then(function (r) { return r.json(); }).then(function (d) { paintStyles(d.styles); })
+    .catch(function () {
+      paintStyles([
+        { id: 'scandinavian', description: 'Pale oak, soft white, linen, uncluttered.' },
+        { id: 'mid-century-modern', description: 'Walnut, tapered legs, olive and mustard.' },
+        { id: 'industrial', description: 'Exposed brick, blackened steel, leather.' },
+        { id: 'japandi', description: 'Low timber, earth tones, calm negative space.' },
+        { id: 'bohemian', description: 'Layered rugs, rattan, plants, terracotta.' },
+        { id: 'modern-luxury', description: 'Marble, brass, velvet, sculptural light.' }
+      ]);
+    });
+
+  function paintStyles(list) {
+    var box = $('styles'); box.innerHTML = '';
+    list.forEach(function (s) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'style-btn'; b.setAttribute('aria-pressed', 'false');
+      b.innerHTML = '<b>' + s.id.replace(/-/g, ' ') + '</b><span>' + s.description + '</span>';
+      b.onclick = function () {
+        style = s.id;
+        [].forEach.call(box.children, function (c) { c.setAttribute('aria-pressed', String(c === b)); });
+        refresh();
+      };
+      box.appendChild(b);
+    });
+  }
+
+  var drop = $('drop'), photo = $('photo');
+  drop.onclick = function () { photo.click(); };
+  drop.onkeydown = function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); photo.click(); } };
+  ['dragenter', 'dragover'].forEach(function (n) {
+    drop.addEventListener(n, function (e) { e.preventDefault(); drop.classList.add('over'); });
+  });
+  ['dragleave', 'drop'].forEach(function (n) {
+    drop.addEventListener(n, function (e) { e.preventDefault(); drop.classList.remove('over'); });
+  });
+  drop.addEventListener('drop', function (e) {
+    if (e.dataTransfer.files.length) { photo.files = e.dataTransfer.files; show(); }
+  });
+  photo.onchange = show;
+
+  function show() {
+    var f = photo.files[0];
+    if (!f) return;
+    $('preview').src = URL.createObjectURL(f);
+    $('preview').classList.remove('hidden');
+    $('dropBig').classList.add('hidden');
+    $('dropSm').textContent = f.name + ' · click to change';
+    refresh();
+  }
+  function refresh() {
+    var has = Boolean(photo.files[0]);
+    $('analyze').disabled = !has;
+    $('generate').disabled = !has || !style;
+  }
+  function say(t, bad) { $('msg').textContent = t; $('msg').classList.toggle('err', Boolean(bad)); }
+
+  function body(withStyle) {
+    var f = new FormData();
+    f.append('photo', photo.files[0]);
+    f.append('profile', $('profile').value);
+    if (withStyle) {
+      f.append('style', style);
+      f.append('extra_prompt', $('extra').value);
+      f.append('variants', $('variants').value);
+    }
+    return f;
+  }
+
+  async function post(url, form, pending) {
+    if (!live) { say('No engine behind this page. Run the app locally and open it there.', true); return null; }
+    say(pending);
+    $('generate').disabled = $('analyze').disabled = true;
+    try {
+      var res = await fetch(url, { method: 'POST', body: form });
+      var data = await res.json();
+      if (!res.ok) throw new Error(data.detail || ('Request failed (' + res.status + ')'));
+      return data;
+    } catch (e) {
+      say(e.message, true);
+      return null;
+    } finally { refresh(); }
+  }
+
+  function paintAnalysis(a) {
+    var rows = $('rows'); rows.innerHTML = '';
+    a.objects.forEach(function (o) {
+      var bb = o.bounding_box, tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td class="item">' + o.label + '</td>' +
+        '<td class="mono">' + bb.x + ',' + bb.y + ' · ' + bb.width + '×' + bb.height + '</td>' +
+        '<td class="mono">' + o.confidence.toFixed(2) + '</td>' +
+        '<td><span class="tag ' + (o.locked ? 'held' : 'open') + '">' + (o.locked ? 'Held' : 'Redrawn') + '</span></td>';
+      rows.appendChild(tr);
+    });
+    var held = a.objects.filter(function (o) { return o.locked; }).length;
+    $('counts').textContent = a.objects.length + ' regions read · ' + held + ' held · ' +
+      (a.objects.length - held) + ' redrawn · from ' + a.masks_returned + ' candidate regions · profile ' + a.lock_profile;
+    $('json').textContent = JSON.stringify(a, null, 2);
+    $('detected').classList.remove('hidden');
+  }
+
+  function paintShots(gens) {
+    var original = photo.files[0] ? URL.createObjectURL(photo.files[0]) : '';
+    var html = '<figure><img src="' + original + '" alt="The room as photographed"><figcaption>As photographed</figcaption></figure>';
+    gens.forEach(function (g, i) {
+      html += '<figure><img src="data:image/png;base64,' + g.image_base64 + '" alt="Option ' + (i + 1) + '">' +
+              '<figcaption>Option ' + (i + 1) + ' · seed ' + (g.seed == null ? '—' : g.seed) + '</figcaption></figure>';
+    });
+    html += '<figure><img src="data:image/png;base64,' + gens[0].inpaint_mask_base64 + '" alt="The mask sent to the generator">' +
+            '<figcaption>The boundary · pale was redrawn, dark was held</figcaption></figure>';
+    $('shots').innerHTML = html;
+    $('results').classList.remove('hidden');
+  }
+
+  $('analyze').onclick = async function () {
+    var d = await post('/api/analyze', body(false), 'Reading the room…');
+    if (!d) return;
+    paintAnalysis(d.analysis);
+    say(d.analysis.objects.length + ' regions read.');
+  };
+
+  $('generate').onclick = async function () {
+    var d = await post('/api/generate', body(true), 'Reading the room, then redrawing — this takes a minute…');
+    if (!d) return;
+    paintAnalysis(d.analysis);
+    paintShots(d.generations);
+    say(d.generations.length + ' option' + (d.generations.length > 1 ? 's' : '') + ' ready.');
+  };
 })();
 </script>

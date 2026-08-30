@@ -59,9 +59,17 @@ class TestMetaEndpoints:
         assert body["lock_profiles"]["renovate"]["furniture"] is False
         assert body["lock_profiles"]["renovate"]["clutter"] is False
 
-    def test_ui_is_served(self, client):
+    def test_site_is_served(self, client):
         res = client.get("/")
-        assert res.status_code == 200 and "AI Interior Design" in res.text
+        assert res.status_code == 200
+        assert "Second Draft" in res.text
+
+    def test_site_carries_the_studio(self, client):
+        """The site is the product, not a page about it — the tool ships in it."""
+        html = client.get("/").text
+        assert 'id="studio"' in html
+        assert "/api/generate" in html
+        assert "/api/analyze" in html
 
 
 class TestGenerateEndpoint:
