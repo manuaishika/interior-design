@@ -1,0 +1,553 @@
+<title>Second Draft</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,300;1,6..72,400&family=Karla:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<style>
+  /* ---- light palette (complete, on bare :root) ---------------------- */
+  :root {
+    --paper:      #FBFAF7;
+    --plaster:    #F1EEE8;
+    --plaster-2:  #E7E3DA;
+    --line:       #DCD7CC;
+    --ink:        #1D2127;
+    --graphite:   #5D6470;
+    --pigment:    #3E5C70;   /* the room's blue wall, desaturated */
+    --pigment-lo: #7A96A8;
+    --brass:      #9C7A4E;   /* reserved: things that are held */
+    --brass-lo:   #C4A87E;
+    --field:      rgba(62, 92, 112, .34);
+
+    --shadow: 0 1px 2px rgba(29,33,39,.04), 0 8px 24px rgba(29,33,39,.06);
+
+    --step--1: clamp(.78rem, .76rem + .1vw, .84rem);
+    --step-0:  clamp(1rem, .97rem + .16vw, 1.09rem);
+    --step-1:  clamp(1.28rem, 1.2rem + .38vw, 1.55rem);
+    --step-2:  clamp(1.7rem, 1.5rem + .9vw, 2.4rem);
+    --step-3:  clamp(2.4rem, 1.9rem + 2.3vw, 4.2rem);
+    --measure: 63ch;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:      #14171B;
+      --plaster:    #1B1F24;
+      --plaster-2:  #232830;
+      --line:       #2E343D;
+      --ink:        #EDEAE4;
+      --graphite:   #9AA2AE;
+      --pigment:    #93B4C8;
+      --pigment-lo: #5D7C90;
+      --brass:      #CFAC79;
+      --brass-lo:   #8E7248;
+      --field:      rgba(147, 180, 200, .30);
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 28px rgba(0,0,0,.34);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:      #14171B;
+    --plaster:    #1B1F24;
+    --plaster-2:  #232830;
+    --line:       #2E343D;
+    --ink:        #EDEAE4;
+    --graphite:   #9AA2AE;
+    --pigment:    #93B4C8;
+    --pigment-lo: #5D7C90;
+    --brass:      #CFAC79;
+    --brass-lo:   #8E7248;
+    --field:      rgba(147, 180, 200, .30);
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 28px rgba(0,0,0,.34);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Karla", ui-sans-serif, system-ui, sans-serif;
+    font-size: var(--step-0);
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 clamp(1.25rem, 4vw, 3rem); }
+
+  h1, h2, h3 {
+    font-family: "Newsreader", Georgia, serif;
+    font-weight: 400;
+    text-wrap: balance;
+    line-height: 1.12;
+    letter-spacing: -.012em;
+  }
+  em { font-style: italic; }
+  p { max-width: var(--measure); }
+
+  .eyebrow {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: var(--step--1);
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--graphite);
+  }
+
+  /* ---- masthead ------------------------------------------------------ */
+  .masthead {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 1rem; flex-wrap: wrap;
+    padding: 1.6rem 0 0;
+  }
+  .mark {
+    font-family: "Newsreader", Georgia, serif;
+    font-size: var(--step-1);
+    letter-spacing: -.02em;
+  }
+  .mark span { color: var(--pigment); font-style: italic; }
+  .studio {
+    font-family: "JetBrains Mono", monospace;
+    font-size: var(--step--1);
+    color: var(--graphite);
+    letter-spacing: .06em;
+  }
+
+  /* ---- hero ---------------------------------------------------------- */
+  .hero { padding: clamp(3rem, 8vw, 6.5rem) 0 clamp(2rem, 5vw, 4rem); }
+  .hero h1 { font-size: var(--step-3); margin: .8rem 0 1.4rem; max-width: 17ch; }
+  .hero h1 em { color: var(--pigment); }
+  .lede { font-size: var(--step-1); color: var(--graphite); line-height: 1.5; max-width: 46ch; }
+
+  /* ---- the demonstration --------------------------------------------- */
+  .demo {
+    position: relative;
+    margin: clamp(2.5rem, 6vw, 4.5rem) 0 0;
+    background: var(--plaster);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .stage { position: relative; aspect-ratio: 1000 / 560; }
+  .stage svg, .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .stage canvas { pointer-events: none; }
+
+  .demo-foot {
+    display: flex; flex-wrap: wrap; gap: 1.4rem 2rem;
+    align-items: center; justify-content: space-between;
+    padding: .95rem 1.15rem;
+    border-top: 1px solid var(--line);
+    background: var(--paper);
+  }
+  .keys { display: flex; gap: 1.4rem; flex-wrap: wrap; }
+  .key {
+    display: flex; align-items: center; gap: .5rem;
+    font-family: "JetBrains Mono", monospace;
+    font-size: var(--step--1);
+    color: var(--graphite);
+  }
+  .swatch { width: 22px; height: 3px; border-radius: 2px; }
+  .swatch.held { background: var(--brass); }
+  .swatch.open { background: var(--pigment); }
+
+  .toggle {
+    font-family: "JetBrains Mono", monospace;
+    font-size: var(--step--1);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    background: transparent;
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    padding: .5rem .9rem;
+    cursor: pointer;
+    transition: border-color .18s, color .18s;
+  }
+  .toggle:hover { border-color: var(--pigment); color: var(--pigment); }
+  .toggle:focus-visible { outline: 2px solid var(--pigment); outline-offset: 2px; }
+
+  /* ---- generic section ------------------------------------------------ */
+  section { padding: clamp(3.5rem, 8vw, 6.5rem) 0; }
+  .rule { border: 0; border-top: 1px solid var(--line); margin: 0; }
+  .sec-head { margin-bottom: clamp(2rem, 4vw, 3.2rem); }
+  .sec-head h2 { font-size: var(--step-2); margin: .7rem 0 0; max-width: 20ch; }
+
+  /* ---- sequence ------------------------------------------------------- */
+  .steps { display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 3px; }
+  @media (min-width: 760px) { .steps { grid-template-columns: repeat(4, 1fr); } }
+  .step { background: var(--paper); padding: 1.6rem 1.4rem 1.8rem; }
+  .step .n {
+    font-family: "JetBrains Mono", monospace;
+    font-size: var(--step--1);
+    color: var(--pigment);
+    display: block; margin-bottom: .9rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .step h3 { font-size: var(--step-1); margin: 0 0 .5rem; }
+  .step p { font-size: var(--step--1); color: var(--graphite); line-height: 1.6; margin: 0; }
+
+  /* ---- lock table ------------------------------------------------------ */
+  .table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 3px; }
+  table { width: 100%; border-collapse: collapse; min-width: 520px; }
+  th, td { text-align: left; padding: .85rem 1.1rem; border-bottom: 1px solid var(--line); }
+  thead th {
+    font-family: "JetBrains Mono", monospace;
+    font-size: var(--step--1);
+    letter-spacing: .1em; text-transform: uppercase;
+    color: var(--graphite); font-weight: 500;
+    background: var(--plaster);
+  }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.item { font-family: "Newsreader", Georgia, serif; font-size: 1.06rem; }
+  td.note { color: var(--graphite); font-size: var(--step--1); }
+  .tag {
+    font-family: "JetBrains Mono", monospace;
+    font-size: .72rem; letter-spacing: .1em; text-transform: uppercase;
+    padding: .22rem .55rem; border-radius: 2px; white-space: nowrap;
+  }
+  .tag.held    { color: var(--brass);  border: 1px solid var(--brass-lo); }
+  .tag.open    { color: var(--pigment); border: 1px solid var(--pigment-lo); }
+
+  /* ---- gallery --------------------------------------------------------- */
+  .gallery { display: grid; gap: 1.1rem; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+  .slot {
+    border: 1px dashed var(--line);
+    border-radius: 3px;
+    background: var(--plaster);
+    aspect-ratio: 4 / 3;
+    display: flex; flex-direction: column; justify-content: flex-end;
+    padding: 1.1rem;
+    position: relative;
+  }
+  .slot::before {
+    content: "";
+    position: absolute; inset: 0;
+    background:
+      repeating-linear-gradient(-45deg,
+        transparent 0 11px,
+        color-mix(in srgb, var(--line) 55%, transparent) 11px 12px);
+    opacity: .5;
+  }
+  .slot .lbl {
+    position: relative;
+    font-family: "JetBrains Mono", monospace;
+    font-size: var(--step--1);
+    color: var(--graphite);
+  }
+  .slot .room { position: relative; font-family: "Newsreader", Georgia, serif; font-size: var(--step-1); }
+
+  /* ---- fit ------------------------------------------------------------- */
+  .fit { display: grid; gap: clamp(1.5rem, 4vw, 3rem); }
+  @media (min-width: 860px) { .fit { grid-template-columns: 1fr 1fr; align-items: start; } }
+  .pullquote {
+    font-family: "Newsreader", Georgia, serif;
+    font-size: var(--step-2);
+    line-height: 1.24;
+    color: var(--ink);
+    border-left: 2px solid var(--pigment);
+    padding-left: 1.4rem;
+    margin: 0;
+    max-width: none;
+  }
+
+  footer {
+    border-top: 1px solid var(--line);
+    padding: 2.2rem 0 3.5rem;
+    color: var(--graphite);
+    font-size: var(--step--1);
+  }
+  footer p { max-width: 60ch; }
+
+  .reveal { opacity: 0; transform: translateY(14px); transition: opacity .7s ease, transform .7s cubic-bezier(.2,.7,.3,1); }
+  .reveal.in { opacity: 1; transform: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1; transform: none; transition: none; }
+    * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+  }
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <div class="mark">Second <span>Draft</span></div>
+    <div class="studio">A new capability &middot; [ Studio name ]</div>
+  </header>
+
+  <div class="hero">
+    <div class="eyebrow">Room analysis &amp; generation</div>
+    <h1>The walls stay. Everything else is <em>a draft</em>.</h1>
+    <p class="lede">
+      Photograph a room as it is — clutter, bad light and all — and get it back
+      redesigned. Doors, windows and the paths people walk stay exactly where the
+      building put them.
+    </p>
+
+    <div class="demo">
+      <div class="stage">
+        <svg viewBox="0 0 1000 560" role="img" aria-label="Diagram of a bedroom. The door, window and walkway are marked as held; the bed, wardrobe, desk, wall and floor are marked as open to change.">
+          <!-- ground + ceiling -->
+          <line x1="0" y1="462" x2="1000" y2="462" stroke="var(--line)" stroke-width="1.5"/>
+          <line x1="0" y1="62" x2="1000" y2="62" stroke="var(--line)" stroke-width="1.5"/>
+
+          <!-- open: wardrobe, bed, desk, art -->
+          <g fill="none" stroke="var(--pigment-lo)" stroke-width="1.5" opacity=".9">
+            <rect x="268" y="132" width="132" height="330"/>
+            <rect x="430" y="352" width="272" height="110"/>
+            <rect x="470" y="300" width="190" height="52"/>
+            <rect x="760" y="336" width="172" height="126"/>
+            <rect x="540" y="176" width="66" height="62"/>
+          </g>
+
+          <!-- held: window, door, walkway -->
+          <g fill="none" stroke="var(--brass)" stroke-width="2">
+            <rect x="58" y="120" width="172" height="212"/>
+            <line x1="144" y1="120" x2="144" y2="332"/>
+            <rect x="936" y="88" width="62" height="374"/>
+            <circle cx="950" cy="292" r="4" fill="var(--brass)" stroke="none"/>
+            <path d="M404 500 H932" stroke-dasharray="7 7"/>
+          </g>
+
+          <g font-family="JetBrains Mono, monospace" font-size="15" fill="var(--brass)" letter-spacing="1.4">
+            <text x="58" y="352">window · held</text>
+            <text x="836" y="76">door · held</text>
+            <text x="404" y="524">walkway · held</text>
+          </g>
+          <g font-family="JetBrains Mono, monospace" font-size="15" fill="var(--pigment)" letter-spacing="1.4">
+            <text x="430" y="342">bed</text>
+            <text x="268" y="124">wardrobe</text>
+            <text x="760" y="328">desk</text>
+          </g>
+        </svg>
+        <canvas id="field" aria-hidden="true"></canvas>
+      </div>
+
+      <div class="demo-foot">
+        <div class="keys">
+          <div class="key"><span class="swatch held"></span> held — reproduced exactly</div>
+          <div class="key"><span class="swatch open"></span> open — redrawn by the model</div>
+        </div>
+        <button class="toggle" id="settle" type="button">Redraw</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="rule">
+
+<div class="wrap">
+  <section class="reveal">
+    <div class="sec-head">
+      <div class="eyebrow">Method</div>
+      <h2>Four passes, one photograph.</h2>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <span class="n">Pass 01</span>
+        <h3>Read</h3>
+        <p>The photograph is cut into regions — every surface and object separated from its neighbours.</p>
+      </div>
+      <div class="step">
+        <span class="n">Pass 02</span>
+        <h3>Name</h3>
+        <p>Each region is identified. A wardrobe, a doorway, a pile of laundry: each one named for what it actually is.</p>
+      </div>
+      <div class="step">
+        <span class="n">Pass 03</span>
+        <h3>Hold</h3>
+        <p>Structure and circulation are locked. The model is given a boundary it cannot paint across.</p>
+      </div>
+      <div class="step">
+        <span class="n">Pass 04</span>
+        <h3>Draw</h3>
+        <p>Everything unheld is redrawn in the chosen style. Several options at once, from the one reading.</p>
+      </div>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <section class="reveal">
+    <div class="sec-head">
+      <div class="eyebrow">The rule</div>
+      <h2>What a renovation is allowed to touch.</h2>
+    </div>
+    <p style="margin-bottom:2rem; color:var(--graphite)">
+      Every region falls on one side of a line. The line is the product.
+    </p>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>Region</th><th>Treatment</th><th>Why</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="item">Doors</td><td><span class="tag held">Held</span></td><td class="note">The opening is where the building says it is.</td></tr>
+          <tr><td class="item">Windows</td><td><span class="tag held">Held</span></td><td class="note">Daylight and sightlines are fixed facts.</td></tr>
+          <tr><td class="item">Walkways</td><td><span class="tag held">Held</span></td><td class="note">A design that blocks the route is not a design.</td></tr>
+          <tr><td class="item">Furniture</td><td><span class="tag open">Open</span></td><td class="note">The reason anyone is here.</td></tr>
+          <tr><td class="item">Walls &amp; floor</td><td><span class="tag open">Open</span></td><td class="note">Paint, paper, timber, tile — the largest lever in the room.</td></tr>
+          <tr><td class="item">Clutter</td><td><span class="tag open">Open</span></td><td class="note">Laundry, bags and bottles are cleared, not reproduced.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <section class="reveal">
+    <div class="sec-head">
+      <div class="eyebrow">Selected work</div>
+      <h2>Rooms we have redrawn.</h2>
+    </div>
+    <div class="gallery">
+      <div class="slot"><div class="room">Bedroom</div><div class="lbl">awaiting first render</div></div>
+      <div class="slot"><div class="room">Living room</div><div class="lbl">awaiting first render</div></div>
+      <div class="slot"><div class="room">Study</div><div class="lbl">awaiting first render</div></div>
+    </div>
+    <p style="margin-top:1.4rem; color:var(--graphite); font-size:var(--step--1)">
+      Each entry pairs the original photograph with the options the system returned.
+    </p>
+  </section>
+
+  <hr class="rule">
+
+  <section class="reveal">
+    <div class="fit">
+      <div>
+        <div class="eyebrow">Where it sits</div>
+        <blockquote class="pullquote" style="margin-top:.9rem">
+          It does not replace the designer. It gets the client to the conversation
+          faster.
+        </blockquote>
+      </div>
+      <div>
+        <p>
+          A client sends a photograph of the room they already live in and sees it
+          three ways before the first meeting. The awkward part of the brief — what
+          could this even look like — is answered up front, in their own room, at
+          their own proportions.
+        </p>
+        <p>
+          What comes back is not a mood board. It is that room, with its door and its
+          window and its walkway intact, furnished differently.
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<footer>
+  <div class="wrap">
+    <p>
+      Second Draft · a room-analysis and generation pipeline. Prototype build —
+      gallery pending first renders.
+    </p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var canvas = document.getElementById('field');
+  var ctx = canvas.getContext('2d');
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Held regions, in the SVG's 1000x560 coordinate space. Particles never
+  // enter these — the same rule the generator's mask enforces.
+  var HELD = [
+    { x: 48,  y: 110, w: 192, h: 232 },   // window
+    { x: 926, y: 78,  w: 82,  h: 394 },   // door
+    { x: 394, y: 470, w: 548, h: 70  }    // walkway
+  ];
+
+  var W = 1000, H = 560, dpr = 1, parts = [], raf = null;
+
+  function held(x, y) {
+    for (var i = 0; i < HELD.length; i++) {
+      var r = HELD[i];
+      if (x > r.x && x < r.x + r.w && y > r.y && y < r.y + r.h) return true;
+    }
+    return false;
+  }
+
+  function seed(n) {
+    parts = [];
+    var guard = 0;
+    while (parts.length < n && guard < n * 40) {
+      guard++;
+      var x = Math.random() * W;
+      var y = 62 + Math.random() * (498 - 62);
+      if (held(x, y)) continue;
+      parts.push({
+        x: x, y: y,
+        hx: x, hy: y,                        // home position
+        vx: 0, vy: 0,
+        r: 0.7 + Math.random() * 1.5,
+        a: 0.25 + Math.random() * 0.55
+      });
+    }
+  }
+
+  function resize() {
+    var rect = canvas.getBoundingClientRect();
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+  }
+
+  function draw() {
+    var rect = canvas.getBoundingClientRect();
+    var sx = (rect.width / W) * dpr, sy = (rect.height / H) * dpr;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    var color = getComputedStyle(document.documentElement)
+                  .getPropertyValue('--field').trim() || 'rgba(62,92,112,.34)';
+    for (var i = 0; i < parts.length; i++) {
+      var p = parts[i];
+      ctx.globalAlpha = p.a;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(p.x * sx, p.y * sy, p.r * Math.min(sx, sy), 0, 6.2832);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // Spring back toward home, with drift. Anything that wanders into a held
+  // region is pushed straight back out.
+  function step() {
+    for (var i = 0; i < parts.length; i++) {
+      var p = parts[i];
+      p.vx += (p.hx - p.x) * 0.006 + (Math.random() - 0.5) * 0.16;
+      p.vy += (p.hy - p.y) * 0.006 + (Math.random() - 0.5) * 0.16;
+      p.vx *= 0.94; p.vy *= 0.94;
+      var nx = p.x + p.vx, ny = p.y + p.vy;
+      if (!held(nx, ny) && ny > 62 && ny < 500 && nx > 4 && nx < 996) {
+        p.x = nx; p.y = ny;
+      } else {
+        p.vx *= -0.4; p.vy *= -0.4;
+      }
+    }
+    draw();
+    raf = requestAnimationFrame(step);
+  }
+
+  function scatter() {
+    for (var i = 0; i < parts.length; i++) {
+      var p = parts[i];
+      p.vx += (Math.random() - 0.5) * 13;
+      p.vy += (Math.random() - 0.5) * 13;
+    }
+  }
+
+  resize();
+  seed(reduced ? 150 : 340);
+  draw();
+  if (!reduced) raf = requestAnimationFrame(step);
+
+  window.addEventListener('resize', function () { resize(); draw(); });
+
+  document.getElementById('settle').addEventListener('click', function () {
+    if (reduced) { seed(150); draw(); return; }
+    scatter();
+  });
+
+  // Scroll reveals
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(function (el) { io.observe(el); });
+})();
+</script>
