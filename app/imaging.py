@@ -252,3 +252,20 @@ def editable_fraction(inpaint_mask: Image.Image, *, inverted: bool = False) -> f
     if inverted:
         arr = ~arr
     return float(arr.mean())
+
+
+def fit_generation_size(size: tuple[int, int], target_pixels: int = 512 * 512,
+                        multiple: int = 8) -> tuple[int, int]:
+    """A generation size with the room's own proportions.
+
+    Diffusion models have a native resolution, and the obvious move is to
+    generate at a square of that size. That squashes a 4:3 room to 75% of its
+    width — enough that two narrow beds side by side merge into one wide one,
+    and the model then draws what it thinks it sees. Keep the aspect ratio and
+    match the pixel *count* instead.
+    """
+    w, h = size
+    scale = (target_pixels / (w * h)) ** 0.5
+    nw = max(multiple, int(round(w * scale / multiple)) * multiple)
+    nh = max(multiple, int(round(h * scale / multiple)) * multiple)
+    return nw, nh

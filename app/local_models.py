@@ -30,7 +30,7 @@ import numpy as np
 from PIL import Image
 
 from .config import Settings
-from .imaging import Mask, image_to_png_bytes
+from .imaging import Mask, fit_generation_size, image_to_png_bytes
 from .labeling import RegionLabel
 
 log = logging.getLogger(__name__)
@@ -278,12 +278,14 @@ async def generate_with_mask_local(
 
     pipe = _load_inpainter(settings.local_inpaint_model)
 
-    # SD 1.x inpainting is trained at 512; feeding it a 1536px room produces
-    # mush. Generate at the model's own resolution, then restore the caller's
-    # aspect ratio so masks and outputs still line up.
-    target = settings.local_generation_size
-    small_image = image.resize((target, target), Image.LANCZOS)
-    small_mask = inpaint_mask.convert("L").resize((target, target), Image.NEAREST)
+    # Generate near the model's native pixel count but at the room's own
+    # proportions. A square would squash a 4:3 room to 75% of its width, which
+    # is enough to merge two side-by-side beds into one.
+    gen_size = fit_generation_size(
+        image.size, target_pixels=settings.local_generation_size ** 2
+    )
+    small_image = image.resize(gen_size, Image.LANCZOS)
+    small_mask = inpaint_mask.convert("L").resize(gen_size, Image.NEAREST)
 
     generator = None
     if seed is not None:

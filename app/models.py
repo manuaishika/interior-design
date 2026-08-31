@@ -56,6 +56,13 @@ class RoomAnalysis(BaseModel):
     image_height: int
     objects: list[RoomObject]
     lock_profile: str = "renovate"
+    contents: dict[str, int] = Field(
+        default_factory=dict,
+        description="How many of each thing was found, e.g. {'bed': 2}.",
+    )
+    described_as: str = Field(
+        "", description="The room in words, as handed to the generator."
+    )
 
     # Debugging counters — how many masks SAM2 produced vs. how many survived
     # filtering and got labeled.

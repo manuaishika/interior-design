@@ -13,6 +13,7 @@ import random
 from PIL import Image
 
 from .config import DEFAULT_PROFILE, Settings, is_locked
+from .describe import count_instances, describe_room, keep_clause
 from .generation import build_prompt, encode_mask
 from .imaging import (
     Mask,
@@ -169,11 +170,25 @@ async def analyze_room(
 
     objects.sort(key=lambda o: o.area_px, reverse=True)
 
+    # Count what is actually in the room. Semantic segmentation gives one blob
+    # per class, so two beds arrive as a single "bed" region — splitting it into
+    # connected pieces recovers the number, which is the fact the generator
+    # would otherwise invent for itself.
+    contents: dict[str, int] = {}
+    for label in labels:
+        if label.category != "furniture" or label.mask_id not in by_id:
+            continue
+        n = count_instances(by_id[label.mask_id].array)
+        if n:
+            contents[label.name] = contents.get(label.name, 0) + n
+
     analysis = RoomAnalysis(
         image_width=width,
         image_height=height,
         objects=objects,
         lock_profile=(profile or DEFAULT_PROFILE).strip().lower(),
+        contents=contents,
+        described_as=describe_room(contents),
         masks_returned=len(masks),
         masks_labeled=len(objects),
     )
@@ -235,7 +250,12 @@ async def run_pipeline(
     )
 
     inpaint_mask = compose_inpaint_mask(analysis, masks, settings)
-    prompt = build_prompt(style, extra_prompt)
+    prompt = build_prompt(
+        style,
+        extra_prompt,
+        contents=analysis.described_as,
+        keep=keep_clause(analysis.contents),
+    )
     mask_b64 = encode_mask(inpaint_mask)
 
     # Distinct seeds are what make the options differ. A caller-supplied seed

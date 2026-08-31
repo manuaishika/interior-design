@@ -11,7 +11,7 @@ import subprocess, sys, io, time
 
 print("Installing, about a minute...")
 subprocess.run([sys.executable, "-m", "pip", "install", "-q",
-                "diffusers", "transformers", "accelerate"], check=False)
+                "diffusers", "transformers", "accelerate", "scipy"], check=False)
 
 import numpy as np
 import torch
@@ -89,9 +89,40 @@ if walkway.mean() > 0.02:
     protected |= walkway
     found.append(("walking space", "KEPT"))
 
+# Count how many of each thing there are. Segmentation returns one blob per
+# kind, so two beds arrive as a single "bed" region; splitting it into separate
+# pieces recovers the number. Without this the generator draws an average
+# bedroom, which has one double bed.
+from scipy import ndimage
+
+counts = {}
+for class_id in np.unique(classes):
+    region = classes == class_id
+    if region.mean() < 0.004:
+        continue
+    label = str(id2label.get(int(class_id), "")).lower()
+    name = label.split(",")[0].strip()
+    if any(w in label for w in PROTECT) or "wall" in label or "floor" in label \
+       or "ceiling" in label or "rug" in label or "carpet" in label:
+        continue
+    pieces, n = ndimage.label(region)
+    big = sum(1 for i in range(1, n + 1) if (pieces == i).mean() >= 0.004)
+    if big:
+        counts[name] = big
+
+WORDS = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six"}
+listed = [(n, name) for name, n in counts.items()]
+listed.sort(reverse=True)
+contents = ", ".join(f"{WORDS.get(n, n)} {name}{'s' if n > 1 else ''}"
+                     for n, name in listed[:6])
+multiples = [(n, name) for n, name in listed if n > 1][:3]
+keep = ", ".join(f"exactly {WORDS.get(n, n)} separate {name}s" for n, name in multiples)
+
 print(f"\nFound {len(found)} things in the room:")
 for name, treatment in found:
     print(f"   {name:<22} {treatment}")
+if contents:
+    print(f"\nThe room contains: {contents}")
 
 # Grow the protected areas slightly so the redraw can't bleed into a doorway.
 mask = Image.fromarray(np.where(protected, 0, 255).astype(np.uint8), "L")
@@ -120,16 +151,28 @@ if pipe is None:
     raise SystemExit("Could not load an image generator. Run the cell again.")
 pipe.set_progress_bar_config(disable=True)
 
-want = (f"interior design photograph of this room restyled in {STYLE}, "
-        f"tidy and uncluttered, bed neatly made, photorealistic, natural daylight, "
-        f"same room shape and perspective. {PROMPT}").strip()
+want = f"interior design photograph of this room restyled in {STYLE}."
+if contents:
+    want += f" The room contains {contents}."
+if keep:
+    want += f" Keep {keep}, in their existing positions."
+want += (" Tidy and uncluttered, beds neatly made. Photorealistic, natural "
+         "daylight, same room shape, proportions and perspective as the original. "
+         + PROMPT).strip()
+print("\nPrompt being used:\n  " + want)
 avoid = ("clutter, mess, laundry, clothes on the bed, bags, boxes, blurry, "
-         "distorted, warped walls, extra doors, extra windows, low quality, "
-         "watermark, text")
+         "distorted, warped walls, extra doors, extra windows, merged furniture, "
+         "one big bed, low quality, watermark, text")
 
-SIZE = 512
-small_room = room.resize((SIZE, SIZE), Image.LANCZOS)
-small_mask = mask.resize((SIZE, SIZE), Image.NEAREST)
+# Generate at the room's own proportions, not a square. A square squashes a 4:3
+# room to 75% of its width, which is enough to merge two side-by-side beds into
+# one — which is exactly what happened before this line existed.
+_scale = (512 * 512 / (room.size[0] * room.size[1])) ** 0.5
+GEN = (max(8, round(room.size[0] * _scale / 8) * 8),
+       max(8, round(room.size[1] * _scale / 8) * 8))
+print(f"Generating at {GEN[0]}x{GEN[1]} (same shape as your photo)")
+small_room = room.resize(GEN, Image.LANCZOS)
+small_mask = mask.resize(GEN, Image.NEAREST)
 
 results = []
 for i in range(OPTIONS):

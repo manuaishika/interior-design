@@ -53,18 +53,32 @@ STYLES: dict[str, str] = {
 }
 
 NEGATIVE_PROMPT = (
+    "clutter, mess, laundry, clothes on the bed, bags, boxes, "
     "blurry, distorted geometry, warped walls, extra doors, extra windows, "
-    "blocked doorway, furniture floating, low quality, watermark, text"
+    "blocked doorway, merged furniture, furniture floating, "
+    "low quality, watermark, text"
 )
 
 
-def build_prompt(style: str, extra: str = "") -> str:
-    """Compose the generation prompt from a style key or a free-form string."""
+def build_prompt(
+    style: str, extra: str = "", contents: str = "", keep: str = ""
+) -> str:
+    """Compose the generation prompt.
+
+    `contents` and `keep` come from the analysis — what is actually in the room
+    and what there is more than one of. Without them the model draws an average
+    room of that type, which is how two single beds come back as one double.
+    """
     base = STYLES.get(style.strip().lower(), style.strip())
-    prompt = (
-        f"Interior design photograph of this room restyled in {base}. "
-        "Photorealistic, architectural photography, natural lighting, "
-        "consistent perspective with the original room."
+    prompt = f"Interior design photograph of this room restyled in {base}."
+    if contents.strip():
+        prompt += f" The room contains {contents.strip()}."
+    if keep.strip():
+        prompt += f" {keep.strip()}, in their existing positions."
+    prompt += (
+        " Tidy and uncluttered. Photorealistic, architectural photography, "
+        "natural lighting, consistent perspective and proportions with the "
+        "original room."
     )
     if extra.strip():
         prompt = f"{prompt} {extra.strip()}"
