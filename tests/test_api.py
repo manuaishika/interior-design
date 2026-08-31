@@ -69,7 +69,19 @@ class TestMetaEndpoints:
         html = client.get("/").text
         assert 'id="studio"' in html
         assert "/api/generate" in html
-        assert "/api/analyze" in html
+
+    def test_site_reads_rooms_without_an_engine(self, client):
+        """Reading runs in the page via Claude, so the published link is useful
+        even with no GPU behind it. Only drawing needs the engine."""
+        html = client.get("/").text
+        assert 'claude.use("sample")' in html
+        assert 'id="read"' in html
+
+    def test_site_can_point_at_a_remote_engine(self, client):
+        """The page is a fixed address; the engine moves independently."""
+        html = client.get("/").text
+        assert "engineUrl" in html
+        assert "function api(" in html
 
 
 class TestGenerateEndpoint:

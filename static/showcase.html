@@ -230,6 +230,24 @@
   :root[data-theme="dark"] .msg.err { color: #E08A72; }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .msg.err { color: #E08A72; } }
 
+  .reading-grid { display: grid; gap: 1.1rem; }
+  @media (min-width: 900px) { .reading-grid { grid-template-columns: 1fr 1.3fr; align-items: start; } }
+  .items { list-style: none; margin: 0; padding: 0; }
+  .items li { display: flex; align-items: baseline; justify-content: space-between;
+    gap: 1rem; padding: .5rem 0; border-bottom: 1px solid var(--line); }
+  .items li:last-child { border-bottom: 0; }
+  .items .what { font-family: "Newsreader", Georgia, serif; font-size: 1.05rem; }
+  .items .n { font-family: "JetBrains Mono", monospace; font-size: .74rem;
+    color: var(--graphite); }
+  .dir { padding: .9rem 0; border-bottom: 1px solid var(--line); }
+  .dir:last-child { border-bottom: 0; }
+  .dir h4 { font-family: "Newsreader", Georgia, serif; font-weight: 400;
+    font-size: var(--step-1); margin: 0 0 .3rem; }
+  .dir .pal { font-family: "JetBrains Mono", monospace; font-size: .72rem;
+    color: var(--pigment); letter-spacing: .05em; text-transform: uppercase; }
+  .dir p { font-size: var(--step--1); color: var(--graphite); margin: .4rem 0 0; }
+  .dir .pieces { font-size: var(--step--1); margin: .45rem 0 0; }
+
   /* ---------- results ---------- */
   .results { margin-top: 1.1rem; }
   .shots { display: grid; gap: .9rem; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
@@ -423,7 +441,8 @@
 
         <div class="panel">
           <h3>The direction</h3>
-          <p class="hint">Pick a language for the room to be redrawn in.</p>
+          <p class="hint">Read the room first — that works right here. Drawing pictures
+            needs an engine connected.</p>
           <div class="styles" id="styles"></div>
 
           <div class="controls">
@@ -449,10 +468,25 @@
           </div>
 
           <div class="go-row">
-            <button class="btn solid" id="generate" disabled>Redraw the room</button>
-            <button class="btn ghost" id="analyze" disabled>Analyse only</button>
+            <button class="btn solid" id="read" disabled>Read the room</button>
+            <button class="btn ghost" id="generate" disabled>Draw it</button>
           </div>
           <p class="msg" id="msg" style="margin-top:.9rem"></p>
+        </div>
+      </div>
+
+      <div class="results hidden" id="reading">
+        <h3 style="font-size:var(--step-1); margin:2rem 0 .4rem">What we can see</h3>
+        <p class="msg" id="roomLine" style="margin:0 0 1.2rem"></p>
+        <div class="reading-grid">
+          <div class="panel">
+            <h3 style="font-size:1.05rem;margin-bottom:.9rem">In the room</h3>
+            <ul class="items" id="items"></ul>
+          </div>
+          <div class="panel">
+            <h3 style="font-size:1.05rem;margin-bottom:.9rem">Three directions</h3>
+            <div id="directions"></div>
+          </div>
         </div>
       </div>
 
@@ -750,9 +784,102 @@
   }
   function refresh() {
     var has = Boolean(photo.files[0]);
-    $('analyze').disabled = !has;
-    $('generate').disabled = !has || !style;
+    $('read').disabled = !has || !sampler;
+    $('generate').disabled = !has || !style || !live;
   }
+
+  /* The reading runs in the page, through Claude, with no engine behind it.
+     Only the drawing needs a GPU — so the half that explains the room works
+     the moment someone opens this link. */
+  var sampler = null;
+  var readerChecked = false;
+
+  function readerUnavailable() {
+    readerChecked = true;
+    $('read').textContent = 'Reading unavailable here';
+    $('read').title = 'The in-page reader needs public sharing turned off.';
+    refresh();
+  }
+
+  claude.use("sample").then(function (s) {
+    if (!s) return readerUnavailable();
+    return s.limits().then(function (caps) {
+      if (!caps || !caps.images) return readerUnavailable();
+      sampler = s;
+      readerChecked = true;
+      $('read').textContent = 'Read the room';
+      refresh();
+    }).catch(readerUnavailable);
+  }).catch(readerUnavailable);
+
+  var READ_BRIEF = [
+    "You are surveying a room from one photograph, for an interior designer.",
+    "Return JSON only, matching exactly:",
+    '{"room":"one sentence naming the room and its condition",',
+    ' "items":[{"name":"bed","count":2,"treatment":"keep"|"redraw"}],',
+    ' "directions":[{"title":"...","palette":"...","pieces":["...","..."],"why":"..."}]}',
+    "",
+    "items: every notable thing you can see, with how many there are.",
+    "Count carefully — two single beds are two, not one double.",
+    'treatment is "keep" for doors, windows, and the floor people walk on,',
+    'because a renovation must not move those. Everything else is "redraw".',
+    "",
+    "directions: exactly three genuinely different design directions for THIS",
+    "room, not generic advice. palette is three or four colours and materials.",
+    "pieces is three specific furnishings to buy. why is one sentence on who",
+    "it suits. Respect the room's real size and light."
+  ].join("\n");
+
+  function renderReading(data) {
+    $('roomLine').textContent = data.room || '';
+
+    var items = $('items');
+    items.innerHTML = '';
+    (data.items || []).forEach(function (it) {
+      var li = document.createElement('li');
+      var kept = String(it.treatment || '').toLowerCase() === 'keep';
+      li.innerHTML =
+        '<span class="what">' + (it.count > 1 ? it.count + ' × ' : '') +
+        (it.name || '') + '</span>' +
+        '<span class="tag ' + (kept ? 'held' : 'open') + '">' +
+        (kept ? 'Held' : 'Redrawn') + '</span>';
+      items.appendChild(li);
+    });
+
+    var box = $('directions');
+    box.innerHTML = '';
+    (data.directions || []).forEach(function (d) {
+      var el = document.createElement('div');
+      el.className = 'dir';
+      el.innerHTML =
+        '<h4>' + (d.title || '') + '</h4>' +
+        '<div class="pal">' + (d.palette || '') + '</div>' +
+        '<p class="pieces">' + (d.pieces || []).join(' · ') + '</p>' +
+        '<p>' + (d.why || '') + '</p>';
+      box.appendChild(el);
+    });
+
+    $('reading').classList.remove('hidden');
+  }
+
+  $('read').onclick = async function () {
+    if (!sampler) { say('Reading is not available in this view.', true); return; }
+    say('Reading the room…');
+    $('read').disabled = true;
+    try {
+      var data = await sampler.json(READ_BRIEF, {
+        images: [photo.files[0]],
+        modelTier: 'default',
+      });
+      renderReading(data);
+      var kept = (data.items || []).filter(function (i) {
+        return String(i.treatment).toLowerCase() === 'keep';
+      }).length;
+      say((data.items || []).length + ' things found · ' + kept + ' held · 3 directions.');
+    } catch (e) {
+      say(e && e.message ? e.message : 'Could not read the room.', true);
+    } finally { refresh(); }
+  };
   function say(t, bad) { $('msg').textContent = t; $('msg').classList.toggle('err', Boolean(bad)); }
 
   function body(withStyle) {
@@ -773,7 +900,7 @@
       return null;
     }
     say(pending);
-    $('generate').disabled = $('analyze').disabled = true;
+    $('generate').disabled = $('read').disabled = true;
     try {
       var res = await fetch(api(url), { method: 'POST', body: form });
       var data = await res.json();
@@ -815,13 +942,6 @@
     $('shots').innerHTML = html;
     $('results').classList.remove('hidden');
   }
-
-  $('analyze').onclick = async function () {
-    var d = await post('/api/analyze', body(false), 'Reading the room…');
-    if (!d) return;
-    paintAnalysis(d.analysis);
-    say(d.analysis.objects.length + ' regions read.');
-  };
 
   $('generate').onclick = async function () {
     var d = await post('/api/generate', body(true), 'Reading the room, then redrawing — this takes a minute…');
