@@ -168,12 +168,20 @@
     font-family: "JetBrains Mono", monospace; font-size: var(--step--1);
     color: var(--graphite); border: 1px solid var(--line);
     background: var(--paper); border-radius: 2px; padding: .4rem .75rem;
-    margin-bottom: 1.6rem;
   }
   .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--graphite); flex: none; }
   .dot.live { background: #4B7F52; }
   .dot.warn { background: var(--brass); }
 
+  .engine-row { display: flex; flex-wrap: wrap; gap: .6rem 1.2rem; align-items: center;
+    margin-bottom: 1.6rem; }
+  .engine-set summary { cursor: pointer; font-family: "JetBrains Mono", monospace;
+    font-size: var(--step--1); color: var(--graphite); }
+  .engine-fields { display: flex; gap: .5rem; margin-top: .6rem; flex-wrap: wrap; }
+  .engine-fields input { font: inherit; font-size: var(--step--1); color: var(--ink);
+    background: var(--paper); border: 1px solid var(--line); border-radius: 2px;
+    padding: .5rem .6rem; min-width: 300px; flex: 1; }
+  .engine-hint { color: var(--graphite); font-size: .76rem; margin: .5rem 0 0; max-width: 52ch; }
   .studio { display: grid; gap: 1.1rem; }
   @media (min-width: 900px) { .studio { grid-template-columns: 1fr 1.15fr; align-items: start; } }
   .panel { background: var(--paper); border: 1px solid var(--line); border-radius: 3px; padding: 1.3rem; }
@@ -388,7 +396,18 @@
         <h2>Bring us a room.</h2>
       </div>
 
-      <div class="status" id="status"><span class="dot" id="dot"></span><span id="statusText">Checking the engine…</span></div>
+      <div class="engine-row">
+        <div class="status" id="status"><span class="dot" id="dot"></span><span id="statusText">Checking the engine…</span></div>
+        <details class="engine-set">
+          <summary>Engine address</summary>
+          <div class="engine-fields">
+            <input type="text" id="engineUrl" placeholder="https://something.trycloudflare.com" spellcheck="false">
+            <button class="btn ghost" id="engineSave" type="button">Connect</button>
+          </div>
+          <p class="engine-hint">Where the drawing happens. Paste the address once —
+            this browser remembers it. Leave blank to use this same server.</p>
+        </details>
+      </div>
 
       <div class="studio">
         <div class="panel">
@@ -639,23 +658,47 @@
   var $ = function (id) { return document.getElementById(id); };
   var style = null, live = false;
 
+  /* The page is a fixed address the studio owns. The engine is wherever a GPU
+     is today — a laptop, a Colab tunnel, a server. Keeping them separate means
+     the link you hand a client never changes when the engine moves. */
+  function engine() {
+    try { return (localStorage.getItem("engineUrl") || "").replace(/\/+$/, ""); }
+    catch (e) { return ""; }
+  }
+  function api(path) { return engine() + path; }
+
+  try { $("engineUrl").value = engine(); } catch (e) {}
+  $("engineSave").onclick = function () {
+    var v = $("engineUrl").value.trim().replace(/\/+$/, "");
+    try { localStorage.setItem("engineUrl", v); } catch (e) {}
+    checkEngine();
+  };
+
   /* The studio talks to the pipeline when this page is served by the app.
      Opened as a standalone page there is no engine behind it, so say that
      plainly rather than failing at the first click. */
-  fetch('/api/health').then(function (r) { return r.ok ? r.json() : Promise.reject(); }).then(function (h) {
-    var ready = h.replicate_configured && h.openai_configured;
-    live = true;
-    $('dot').className = 'dot ' + (ready ? 'live' : 'warn');
-    $('statusText').textContent = ready
-      ? 'Engine ready · ' + h.models.segmentation + ' → ' + h.models.labeling + ' → ' + h.models.generation
-      : 'Engine running, credentials missing — add REPLICATE_API_TOKEN and OPENAI_API_KEY to .env';
-  }).catch(function () {
-    live = false;
-    $('dot').className = 'dot';
-    $('statusText').textContent = 'Preview — run the app locally to redraw a room';
-  });
+  function checkEngine() {
+    $('dot').className = 'dot warn';
+    $('statusText').textContent = 'Connecting…';
+    fetch(api('/api/health')).then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+      .then(function (h) {
+        live = true;
+        $('dot').className = 'dot live';
+        $('statusText').textContent = 'Engine connected — ready to redraw';
+        fetch(api('/api/styles')).then(function (r) { return r.json(); })
+          .then(function (d) { paintStyles(d.styles); }).catch(function () {});
+      })
+      .catch(function () {
+        live = false;
+        $('dot').className = 'dot';
+        $('statusText').textContent = engine()
+          ? 'No engine at that address — check it is still running'
+          : 'No engine connected — open Engine address and paste one in';
+      });
+  }
+  checkEngine();
 
-  fetch('/api/styles').then(function (r) { return r.json(); }).then(function (d) { paintStyles(d.styles); })
+  fetch(api('/api/styles')).then(function (r) { return r.json(); }).then(function (d) { paintStyles(d.styles); })
     .catch(function () {
       paintStyles([
         { id: 'scandinavian', description: 'Pale oak, soft white, linen, uncluttered.' },
@@ -725,11 +768,14 @@
   }
 
   async function post(url, form, pending) {
-    if (!live) { say('No engine behind this page. Run the app locally and open it there.', true); return null; }
+    if (!live) {
+      say('No engine connected. Open "Engine address" above and paste one in.', true);
+      return null;
+    }
     say(pending);
     $('generate').disabled = $('analyze').disabled = true;
     try {
-      var res = await fetch(url, { method: 'POST', body: form });
+      var res = await fetch(api(url), { method: 'POST', body: form });
       var data = await res.json();
       if (!res.ok) throw new Error(data.detail || ('Request failed (' + res.status + ')'));
       return data;
