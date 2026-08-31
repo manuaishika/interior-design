@@ -1,6 +1,7 @@
-STYLE   = "japandi"   # scandinavian | mid-century modern | industrial | japandi | bohemian | modern luxury
-OPTIONS = 3           # how many separate versions to make (1-4)
-PROMPT  = ""          # optional extra, e.g. "add a reading chair by the window"
+# Set these in the cell before %run -i, or just edit them here.
+STYLE   = globals().get("STYLE", "japandi")   # scandinavian | mid-century modern | industrial | japandi | bohemian | modern luxury
+OPTIONS = globals().get("OPTIONS", 3)         # how many separate versions (1-4)
+PROMPT  = globals().get("PROMPT", "")         # optional, e.g. "add a reading chair by the window"
 
 # Second Draft. Redraws a room from one photo, keeping doors, windows and the
 # walking space exactly where they are. No accounts, no keys, no card.
