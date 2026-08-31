@@ -1,0 +1,9 @@
+product_id,name,category,style,width_cm,depth_cm,height_cm,price,currency,image_file,product_url
+SOFA-001,Three-seat linen sofa,sofa,scandinavian,210,90,80,54000,INR,sofa-001.jpg,
+BED-001,Low platform bed (queen),bed,japandi,160,210,35,72000,INR,bed-001.jpg,
+TBL-001,Round oak dining table,table,mid-century modern,120,120,75,38000,INR,tbl-001.jpg,
+CHR-001,Cane lounge chair,chair,bohemian,70,75,85,16000,INR,chr-001.jpg,
+WRD-001,Two-door wardrobe,wardrobe,scandinavian,120,60,200,45000,INR,wrd-001.jpg,
+RUG-001,Flatweave wool rug,rug,japandi,240,170,1,22000,INR,rug-001.jpg,
+LMP-001,Paper floor lamp,lamp,japandi,40,40,150,9000,INR,lmp-001.jpg,
+DSK-001,Walnut writing desk,desk,mid-century modern,130,60,75,29000,INR,dsk-001.jpg,
