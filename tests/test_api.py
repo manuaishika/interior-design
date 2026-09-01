@@ -64,17 +64,25 @@ class TestMetaEndpoints:
         assert res.status_code == 200
         assert "Second Draft" in res.text
 
-    def test_site_carries_the_studio(self, client):
-        """The site is the product, not a page about it — the tool ships in it."""
+    def test_site_is_a_tool_not_a_brochure(self, client):
+        """Three panes: what you are working on, the canvas, the controls.
+        The client called the old scrolling page complicated; this is the fix."""
         html = client.get("/").text
-        assert 'id="studio"' in html
+        assert 'class="app"' in html
+        assert 'class="rail"' in html and 'class="canvas"' in html
+        assert 'class="panel"' in html
         assert "/api/generate" in html
+
+    def test_one_button_does_the_thing(self, client):
+        html = client.get("/").text
+        assert 'id="design"' in html
+        assert 'id="drop"' in html
 
     def test_site_reads_rooms_without_an_engine(self, client):
         """Reading runs in the page via Claude, so the published link is useful
         even with no GPU behind it. Only drawing needs the engine."""
         html = client.get("/").text
-        assert 'claude.use("sample")' in html
+        assert "claude.use('sample')" in html
         assert 'id="read"' in html
 
     def test_site_carries_a_conversation(self, client):

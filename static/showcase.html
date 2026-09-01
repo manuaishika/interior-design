@@ -1,800 +1,432 @@
 <title>Second Draft</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,300;1,6..72,400&family=Karla:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Karla:wght@400;500;600;700&display=swap">
 
 <style>
-  /* ---------- tokens: complete light palette on bare :root ---------- */
   :root {
-    --paper:      #FBFAF7;
-    --plaster:    #F1EEE8;
-    --plaster-2:  #E7E3DA;
-    --line:       #DCD7CC;
-    --ink:        #1D2127;
-    --graphite:   #5D6470;
-    --pigment:    #3E5C70;
-    --pigment-lo: #7A96A8;
-    --brass:      #9C7A4E;
-    --brass-lo:   #C4A87E;
-    --field:      rgba(62, 92, 112, .34);
-    --scrim:      rgba(251, 250, 247, .88);
-
-    --shadow: 0 1px 2px rgba(29,33,39,.04), 0 8px 24px rgba(29,33,39,.06);
-
-    --step--1: clamp(.78rem, .76rem + .1vw, .84rem);
-    --step-0:  clamp(1rem, .97rem + .16vw, 1.09rem);
-    --step-1:  clamp(1.28rem, 1.2rem + .38vw, 1.55rem);
-    --step-2:  clamp(1.7rem, 1.5rem + .9vw, 2.4rem);
-    --step-3:  clamp(2.3rem, 1.85rem + 2.2vw, 4rem);
-    --measure: 63ch;
-    --nav-h: 58px;
+    --paper:     #FBFAF7;
+    --panel:     #FFFFFF;
+    --sunk:      #F2EFE9;
+    --line:      #E2DDD3;
+    --line-soft: #EFEBE3;
+    --ink:       #1D2127;
+    --muted:     #6C7280;
+    --brand:     #3E5C70;
+    --brand-lo:  #E8EEF2;
+    --brand-ink: #FFFFFF;
+    --keep:      #9C7A4E;
+    --keep-lo:   #F5EDE1;
+    --ok:        #4B7F52;
+    --bad:       #A5442E;
+    --r: 10px;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --paper: #14171B; --plaster: #1B1F24; --plaster-2: #232830;
-      --line: #2E343D; --ink: #EDEAE4; --graphite: #9AA2AE;
-      --pigment: #93B4C8; --pigment-lo: #5D7C90;
-      --brass: #CFAC79; --brass-lo: #8E7248;
-      --field: rgba(147, 180, 200, .30);
-      --scrim: rgba(20, 23, 27, .88);
-      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 28px rgba(0,0,0,.34);
+      --paper: #101317; --panel: #171B20; --sunk: #1E232A;
+      --line: #2B313A; --line-soft: #232830;
+      --ink: #ECE9E3; --muted: #98A0AC;
+      --brand: #8FB2C6; --brand-lo: #1E2933; --brand-ink: #101317;
+      --keep: #CFAC79; --keep-lo: #2A2318;
+      --ok: #6FA277; --bad: #E08A72;
     }
   }
   :root[data-theme="dark"] {
-    --paper: #14171B; --plaster: #1B1F24; --plaster-2: #232830;
-    --line: #2E343D; --ink: #EDEAE4; --graphite: #9AA2AE;
-    --pigment: #93B4C8; --pigment-lo: #5D7C90;
-    --brass: #CFAC79; --brass-lo: #8E7248;
-    --field: rgba(147, 180, 200, .30);
-    --scrim: rgba(20, 23, 27, .88);
-    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 28px rgba(0,0,0,.34);
+    --paper: #101317; --panel: #171B20; --sunk: #1E232A;
+    --line: #2B313A; --line-soft: #232830;
+    --ink: #ECE9E3; --muted: #98A0AC;
+    --brand: #8FB2C6; --brand-lo: #1E2933; --brand-ink: #101317;
+    --keep: #CFAC79; --keep-lo: #2A2318;
+    --ok: #6FA277; --bad: #E08A72;
   }
 
   * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
   body {
-    margin: 0;
-    background: var(--paper);
-    color: var(--ink);
+    margin: 0; background: var(--paper); color: var(--ink);
     font-family: "Karla", ui-sans-serif, system-ui, sans-serif;
-    font-size: var(--step-0);
-    line-height: 1.62;
-    -webkit-font-smoothing: antialiased;
+    font-size: 15px; line-height: 1.55; -webkit-font-smoothing: antialiased;
   }
-  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 clamp(1.25rem, 4vw, 3rem); }
+  h1, h2, h3 { font-family: "Newsreader", Georgia, serif; font-weight: 400;
+    margin: 0; line-height: 1.2; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 
-  h1, h2, h3 {
-    font-family: "Newsreader", Georgia, serif;
-    font-weight: 400; text-wrap: balance; line-height: 1.12;
-    letter-spacing: -.012em; margin: 0;
-  }
-  p { max-width: var(--measure); }
-  .eyebrow {
-    font-family: "JetBrains Mono", ui-monospace, monospace;
-    font-size: var(--step--1); letter-spacing: .14em;
-    text-transform: uppercase; color: var(--graphite);
+  /* ---------------- app shell ---------------- */
+  .app { display: grid; grid-template-columns: 232px minmax(0,1fr) 340px;
+    min-height: 100vh; }
+  @media (max-width: 1100px) {
+    .app { grid-template-columns: 1fr; }
+    .rail { display: none; }
+    .panel { border-left: 0; border-top: 1px solid var(--line); }
   }
 
-  /* ---------- navigation ---------- */
-  .nav {
-    position: sticky; top: 0; z-index: 40;
-    height: var(--nav-h);
-    display: flex; align-items: center;
-    background: var(--scrim);
-    backdrop-filter: blur(9px);
-    border-bottom: 1px solid var(--line);
-  }
-  .nav .wrap { display: flex; align-items: center; justify-content: space-between; gap: 1rem; width: 100%; }
-  .brand {
-    font-family: "Newsreader", Georgia, serif;
-    font-size: 1.2rem; letter-spacing: -.02em;
-    text-decoration: none; color: var(--ink); white-space: nowrap;
-  }
-  .brand i { color: var(--pigment); font-style: italic; }
-  .nav-links { display: flex; gap: 1.5rem; align-items: center; }
-  .nav-links a {
-    font-family: "JetBrains Mono", monospace;
-    font-size: var(--step--1); letter-spacing: .06em;
-    color: var(--graphite); text-decoration: none;
-    padding: .2rem 0; border-bottom: 1px solid transparent;
-    transition: color .16s, border-color .16s;
-  }
-  .nav-links a:hover, .nav-links a.on { color: var(--ink); border-bottom-color: var(--pigment); }
-  .nav-cta {
-    font-family: "JetBrains Mono", monospace; font-size: var(--step--1);
-    letter-spacing: .08em; text-transform: uppercase;
-    text-decoration: none; color: var(--paper); background: var(--pigment);
-    padding: .48rem .95rem; border-radius: 2px; white-space: nowrap;
-  }
-  .nav-cta:hover { opacity: .88; }
-  @media (max-width: 820px) { .nav-links { display: none; } }
+  /* ---------------- left rail ---------------- */
+  .rail { background: var(--panel); border-right: 1px solid var(--line);
+    padding: 1.3rem 1rem; display: flex; flex-direction: column; gap: 1.6rem; }
+  .brand { display: flex; align-items: center; gap: .6rem; padding: 0 .4rem; }
+  .brand .glyph { width: 26px; height: 26px; border-radius: 7px;
+    background: var(--brand); display: grid; place-items: center; flex: none; }
+  .brand .glyph svg { width: 15px; height: 15px; }
+  .brand b { font-family: "Newsreader", Georgia, serif; font-weight: 400;
+    font-size: 1.18rem; }
 
-  /* ---------- layout primitives ---------- */
-  section { padding: clamp(3.5rem, 8vw, 6.5rem) 0; scroll-margin-top: var(--nav-h); }
-  .rule { border: 0; border-top: 1px solid var(--line); margin: 0; }
-  .sec-head { margin-bottom: clamp(2rem, 4vw, 3.2rem); }
-  .sec-head h2 { font-size: var(--step-2); margin-top: .7rem; max-width: 20ch; }
+  .rail-group { display: flex; flex-direction: column; gap: .15rem; }
+  .rail-group .cap { font-size: .68rem; letter-spacing: .12em; font-weight: 600;
+    text-transform: uppercase; color: var(--muted); padding: 0 .5rem .5rem; }
+  .rail a, .rail button.navlink {
+    display: flex; align-items: center; gap: .65rem; padding: .55rem .55rem;
+    border-radius: 8px; color: var(--ink); text-decoration: none; font-size: .93rem;
+    background: none; border: 0; width: 100%; text-align: left; cursor: pointer;
+  }
+  .rail a:hover, .rail button.navlink:hover { background: var(--sunk); }
+  .rail .on { background: var(--brand-lo); color: var(--brand); font-weight: 600; }
+  .rail svg { width: 17px; height: 17px; flex: none; }
 
-  /* ---------- hero ---------- */
-  .hero { padding: clamp(3rem, 7vw, 5.5rem) 0 clamp(2rem, 4vw, 3rem); }
-  .hero h1 { font-size: var(--step-3); margin: .8rem 0 1.4rem; max-width: 17ch; }
-  .hero h1 em { color: var(--pigment); }
-  .lede { font-size: var(--step-1); color: var(--graphite); line-height: 1.5; max-width: 46ch; }
-  .hero-actions { display: flex; gap: .7rem; flex-wrap: wrap; margin-top: 1.8rem; }
+  .rail-foot { margin-top: auto; }
+  .engine { border: 1px solid var(--line); border-radius: var(--r);
+    padding: .7rem .8rem; background: var(--sunk); }
+  .engine .row { display: flex; align-items: center; gap: .5rem; font-size: .78rem;
+    color: var(--muted); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); flex: none; }
+  .dot.on { background: var(--ok); }
+  .dot.off { background: var(--keep); }
+  .engine input { width: 100%; margin-top: .55rem; font-size: .75rem;
+    padding: .4rem .5rem; border: 1px solid var(--line); border-radius: 6px;
+    background: var(--panel); }
+  .engine button { margin-top: .4rem; width: 100%; font-size: .72rem;
+    letter-spacing: .06em; text-transform: uppercase; padding: .4rem;
+    border: 1px solid var(--line); border-radius: 6px; background: var(--panel);
+    cursor: pointer; }
 
-  .btn {
-    font-family: "JetBrains Mono", monospace; font-size: var(--step--1);
-    letter-spacing: .08em; text-transform: uppercase;
-    padding: .7rem 1.25rem; border-radius: 2px; cursor: pointer;
-    text-decoration: none; display: inline-block; border: 1px solid transparent;
-    transition: opacity .16s, border-color .16s, color .16s;
-  }
-  .btn.solid { background: var(--pigment); color: var(--paper); }
-  .btn.solid:hover { opacity: .88; }
-  .btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
-  .btn.ghost:hover { border-color: var(--pigment); color: var(--pigment); }
-  .btn:disabled { opacity: .45; cursor: not-allowed; }
-  .btn:focus-visible, a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
-    outline: 2px solid var(--pigment); outline-offset: 2px;
-  }
+  /* ---------------- centre canvas ---------------- */
+  .canvas { padding: 1.6rem clamp(1rem, 3vw, 2.2rem) 3rem; min-width: 0; }
+  .canvas h1 { font-size: 1.6rem; margin-bottom: .2rem; }
+  .canvas .sub { color: var(--muted); font-size: .9rem; margin: 0 0 1.4rem; }
 
-  /* ---------- the physics demonstration ---------- */
-  .demo {
-    position: relative; margin-top: clamp(2.5rem, 5vw, 4rem);
-    background: var(--plaster); border: 1px solid var(--line);
-    border-radius: 3px; box-shadow: var(--shadow); overflow: hidden;
-  }
-  .stage { position: relative; aspect-ratio: 1000 / 560; }
-  .stage svg, .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
-  .stage canvas { pointer-events: none; }
-  .demo-foot {
-    display: flex; flex-wrap: wrap; gap: 1rem 2rem;
-    align-items: center; justify-content: space-between;
-    padding: .9rem 1.1rem; border-top: 1px solid var(--line); background: var(--paper);
-  }
-  .keys { display: flex; gap: 1.4rem; flex-wrap: wrap; }
-  .key {
-    display: flex; align-items: center; gap: .5rem;
-    font-family: "JetBrains Mono", monospace; font-size: var(--step--1); color: var(--graphite);
-  }
-  .swatch { width: 22px; height: 3px; border-radius: 2px; }
-  .swatch.held { background: var(--brass); }
-  .swatch.open { background: var(--pigment); }
-
-  /* ---------- studio (the working tool) ---------- */
-  .studio-bg { background: var(--plaster); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-  .status {
-    display: inline-flex; align-items: center; gap: .55rem;
-    font-family: "JetBrains Mono", monospace; font-size: var(--step--1);
-    color: var(--graphite); border: 1px solid var(--line);
-    background: var(--paper); border-radius: 2px; padding: .4rem .75rem;
-  }
-  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--graphite); flex: none; }
-  .dot.live { background: #4B7F52; }
-  .dot.warn { background: var(--brass); }
-
-  .engine-row { display: flex; flex-wrap: wrap; gap: .6rem 1.2rem; align-items: center;
-    margin-bottom: 1.6rem; }
-  .engine-set summary { cursor: pointer; font-family: "JetBrains Mono", monospace;
-    font-size: var(--step--1); color: var(--graphite); }
-  .engine-fields { display: flex; gap: .5rem; margin-top: .6rem; flex-wrap: wrap; }
-  .engine-fields input { font: inherit; font-size: var(--step--1); color: var(--ink);
-    background: var(--paper); border: 1px solid var(--line); border-radius: 2px;
-    padding: .5rem .6rem; min-width: 300px; flex: 1; }
-  .engine-hint { color: var(--graphite); font-size: .76rem; margin: .5rem 0 0; max-width: 52ch; }
-  .studio { display: grid; gap: 1.1rem; }
-  @media (min-width: 900px) { .studio { grid-template-columns: 1fr 1.15fr; align-items: start; } }
-  .panel { background: var(--paper); border: 1px solid var(--line); border-radius: 3px; padding: 1.3rem; }
-  .panel > h3 { font-size: var(--step-1); margin-bottom: .3rem; }
-  .panel .hint { color: var(--graphite); font-size: var(--step--1); margin: 0 0 1.1rem; }
-
-  .drop {
-    border: 1px dashed var(--line); border-radius: 3px; background: var(--plaster);
-    padding: 2rem 1.2rem; text-align: center; cursor: pointer;
-    transition: border-color .16s, background .16s;
-  }
-  .drop:hover, .drop.over { border-color: var(--pigment); background: var(--plaster-2); }
-  .drop .big { font-family: "Newsreader", Georgia, serif; font-size: var(--step-1); display: block; }
-  .drop .sm { font-family: "JetBrains Mono", monospace; font-size: var(--step--1); color: var(--graphite); }
-  .drop img { max-width: 100%; border-radius: 2px; display: block; margin: 0 auto; }
+  .drop { border: 2px dashed var(--line); border-radius: 14px; background: var(--panel);
+    min-height: 340px; display: grid; place-content: center; justify-items: center;
+    gap: .5rem; padding: 2rem; cursor: pointer; text-align: center;
+    transition: border-color .15s, background .15s; }
+  .drop:hover, .drop.over { border-color: var(--brand); background: var(--brand-lo); }
+  .drop .pic { width: 74px; height: 74px; color: var(--brand); opacity: .55; }
+  .drop .big { font-size: 1.05rem; }
+  .drop .small { font-size: .82rem; color: var(--muted); }
   input[type=file] { display: none; }
 
-  .styles { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: .55rem; }
-  .style-btn {
-    text-align: left; font: inherit; cursor: pointer;
-    background: var(--paper); border: 1px solid var(--line); border-radius: 2px;
-    padding: .65rem .75rem; transition: border-color .16s, box-shadow .16s;
-    color: var(--ink);
-  }
-  .style-btn:hover { border-color: var(--pigment-lo); }
-  .style-btn[aria-pressed="true"] { border-color: var(--pigment); box-shadow: inset 0 0 0 1px var(--pigment); }
-  .style-btn b { font-family: "Newsreader", Georgia, serif; font-weight: 400; font-size: 1.05rem; display: block; }
-  .style-btn span { font-size: .74rem; color: var(--graphite); line-height: 1.4; display: block; margin-top: .15rem; }
+  .shot { position: relative; border-radius: 14px; overflow: hidden;
+    border: 1px solid var(--line); background: var(--panel); }
+  .shot img { display: block; width: 100%; }
+  .shot .swap { position: absolute; top: .7rem; right: .7rem; font-size: .75rem;
+    padding: .35rem .7rem; border-radius: 7px; border: 0; cursor: pointer;
+    background: rgba(20,22,26,.72); color: #fff; }
 
-  .controls { display: grid; gap: .85rem; margin-top: 1.2rem; }
-  @media (min-width: 520px) { .controls { grid-template-columns: 1fr 1fr; } }
-  .ctrl { display: flex; flex-direction: column; gap: .35rem; }
-  .ctrl label {
-    font-family: "JetBrains Mono", monospace; font-size: .72rem;
-    letter-spacing: .1em; text-transform: uppercase; color: var(--graphite);
-  }
-  .ctrl select, .ctrl input[type=text] {
-    font: inherit; font-size: var(--step--1); color: var(--ink);
-    background: var(--paper); border: 1px solid var(--line);
-    border-radius: 2px; padding: .55rem .6rem; width: 100%;
-  }
-  .full { grid-column: 1 / -1; }
-  .go-row { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-top: 1.2rem; }
-  .msg { font-family: "JetBrains Mono", monospace; font-size: var(--step--1); color: var(--graphite); }
-  .msg.err { color: #A5442E; }
-  :root[data-theme="dark"] .msg.err { color: #E08A72; }
-  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .msg.err { color: #E08A72; } }
+  .strip { display: flex; gap: .45rem; flex-wrap: wrap; margin-top: .9rem; }
+  .chip { font-size: .78rem; padding: .28rem .6rem; border-radius: 999px;
+    background: var(--sunk); color: var(--muted); border: 1px solid var(--line-soft); }
+  .chip.keep { background: var(--keep-lo); color: var(--keep); border-color: transparent; }
 
-  .reading-grid { display: grid; gap: 1.1rem; }
-  @media (min-width: 900px) { .reading-grid { grid-template-columns: 1fr 1.3fr; align-items: start; } }
-  .items { list-style: none; margin: 0; padding: 0; }
-  .items li { display: flex; align-items: baseline; justify-content: space-between;
-    gap: 1rem; padding: .5rem 0; border-bottom: 1px solid var(--line); }
-  .items li:last-child { border-bottom: 0; }
-  .items .what { font-family: "Newsreader", Georgia, serif; font-size: 1.05rem; }
-  .items .n { font-family: "JetBrains Mono", monospace; font-size: .74rem;
-    color: var(--graphite); }
-  .dir { padding: .9rem 0; border-bottom: 1px solid var(--line); }
-  .dir:last-child { border-bottom: 0; }
-  .dir h4 { font-family: "Newsreader", Georgia, serif; font-weight: 400;
-    font-size: var(--step-1); margin: 0 0 .3rem; }
-  .dir .pal { font-family: "JetBrains Mono", monospace; font-size: .72rem;
-    color: var(--pigment); letter-spacing: .05em; text-transform: uppercase; }
-  .dir p { font-size: var(--step--1); color: var(--graphite); margin: .4rem 0 0; }
-  .dir .pieces { font-size: var(--step--1); margin: .45rem 0 0; }
+  .block { margin-top: 2rem; }
+  .block > h2 { font-size: 1.15rem; margin-bottom: .2rem; }
+  .block > .note { color: var(--muted); font-size: .85rem; margin: 0 0 1rem; }
 
-  .chat-head { display: flex; align-items: baseline; justify-content: space-between;
-    gap: 1rem; flex-wrap: wrap; margin: 2rem 0 0; }
-  .thread { border: 1px solid var(--line); border-radius: 3px; background: var(--paper);
-    padding: 1.1rem; max-height: 26rem; overflow-y: auto; display: flex;
-    flex-direction: column; gap: 1rem; }
-  .turn { display: flex; gap: .8rem; }
-  .turn .who { font-family: "JetBrains Mono", monospace; font-size: .68rem;
-    letter-spacing: .1em; text-transform: uppercase; color: var(--graphite);
-    flex: none; width: 4.5rem; padding-top: .25rem; }
-  .turn .said { flex: 1; white-space: pre-wrap; }
-  .turn.me .said { color: var(--ink); }
-  .turn.it .said { color: var(--ink); }
-  .turn.it .who { color: var(--pigment); }
-  .ask { display: flex; gap: .5rem; margin-top: .8rem; }
-  .ask input { flex: 1; font: inherit; font-size: var(--step-0); color: var(--ink);
-    background: var(--paper); border: 1px solid var(--line); border-radius: 2px;
-    padding: .7rem .8rem; }
-
-  /* ---------- results ---------- */
-  .results { margin-top: 1.1rem; }
-  .shots { display: grid; gap: .9rem; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+  .grid { display: grid; gap: .9rem;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
   figure { margin: 0; }
-  figure img { width: 100%; display: block; border: 1px solid var(--line); border-radius: 2px; background: var(--plaster); }
-  figcaption {
-    font-family: "JetBrains Mono", monospace; font-size: .72rem;
-    color: var(--graphite); margin-top: .4rem; letter-spacing: .04em;
-  }
+  figure img { width: 100%; display: block; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--sunk); }
+  figcaption { font-size: .76rem; color: var(--muted); margin-top: .35rem; }
 
-  .table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 3px; }
-  table { width: 100%; border-collapse: collapse; min-width: 520px; }
-  th, td { text-align: left; padding: .8rem 1rem; border-bottom: 1px solid var(--line); }
-  thead th {
-    font-family: "JetBrains Mono", monospace; font-size: var(--step--1);
-    letter-spacing: .1em; text-transform: uppercase;
-    color: var(--graphite); font-weight: 500; background: var(--plaster);
-  }
-  tbody tr:last-child td { border-bottom: 0; }
-  td.item { font-family: "Newsreader", Georgia, serif; font-size: 1.06rem; }
-  td.note { color: var(--graphite); font-size: var(--step--1); }
-  td.mono { font-family: "JetBrains Mono", monospace; font-size: .76rem; color: var(--graphite); font-variant-numeric: tabular-nums; }
-  .tag {
-    font-family: "JetBrains Mono", monospace; font-size: .72rem;
-    letter-spacing: .1em; text-transform: uppercase;
-    padding: .22rem .55rem; border-radius: 2px; white-space: nowrap;
-  }
-  .tag.held { color: var(--brass); border: 1px solid var(--brass-lo); }
-  .tag.open { color: var(--pigment); border: 1px solid var(--pigment-lo); }
-  details { margin-top: 1rem; }
-  details summary { cursor: pointer; font-family: "JetBrains Mono", monospace; font-size: var(--step--1); color: var(--graphite); }
-  pre {
-    background: var(--plaster-2); color: var(--ink); border: 1px solid var(--line);
-    padding: 1rem; border-radius: 2px; overflow: auto; max-height: 22rem;
-    font-family: "JetBrains Mono", monospace; font-size: .74rem; line-height: 1.6;
-  }
+  .dirs { display: grid; gap: .8rem; }
+  .dir { border: 1px solid var(--line); border-radius: var(--r);
+    background: var(--panel); padding: 1rem 1.1rem; }
+  .dir h3 { font-size: 1.12rem; margin-bottom: .15rem; }
+  .dir .pal { font-size: .74rem; letter-spacing: .05em; text-transform: uppercase;
+    color: var(--brand); font-weight: 600; }
+  .dir .pieces { font-size: .86rem; margin: .5rem 0 0; }
+  .dir .why { font-size: .86rem; color: var(--muted); margin: .3rem 0 0; }
 
-  /* ---------- method ---------- */
-  .steps { display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 3px; }
-  @media (min-width: 760px) { .steps { grid-template-columns: repeat(4, 1fr); } }
-  .pass { background: var(--paper); padding: 1.6rem 1.4rem 1.8rem; }
-  .pass .n {
-    font-family: "JetBrains Mono", monospace; font-size: var(--step--1);
-    color: var(--pigment); display: block; margin-bottom: .9rem; font-variant-numeric: tabular-nums;
-  }
-  .pass h3 { font-size: var(--step-1); margin-bottom: .5rem; }
-  .pass p { font-size: var(--step--1); color: var(--graphite); line-height: 1.6; margin: 0; }
+  /* chat */
+  .thread { display: flex; flex-direction: column; gap: .9rem;
+    border: 1px solid var(--line); border-radius: var(--r); background: var(--panel);
+    padding: 1rem; max-height: 24rem; overflow-y: auto; }
+  .turn { display: flex; gap: .7rem; }
+  .turn .who { flex: none; width: 3.9rem; font-size: .68rem; font-weight: 700;
+    letter-spacing: .09em; text-transform: uppercase; color: var(--muted);
+    padding-top: .22rem; }
+  .turn.them .who { color: var(--brand); }
+  .turn .said { flex: 1; white-space: pre-wrap; }
+  .ask { display: flex; gap: .5rem; margin-top: .7rem; }
+  .ask input { flex: 1; padding: .7rem .8rem; border: 1px solid var(--line);
+    border-radius: 9px; background: var(--panel); }
 
-  /* ---------- gallery ---------- */
-  .gallery { display: grid; gap: 1.1rem; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
-  .slot {
-    border: 1px dashed var(--line); border-radius: 3px; background: var(--plaster);
-    aspect-ratio: 4 / 3; display: flex; flex-direction: column; justify-content: flex-end;
-    padding: 1.1rem; position: relative;
-  }
-  .slot::before {
-    content: ""; position: absolute; inset: 0;
-    background: repeating-linear-gradient(-45deg, transparent 0 11px,
-      color-mix(in srgb, var(--line) 55%, transparent) 11px 12px);
-    opacity: .5;
-  }
-  .slot .room { position: relative; font-family: "Newsreader", Georgia, serif; font-size: var(--step-1); }
-  .slot .lbl { position: relative; font-family: "JetBrains Mono", monospace; font-size: var(--step--1); color: var(--graphite); }
+  /* ---------------- right panel ---------------- */
+  .panel { background: var(--panel); border-left: 1px solid var(--line);
+    padding: 1.4rem 1.2rem 1.2rem; display: flex; flex-direction: column; gap: 1.3rem; }
+  .field > label, .field > .lab { display: block; font-size: .82rem; font-weight: 700;
+    margin-bottom: .5rem; }
+  .seg { display: grid; grid-auto-flow: column; gap: 0; border: 1px solid var(--line);
+    border-radius: 9px; overflow: hidden; }
+  .seg button { padding: .55rem .3rem; background: var(--panel); border: 0;
+    cursor: pointer; font-size: .86rem; }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button[aria-pressed="true"] { background: var(--brand); color: var(--brand-ink);
+    font-weight: 600; }
+  select, textarea { width: 100%; padding: .6rem .65rem; border: 1px solid var(--line);
+    border-radius: 9px; background: var(--panel); }
+  textarea { resize: vertical; min-height: 76px; }
 
-  /* ---------- about ---------- */
-  .fit { display: grid; gap: clamp(1.5rem, 4vw, 3rem); }
-  @media (min-width: 860px) { .fit { grid-template-columns: 1fr 1fr; align-items: start; } }
-  .pullquote {
-    font-family: "Newsreader", Georgia, serif; font-size: var(--step-2);
-    line-height: 1.24; border-left: 2px solid var(--pigment);
-    padding-left: 1.4rem; margin: .9rem 0 0; max-width: none;
-  }
+  .styles { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+  .style { border: 1px solid var(--line); border-radius: 9px; background: var(--panel);
+    padding: .55rem .6rem; cursor: pointer; text-align: left; }
+  .style:hover { border-color: var(--brand); }
+  .style[aria-pressed="true"] { border-color: var(--brand);
+    box-shadow: inset 0 0 0 1px var(--brand); background: var(--brand-lo); }
+  .style b { display: block; font-family: "Newsreader", Georgia, serif;
+    font-weight: 400; font-size: 1rem; }
+  .style span { font-size: .72rem; color: var(--muted); }
 
-  footer { border-top: 1px solid var(--line); padding: 2.2rem 0 3.5rem; color: var(--graphite); font-size: var(--step--1); }
+  .go { margin-top: auto; display: grid; gap: .5rem; }
+  .cta { padding: .95rem; border: 0; border-radius: 11px; background: var(--brand);
+    color: var(--brand-ink); font-weight: 700; font-size: .96rem; cursor: pointer; }
+  .cta:hover { filter: brightness(1.08); }
+  .cta.second { background: var(--panel); color: var(--ink);
+    border: 1px solid var(--line); font-weight: 600; }
+  .cta:disabled { opacity: .45; cursor: not-allowed; filter: none; }
+  .say { font-size: .8rem; color: var(--muted); min-height: 1.2em; text-align: center; }
+  .say.bad { color: var(--bad); }
 
-  .reveal { opacity: 0; transform: translateY(14px); transition: opacity .7s ease, transform .7s cubic-bezier(.2,.7,.3,1); }
-  .reveal.in { opacity: 1; transform: none; }
   .hidden { display: none !important; }
-
-  @media (prefers-reduced-motion: reduce) {
-    html { scroll-behavior: auto; }
-    .reveal { opacity: 1; transform: none; transition: none; }
-    * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
-  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 
-<nav class="nav">
-  <div class="wrap">
-    <a class="brand" href="#top">Second <i>Draft</i></a>
-    <div class="nav-links">
-      <a href="#studio">Studio</a>
-      <a href="#method">Method</a>
-      <a href="#rule">What we hold</a>
-      <a href="#work">Work</a>
-      <a href="#about">About</a>
-    </div>
-    <a class="nav-cta" href="#studio">Redraw a room</a>
-  </div>
-</nav>
+<div class="app">
 
-<div id="top" class="wrap">
-  <div class="hero">
-    <div class="eyebrow">AI interior design</div>
-    <h1>The walls stay. Everything else is <em>a draft</em>.</h1>
-    <p class="lede">
-      Photograph a room as it is — clutter, bad light and all — and get it back
-      redesigned. Doors, windows and the paths people walk stay exactly where the
-      building put them.
-    </p>
-    <div class="hero-actions">
-      <a class="btn solid" href="#studio">Redraw a room</a>
-      <a class="btn ghost" href="#method">See the method</a>
-    </div>
-
-    <div class="demo">
-      <div class="stage">
-        <svg viewBox="0 0 1000 560" role="img" aria-label="Diagram of a bedroom. The door, window and walkway are marked as held; the bed, wardrobe, desk, wall and floor are open to change.">
-          <line x1="0" y1="462" x2="1000" y2="462" stroke="var(--line)" stroke-width="1.5"/>
-          <line x1="0" y1="62" x2="1000" y2="62" stroke="var(--line)" stroke-width="1.5"/>
-          <g fill="none" stroke="var(--pigment-lo)" stroke-width="1.5" opacity=".9">
-            <rect x="268" y="132" width="132" height="330"/>
-            <rect x="430" y="352" width="272" height="110"/>
-            <rect x="470" y="300" width="190" height="52"/>
-            <rect x="760" y="336" width="172" height="126"/>
-            <rect x="540" y="176" width="66" height="62"/>
-          </g>
-          <g fill="none" stroke="var(--brass)" stroke-width="2">
-            <rect x="58" y="120" width="172" height="212"/>
-            <line x1="144" y1="120" x2="144" y2="332"/>
-            <rect x="936" y="88" width="62" height="374"/>
-            <circle cx="950" cy="292" r="4" fill="var(--brass)" stroke="none"/>
-            <path d="M404 500 H932" stroke-dasharray="7 7"/>
-          </g>
-          <g font-family="JetBrains Mono, monospace" font-size="15" fill="var(--brass)" letter-spacing="1.4">
-            <text x="58" y="352">window · held</text>
-            <text x="836" y="76">door · held</text>
-            <text x="404" y="524">walkway · held</text>
-          </g>
-          <g font-family="JetBrains Mono, monospace" font-size="15" fill="var(--pigment)" letter-spacing="1.4">
-            <text x="430" y="342">bed</text>
-            <text x="268" y="124">wardrobe</text>
-            <text x="760" y="328">desk</text>
-          </g>
+  <!-- ============ left rail ============ -->
+  <aside class="rail">
+    <div class="brand">
+      <span class="glyph">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/>
         </svg>
-        <canvas id="field" aria-hidden="true"></canvas>
-      </div>
-      <div class="demo-foot">
-        <div class="keys">
-          <div class="key"><span class="swatch held"></span> held — reproduced exactly</div>
-          <div class="key"><span class="swatch open"></span> open — redrawn by the model</div>
-        </div>
-        <button class="btn ghost" id="settle" type="button">Redraw</button>
+      </span>
+      <b>Second Draft</b>
+    </div>
+
+    <div class="rail-group">
+      <span class="cap">Create</span>
+      <button class="navlink on" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 15l5-5 4 4 3-3 6 6"/>
+        </svg>
+        Redesign a room
+      </button>
+      <button class="navlink" type="button" id="startOver">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/>
+        </svg>
+        Start again
+      </button>
+    </div>
+
+    <div class="rail-foot">
+      <div class="engine">
+        <div class="row"><span class="dot" id="dot"></span><span id="dotText">Checking…</span></div>
+        <input type="text" id="engineUrl" placeholder="Engine address" spellcheck="false">
+        <button type="button" id="engineSave">Connect</button>
       </div>
     </div>
-  </div>
-</div>
+  </aside>
 
-<!-- ============ STUDIO ============ -->
-<div class="studio-bg">
-  <div class="wrap">
-    <section id="studio">
-      <div class="sec-head">
-        <div class="eyebrow">Studio</div>
-        <h2>Bring us a room.</h2>
-      </div>
+  <!-- ============ centre ============ -->
+  <main class="canvas">
+    <h1>Redesign a room</h1>
+    <p class="sub">One photograph. Doors, windows and walkways stay exactly where they are.</p>
 
-      <div class="engine-row">
-        <div class="status" id="status"><span class="dot" id="dot"></span><span id="statusText">Checking the engine…</span></div>
-        <details class="engine-set">
-          <summary>Engine address</summary>
-          <div class="engine-fields">
-            <input type="text" id="engineUrl" placeholder="https://something.trycloudflare.com" spellcheck="false">
-            <button class="btn ghost" id="engineSave" type="button">Connect</button>
-          </div>
-          <p class="engine-hint">Where the drawing happens. Paste the address once —
-            this browser remembers it. Leave blank to use this same server.</p>
-        </details>
-      </div>
+    <div class="drop" id="drop" role="button" tabindex="0" aria-label="Add a room photo">
+      <svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="14" rx="2"/>
+        <circle cx="8.5" cy="9.5" r="1.5"/><path d="m4 17 5-5 4 4 2.5-2.5L21 18"/>
+      </svg>
+      <span class="big">Click to upload, or drag a photo here</span>
+      <span class="small">JPG, PNG, HEIC · one room, wide enough to see a door or window</span>
+    </div>
+    <input type="file" id="photo" accept="image/*">
 
-      <div class="studio">
-        <div class="panel">
-          <h3>The room</h3>
-          <p class="hint">A single photograph. Wide enough to show a door or a window.</p>
-          <div class="drop" id="drop" role="button" tabindex="0" aria-label="Choose a room photograph">
-            <span class="big" id="dropBig">Drop a photograph</span>
-            <span class="sm" id="dropSm">or click to choose · JPG, PNG</span>
-            <img id="preview" class="hidden" alt="The room you uploaded">
-          </div>
-          <input type="file" id="photo" accept="image/*">
-        </div>
+    <div class="shot hidden" id="shotWrap">
+      <img id="preview" alt="Your room">
+      <button class="swap" id="swap" type="button">Change photo</button>
+    </div>
+    <div class="strip hidden" id="strip"></div>
 
-        <div class="panel">
-          <h3>The direction</h3>
-          <p class="hint">Read the room first — that works right here. Drawing pictures
-            needs an engine connected.</p>
-          <div class="styles" id="styles"></div>
-
-          <div class="controls">
-            <div class="ctrl">
-              <label for="profile">Depth</label>
-              <select id="profile">
-                <option value="renovate" selected>Full renovation</option>
-                <option value="restyle">Restyle only</option>
-              </select>
-            </div>
-            <div class="ctrl">
-              <label for="variants">Options</label>
-              <select id="variants">
-                <option value="2" selected>2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-              </select>
-            </div>
-            <div class="ctrl full">
-              <label for="extra">Anything else</label>
-              <input type="text" id="extra" placeholder="a reading nook by the window">
-            </div>
-          </div>
-
-          <div class="go-row">
-            <button class="btn solid" id="read" disabled>Read the room</button>
-            <button class="btn ghost" id="generate" disabled>Draw it</button>
-          </div>
-          <p class="msg" id="msg" style="margin-top:.9rem"></p>
-        </div>
-      </div>
-
-      <div class="results hidden" id="reading">
-        <h3 style="font-size:var(--step-1); margin:2rem 0 .4rem">What we can see</h3>
-        <p class="msg" id="roomLine" style="margin:0 0 1.2rem"></p>
-        <div class="reading-grid">
-          <div class="panel">
-            <h3 style="font-size:1.05rem;margin-bottom:.9rem">In the room</h3>
-            <ul class="items" id="items"></ul>
-          </div>
-          <div class="panel">
-            <h3 style="font-size:1.05rem;margin-bottom:.9rem">Three directions</h3>
-            <div id="directions"></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="results hidden" id="chatWrap">
-        <div class="chat-head">
-          <h3 style="font-size:var(--step-1)">Talk it through</h3>
-          <button class="btn ghost" id="chatClose" type="button">Back to the designs</button>
-        </div>
-        <p class="msg" style="margin:.2rem 0 1rem">It has your room in front of it.
-          Ask for changes, push back, ask why.</p>
-        <div class="thread" id="thread"></div>
-        <form class="ask" id="ask">
-          <input type="text" id="askText" autocomplete="off"
-                 placeholder="Could we keep both beds but lose the wardrobe?">
-          <button class="btn solid" id="askSend" type="submit">Send</button>
-        </form>
-      </div>
-
-      <div class="results hidden" id="results">
-        <div class="shots" id="shots"></div>
-      </div>
-
-      <div class="results hidden" id="detected">
-        <h3 style="font-size:var(--step-1); margin:2rem 0 1rem">What we found in the room</h3>
-        <div class="table-scroll">
-          <table>
-            <thead><tr><th>Region</th><th>Where</th><th>Confidence</th><th>Treatment</th></tr></thead>
-            <tbody id="rows"></tbody>
-          </table>
-        </div>
-        <p class="msg" id="counts" style="margin-top:.8rem"></p>
-        <details><summary>The structured reading, in full</summary><pre id="json"></pre></details>
-      </div>
+    <section class="block hidden" id="dirsBlock">
+      <h2>Three directions</h2>
+      <p class="note" id="roomLine"></p>
+      <div class="dirs" id="dirs"></div>
     </section>
-  </div>
-</div>
 
-<!-- ============ METHOD ============ -->
-<div class="wrap">
-  <section id="method" class="reveal">
-    <div class="sec-head">
-      <div class="eyebrow">Method</div>
-      <h2>Four passes, one photograph.</h2>
+    <section class="block hidden" id="shotsBlock">
+      <h2>Your designs</h2>
+      <p class="note">Same room, same doors and windows.</p>
+      <div class="grid" id="shots"></div>
+    </section>
+
+    <section class="block hidden" id="chatBlock">
+      <h2>Talk it through</h2>
+      <p class="note">It has your room in front of it. Ask for changes, or ask why.</p>
+      <div class="thread" id="thread"></div>
+      <form class="ask" id="ask">
+        <input type="text" id="askText" autocomplete="off"
+               placeholder="Keep both beds, but lose the wardrobe">
+        <button class="cta" id="askSend" type="submit" style="padding:.7rem 1.2rem">Send</button>
+      </form>
+    </section>
+  </main>
+
+  <!-- ============ right panel ============ -->
+  <aside class="panel">
+    <div class="field">
+      <label for="roomType">Room</label>
+      <select id="roomType">
+        <option value="bedroom">Bedroom</option>
+        <option value="living room">Living room</option>
+        <option value="kitchen">Kitchen</option>
+        <option value="dining room">Dining room</option>
+        <option value="study">Study / office</option>
+        <option value="bathroom">Bathroom</option>
+      </select>
     </div>
-    <div class="steps">
-      <div class="pass"><span class="n">Pass 01</span><h3>Read</h3>
-        <p>The photograph is cut into regions — every surface and object separated from its neighbours.</p></div>
-      <div class="pass"><span class="n">Pass 02</span><h3>Name</h3>
-        <p>Each region is identified. A wardrobe, a doorway, a pile of laundry: each named for what it actually is.</p></div>
-      <div class="pass"><span class="n">Pass 03</span><h3>Hold</h3>
-        <p>Structure and circulation are locked. The model is given a boundary it cannot paint across.</p></div>
-      <div class="pass"><span class="n">Pass 04</span><h3>Draw</h3>
-        <p>Everything unheld is redrawn in the chosen style. Several options at once, from the one reading.</p></div>
+
+    <div class="field">
+      <span class="lab">Style</span>
+      <div class="styles" id="styles"></div>
     </div>
-  </section>
 
-  <hr class="rule">
-
-  <!-- ============ THE RULE ============ -->
-  <section id="rule" class="reveal">
-    <div class="sec-head">
-      <div class="eyebrow">The rule</div>
-      <h2>What a renovation is allowed to touch.</h2>
-    </div>
-    <p style="margin-bottom:2rem; color:var(--graphite)">Every region falls on one side of a line. The line is the product.</p>
-    <div class="table-scroll">
-      <table>
-        <thead><tr><th>Region</th><th>Treatment</th><th>Why</th></tr></thead>
-        <tbody>
-          <tr><td class="item">Doors</td><td><span class="tag held">Held</span></td><td class="note">The opening is where the building says it is.</td></tr>
-          <tr><td class="item">Windows</td><td><span class="tag held">Held</span></td><td class="note">Daylight and sightlines are fixed facts.</td></tr>
-          <tr><td class="item">Walkways</td><td><span class="tag held">Held</span></td><td class="note">A design that blocks the route is not a design.</td></tr>
-          <tr><td class="item">Furniture</td><td><span class="tag open">Open</span></td><td class="note">The reason anyone is here.</td></tr>
-          <tr><td class="item">Walls &amp; floor</td><td><span class="tag open">Open</span></td><td class="note">Paint, paper, timber, tile — the largest lever in the room.</td></tr>
-          <tr><td class="item">Clutter</td><td><span class="tag open">Open</span></td><td class="note">Laundry, bags and bottles are cleared, not reproduced.</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-  <hr class="rule">
-
-  <!-- ============ WORK ============ -->
-  <section id="work" class="reveal">
-    <div class="sec-head">
-      <div class="eyebrow">Selected work</div>
-      <h2>Rooms we have redrawn.</h2>
-    </div>
-    <div class="gallery">
-      <div class="slot"><div class="room">Bedroom</div><div class="lbl">awaiting first render</div></div>
-      <div class="slot"><div class="room">Living room</div><div class="lbl">awaiting first render</div></div>
-      <div class="slot"><div class="room">Study</div><div class="lbl">awaiting first render</div></div>
-    </div>
-    <p style="margin-top:1.4rem; color:var(--graphite); font-size:var(--step--1)">
-      Each entry pairs the original photograph with the options the system returned.
-    </p>
-  </section>
-
-  <hr class="rule">
-
-  <!-- ============ ABOUT ============ -->
-  <section id="about" class="reveal">
-    <div class="fit">
-      <div>
-        <div class="eyebrow">Where it sits</div>
-        <blockquote class="pullquote">It does not replace the designer. It gets the client to the conversation faster.</blockquote>
-      </div>
-      <div>
-        <p>A client sends a photograph of the room they already live in and sees it three
-          ways before the first meeting. The awkward part of the brief — what could this
-          even look like — is answered up front, in their own room, at their own proportions.</p>
-        <p>What comes back is not a mood board. It is that room, with its door and its window
-          and its walkway intact, furnished differently.</p>
-        <p style="color:var(--graphite); font-size:var(--step--1)">
-          Second Draft is a new capability from <strong>[ Studio name ]</strong>, sitting
-          alongside the studio's existing design practice.</p>
+    <div class="field">
+      <span class="lab">How far to go</span>
+      <div class="seg" id="depth">
+        <button type="button" data-v="renovate" aria-pressed="true">Full redesign</button>
+        <button type="button" data-v="restyle" aria-pressed="false">Light restyle</button>
       </div>
     </div>
-  </section>
-</div>
 
-<footer><div class="wrap"><p>Second Draft — room analysis and generation. Prototype build; gallery pending first renders.</p></div></footer>
+    <div class="field">
+      <span class="lab">How many designs</span>
+      <div class="seg" id="count">
+        <button type="button" data-v="1" aria-pressed="false">1</button>
+        <button type="button" data-v="2" aria-pressed="false">2</button>
+        <button type="button" data-v="3" aria-pressed="true">3</button>
+        <button type="button" data-v="4" aria-pressed="false">4</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="extra">Anything specific</label>
+      <textarea id="extra" placeholder="A reading chair by the window. Keep the wardrobe."></textarea>
+    </div>
+
+    <div class="go">
+      <p class="say" id="say"></p>
+      <button class="cta" id="design" disabled>Design my room</button>
+      <button class="cta second" id="read" disabled>Just read the room</button>
+    </div>
+  </aside>
+</div>
 
 <script>
-/* ---------------- hero: particles that cannot cross a held region --------- */
-(function () {
-  var canvas = document.getElementById('field'), ctx = canvas.getContext('2d');
-  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var HELD = [
-    { x: 48,  y: 110, w: 192, h: 232 },
-    { x: 926, y: 78,  w: 82,  h: 394 },
-    { x: 394, y: 470, w: 548, h: 70  }
-  ];
-  var W = 1000, H = 560, dpr = 1, parts = [];
-
-  function held(x, y) {
-    for (var i = 0; i < HELD.length; i++) {
-      var r = HELD[i];
-      if (x > r.x && x < r.x + r.w && y > r.y && y < r.y + r.h) return true;
-    }
-    return false;
-  }
-  function seed(n) {
-    parts = []; var guard = 0;
-    while (parts.length < n && guard < n * 40) {
-      guard++;
-      var x = Math.random() * W, y = 62 + Math.random() * 436;
-      if (held(x, y)) continue;
-      parts.push({ x: x, y: y, hx: x, hy: y, vx: 0, vy: 0,
-                   r: .7 + Math.random() * 1.5, a: .25 + Math.random() * .55 });
-    }
-  }
-  function resize() {
-    var rect = canvas.getBoundingClientRect();
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = rect.width * dpr; canvas.height = rect.height * dpr;
-  }
-  function draw() {
-    var rect = canvas.getBoundingClientRect();
-    var sx = (rect.width / W) * dpr, sy = (rect.height / H) * dpr;
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    var color = getComputedStyle(document.documentElement).getPropertyValue('--field').trim() || 'rgba(62,92,112,.34)';
-    ctx.fillStyle = color;
-    for (var i = 0; i < parts.length; i++) {
-      var p = parts[i];
-      ctx.globalAlpha = p.a;
-      ctx.beginPath();
-      ctx.arc(p.x * sx, p.y * sy, p.r * Math.min(sx, sy), 0, 6.2832);
-      ctx.fill();
-    }
-    ctx.globalAlpha = 1;
-  }
-  function step() {
-    for (var i = 0; i < parts.length; i++) {
-      var p = parts[i];
-      p.vx += (p.hx - p.x) * .006 + (Math.random() - .5) * .16;
-      p.vy += (p.hy - p.y) * .006 + (Math.random() - .5) * .16;
-      p.vx *= .94; p.vy *= .94;
-      var nx = p.x + p.vx, ny = p.y + p.vy;
-      if (!held(nx, ny) && ny > 62 && ny < 500 && nx > 4 && nx < 996) { p.x = nx; p.y = ny; }
-      else { p.vx *= -.4; p.vy *= -.4; }
-    }
-    draw(); requestAnimationFrame(step);
-  }
-  resize(); seed(reduced ? 150 : 340); draw();
-  if (!reduced) requestAnimationFrame(step);
-  window.addEventListener('resize', function () { resize(); draw(); });
-  document.getElementById('settle').addEventListener('click', function () {
-    if (reduced) { seed(150); draw(); return; }
-    for (var i = 0; i < parts.length; i++) {
-      parts[i].vx += (Math.random() - .5) * 13;
-      parts[i].vy += (Math.random() - .5) * 13;
-    }
-  });
-})();
-
-/* ---------------- nav: mark the section you are in ----------------------- */
-(function () {
-  var links = [].slice.call(document.querySelectorAll('.nav-links a'));
-  var targets = links.map(function (a) { return document.querySelector(a.getAttribute('href')); }).filter(Boolean);
-  var io = new IntersectionObserver(function (entries) {
-    entries.forEach(function (e) {
-      if (!e.isIntersecting) return;
-      links.forEach(function (a) { a.classList.toggle('on', a.getAttribute('href') === '#' + e.target.id); });
-    });
-  }, { rootMargin: '-45% 0px -50% 0px' });
-  targets.forEach(function (t) { io.observe(t); });
-
-  var rio = new IntersectionObserver(function (entries) {
-    entries.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); rio.unobserve(e.target); } });
-  }, { threshold: .12 });
-  document.querySelectorAll('.reveal').forEach(function (el) { rio.observe(el); });
-})();
-
-/* ---------------- studio ------------------------------------------------- */
 (function () {
   var $ = function (id) { return document.getElementById(id); };
-  var style = null, live = false;
+  var style = 'japandi', depth = 'renovate', count = 3;
+  var live = false, sampler = null, turns = [], roomBrief = '';
 
-  /* The page is a fixed address the studio owns. The engine is wherever a GPU
-     is today — a laptop, a Colab tunnel, a server. Keeping them separate means
-     the link you hand a client never changes when the engine moves. */
+  /* ---- engine: the page is a fixed address, the GPU is wherever ---- */
   function engine() {
-    try { return (localStorage.getItem("engineUrl") || "").replace(/\/+$/, ""); }
-    catch (e) { return ""; }
+    try { return (localStorage.getItem('engineUrl') || '').replace(/\/+$/, ''); }
+    catch (e) { return ''; }
   }
-  function api(path) { return engine() + path; }
+  function api(p) { return engine() + p; }
+  try { $('engineUrl').value = engine(); } catch (e) {}
 
-  try { $("engineUrl").value = engine(); } catch (e) {}
-  $("engineSave").onclick = function () {
-    var v = $("engineUrl").value.trim().replace(/\/+$/, "");
-    try { localStorage.setItem("engineUrl", v); } catch (e) {}
-    checkEngine();
-  };
-
-  /* The studio talks to the pipeline when this page is served by the app.
-     Opened as a standalone page there is no engine behind it, so say that
-     plainly rather than failing at the first click. */
   function checkEngine() {
-    $('dot').className = 'dot warn';
-    $('statusText').textContent = 'Connecting…';
-    fetch(api('/api/health')).then(function (r) { return r.ok ? r.json() : Promise.reject(); })
-      .then(function (h) {
+    $('dot').className = 'dot off';
+    $('dotText').textContent = 'Connecting…';
+    fetch(api('/api/health'))
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+      .then(function () {
         live = true;
-        $('dot').className = 'dot live';
-        $('statusText').textContent = 'Engine connected — ready to redraw';
+        $('dot').className = 'dot on';
+        $('dotText').textContent = 'Drawing ready';
         fetch(api('/api/styles')).then(function (r) { return r.json(); })
           .then(function (d) { paintStyles(d.styles); }).catch(function () {});
+        refresh();
       })
       .catch(function () {
         live = false;
         $('dot').className = 'dot';
-        $('statusText').textContent = engine()
-          ? 'No engine at that address — check it is still running'
-          : 'No engine connected — open Engine address and paste one in';
+        $('dotText').textContent = engine() ? 'Engine not answering' : 'Reading only';
+        refresh();
       });
   }
-  checkEngine();
+  $('engineSave').onclick = function () {
+    try { localStorage.setItem('engineUrl', $('engineUrl').value.trim().replace(/\/+$/, '')); }
+    catch (e) {}
+    checkEngine();
+  };
 
-  fetch(api('/api/styles')).then(function (r) { return r.json(); }).then(function (d) { paintStyles(d.styles); })
-    .catch(function () {
-      paintStyles([
-        { id: 'scandinavian', description: 'Pale oak, soft white, linen, uncluttered.' },
-        { id: 'mid-century-modern', description: 'Walnut, tapered legs, olive and mustard.' },
-        { id: 'industrial', description: 'Exposed brick, blackened steel, leather.' },
-        { id: 'japandi', description: 'Low timber, earth tones, calm negative space.' },
-        { id: 'bohemian', description: 'Layered rugs, rattan, plants, terracotta.' },
-        { id: 'modern-luxury', description: 'Marble, brass, velvet, sculptural light.' }
-      ]);
-    });
-
+  /* ---- styles ---- */
+  var FALLBACK = [
+    { id: 'japandi', description: 'Low timber, earth tones, calm' },
+    { id: 'scandinavian', description: 'Pale oak, soft white, linen' },
+    { id: 'mid-century-modern', description: 'Walnut, olive, tapered legs' },
+    { id: 'industrial', description: 'Brick, blackened steel, leather' },
+    { id: 'bohemian', description: 'Rattan, plants, terracotta' },
+    { id: 'modern-luxury', description: 'Marble, brass, velvet' }
+  ];
   function paintStyles(list) {
-    var box = $('styles'); box.innerHTML = '';
-    list.forEach(function (s) {
+    var box = $('styles');
+    box.innerHTML = '';
+    (list || FALLBACK).forEach(function (s) {
       var b = document.createElement('button');
-      b.type = 'button'; b.className = 'style-btn'; b.setAttribute('aria-pressed', 'false');
-      b.innerHTML = '<b>' + s.id.replace(/-/g, ' ') + '</b><span>' + s.description + '</span>';
+      b.type = 'button';
+      b.className = 'style';
+      b.setAttribute('aria-pressed', String(s.id === style));
+      var short = (s.description || '').split(',').slice(0, 3).join(',');
+      b.innerHTML = '<b>' + s.id.replace(/-/g, ' ') + '</b><span>' + short + '</span>';
       b.onclick = function () {
         style = s.id;
-        [].forEach.call(box.children, function (c) { c.setAttribute('aria-pressed', String(c === b)); });
-        refresh();
+        [].forEach.call(box.children, function (c) {
+          c.setAttribute('aria-pressed', String(c === b));
+        });
       };
       box.appendChild(b);
     });
   }
+  paintStyles(null);
 
+  /* ---- segmented controls ---- */
+  function segment(id, set) {
+    var box = $(id);
+    box.onclick = function (e) {
+      var b = e.target.closest('button');
+      if (!b) return;
+      [].forEach.call(box.children, function (c) {
+        c.setAttribute('aria-pressed', String(c === b));
+      });
+      set(b.dataset.v);
+    };
+  }
+  segment('depth', function (v) { depth = v; });
+  segment('count', function (v) { count = parseInt(v, 10); });
+
+  /* ---- photo ---- */
   var drop = $('drop'), photo = $('photo');
   drop.onclick = function () { photo.click(); };
-  drop.onkeydown = function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); photo.click(); } };
+  drop.onkeydown = function (e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); photo.click(); }
+  };
   ['dragenter', 'dragover'].forEach(function (n) {
     drop.addEventListener(n, function (e) { e.preventDefault(); drop.classList.add('over'); });
   });
@@ -802,121 +434,154 @@
     drop.addEventListener(n, function (e) { e.preventDefault(); drop.classList.remove('over'); });
   });
   drop.addEventListener('drop', function (e) {
-    if (e.dataTransfer.files.length) { photo.files = e.dataTransfer.files; show(); }
+    if (e.dataTransfer.files.length) { photo.files = e.dataTransfer.files; loaded(); }
   });
-  photo.onchange = show;
+  photo.onchange = loaded;
+  $('swap').onclick = function () { photo.click(); };
 
-  function show() {
-    var f = photo.files[0];
-    if (!f) return;
-    $('preview').src = URL.createObjectURL(f);
-    $('preview').classList.remove('hidden');
-    $('dropBig').classList.add('hidden');
-    $('dropSm').textContent = f.name + ' · click to change';
+  function loaded() {
+    if (!photo.files[0]) return;
+    $('preview').src = URL.createObjectURL(photo.files[0]);
+    drop.classList.add('hidden');
+    $('shotWrap').classList.remove('hidden');
     refresh();
   }
+
+  $('startOver').onclick = function () {
+    photo.value = '';
+    turns = []; roomBrief = '';
+    ['shotWrap', 'strip', 'dirsBlock', 'shotsBlock', 'chatBlock'].forEach(function (id) {
+      $(id).classList.add('hidden');
+    });
+    drop.classList.remove('hidden');
+    say('');
+    refresh();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   function refresh() {
     var has = Boolean(photo.files[0]);
     $('read').disabled = !has || !sampler;
-    $('generate').disabled = !has || !style || !live;
+    $('design').disabled = !has || !live;
+    $('design').textContent = live ? 'Design my room' : 'Connect an engine to draw';
+  }
+  function say(t, bad) {
+    $('say').textContent = t || '';
+    $('say').classList.toggle('bad', Boolean(bad));
   }
 
-  /* The reading runs in the page, through Claude, with no engine behind it.
-     Only the drawing needs a GPU — so the half that explains the room works
-     the moment someone opens this link. */
-  var sampler = null;
-  var readerChecked = false;
-
-  function readerUnavailable() {
-    readerChecked = true;
-    $('read').textContent = 'Reading unavailable here';
-    $('read').title = 'The in-page reader needs public sharing turned off.';
-    refresh();
-  }
-
-  claude.use("sample").then(function (s) {
-    if (!s) return readerUnavailable();
+  /* ---- the reader: runs in this page, no engine ---- */
+  claude.use('sample').then(function (s) {
+    if (!s) return refresh();
     return s.limits().then(function (caps) {
-      if (!caps || !caps.images) return readerUnavailable();
-      sampler = s;
-      readerChecked = true;
-      $('read').textContent = 'Read the room';
+      if (caps && caps.images) sampler = s;
       refresh();
-    }).catch(readerUnavailable);
-  }).catch(readerUnavailable);
-
-  var READ_BRIEF = [
-    "You are surveying a room from one photograph, for an interior designer.",
-    "Return JSON only, matching exactly:",
-    '{"room":"one sentence naming the room and its condition",',
-    ' "items":[{"name":"bed","count":2,"treatment":"keep"|"redraw"}],',
-    ' "directions":[{"title":"...","palette":"...","pieces":["...","..."],"why":"..."}]}',
-    "",
-    "items: every notable thing you can see, with how many there are.",
-    "Count carefully — two single beds are two, not one double.",
-    'treatment is "keep" for doors, windows, and the floor people walk on,',
-    'because a renovation must not move those. Everything else is "redraw".',
-    "",
-    "directions: exactly three genuinely different design directions for THIS",
-    "room, not generic advice. palette is three or four colours and materials.",
-    "pieces is three specific furnishings to buy. why is one sentence on who",
-    "it suits. Respect the room's real size and light."
-  ].join("\n");
-
-  function renderReading(data) {
-    $('roomLine').textContent = data.room || '';
-
-    var items = $('items');
-    items.innerHTML = '';
-    (data.items || []).forEach(function (it) {
-      var li = document.createElement('li');
-      var kept = String(it.treatment || '').toLowerCase() === 'keep';
-      li.innerHTML =
-        '<span class="what">' + (it.count > 1 ? it.count + ' × ' : '') +
-        (it.name || '') + '</span>' +
-        '<span class="tag ' + (kept ? 'held' : 'open') + '">' +
-        (kept ? 'Held' : 'Redrawn') + '</span>';
-      items.appendChild(li);
     });
+  }).catch(function () { refresh(); });
 
-    var box = $('directions');
+  function brief() {
+    return [
+      'You are surveying a ' + $('roomType').value + ' from one photograph, for an',
+      'interior designer. Return JSON only:',
+      '{"room":"one sentence on the room and its condition",',
+      ' "items":[{"name":"bed","count":2,"treatment":"keep"|"redraw"}],',
+      ' "directions":[{"title":"","palette":"","pieces":["",""],"why":""}]}',
+      '',
+      'items: everything notable, with how many. Count carefully — two single beds',
+      'are two, not one double. treatment is "keep" for doors, windows and the floor',
+      'people walk on. Everything else is "redraw".',
+      'directions: exactly three genuinely different directions for THIS room.',
+      'palette: three or four colours and materials. pieces: three specific things',
+      'to buy. why: one sentence on who it suits.'
+    ].join('\n');
+  }
+
+  function paintReading(d) {
+    $('roomLine').textContent = d.room || '';
+
+    var strip = $('strip');
+    strip.innerHTML = '';
+    (d.items || []).forEach(function (i) {
+      var keep = String(i.treatment).toLowerCase() === 'keep';
+      var el = document.createElement('span');
+      el.className = 'chip' + (keep ? ' keep' : '');
+      el.textContent = (i.count > 1 ? i.count + ' × ' : '') + i.name + (keep ? ' · kept' : '');
+      strip.appendChild(el);
+    });
+    strip.classList.remove('hidden');
+
+    var box = $('dirs');
     box.innerHTML = '';
-    (data.directions || []).forEach(function (d) {
+    (d.directions || []).forEach(function (x) {
       var el = document.createElement('div');
       el.className = 'dir';
-      el.innerHTML =
-        '<h4>' + (d.title || '') + '</h4>' +
-        '<div class="pal">' + (d.palette || '') + '</div>' +
-        '<p class="pieces">' + (d.pieces || []).join(' · ') + '</p>' +
-        '<p>' + (d.why || '') + '</p>';
+      el.innerHTML = '<h3></h3><div class="pal"></div>' +
+                     '<p class="pieces"></p><p class="why"></p>';
+      el.querySelector('h3').textContent = x.title || '';
+      el.querySelector('.pal').textContent = x.palette || '';
+      el.querySelector('.pieces').textContent = (x.pieces || []).join(' · ');
+      el.querySelector('.why').textContent = x.why || '';
       box.appendChild(el);
     });
+    $('dirsBlock').classList.remove('hidden');
 
-    $('reading').classList.remove('hidden');
-
-    var open = document.createElement('button');
-    open.className = 'btn solid';
-    open.type = 'button';
-    open.textContent = 'Talk it through';
-    open.style.marginTop = '1.2rem';
-    open.onclick = function () {
-      $('chatWrap').classList.remove('hidden');
-      $('askText').focus();
-      $('chatWrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    };
-    $('directions').appendChild(open);
+    roomBrief = 'The room, read from a photograph: ' + (d.room || '') + '\nIn it: ' +
+      (d.items || []).map(function (i) {
+        return (i.count > 1 ? i.count + ' ' : '') + i.name +
+               (String(i.treatment).toLowerCase() === 'keep' ? ' (must stay)' : '');
+      }).join(', ');
+    turns = [];
+    $('thread').innerHTML = '';
+    $('chatBlock').classList.remove('hidden');
   }
 
-  /* The conversation. Claude has no memory between calls, so the whole thread
-     is re-sent each time, with the room's reading pinned to the first turn —
-     that is what makes it a designer talking about YOUR room rather than a
-     chatbot answering in general. */
-  var turns = [];
-  var roomBrief = '';
+  $('read').onclick = async function () {
+    if (!sampler) return;
+    say('Reading the room…');
+    $('read').disabled = true;
+    try {
+      paintReading(await sampler.json(brief(), { images: [photo.files[0]] }));
+      say('');
+    } catch (e) {
+      say((e && e.message) || 'Could not read the room.', true);
+    } finally { refresh(); }
+  };
 
+  /* ---- drawing: needs the engine ---- */
+  $('design').onclick = async function () {
+    if (!live) return say('Connect an engine first — bottom left.', true);
+    say('Drawing ' + count + ' design' + (count > 1 ? 's' : '') + '… about a minute.');
+    $('design').disabled = true;
+    try {
+      var form = new FormData();
+      form.append('photo', photo.files[0]);
+      form.append('style', style);
+      form.append('profile', depth);
+      form.append('variants', String(count));
+      form.append('extra_prompt', $('extra').value);
+
+      var res = await fetch(api('/api/generate'), { method: 'POST', body: form });
+      var data = await res.json();
+      if (!res.ok) throw new Error(data.detail || ('Failed (' + res.status + ')'));
+
+      var html = '';
+      data.generations.forEach(function (g, i) {
+        html += '<figure><img src="data:image/png;base64,' + g.image_base64 +
+                '" alt="Design ' + (i + 1) + '"><figcaption>Design ' + (i + 1) +
+                '</figcaption></figure>';
+      });
+      $('shots').innerHTML = html;
+      $('shotsBlock').classList.remove('hidden');
+      say('');
+    } catch (e) {
+      say((e && e.message) || 'Could not draw.', true);
+    } finally { refresh(); }
+  };
+
+  /* ---- the conversation ---- */
   function addTurn(role, text) {
     var el = document.createElement('div');
-    el.className = 'turn ' + (role === 'user' ? 'me' : 'it');
+    el.className = 'turn ' + (role === 'user' ? 'me' : 'them');
     el.innerHTML = '<div class="who">' + (role === 'user' ? 'You' : 'Designer') +
                    '</div><div class="said"></div>';
     el.querySelector('.said').textContent = text;
@@ -925,16 +590,10 @@
     return el.querySelector('.said');
   }
 
-  $('chatClose').onclick = function () {
-    $('chatWrap').classList.add('hidden');
-    $('reading').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
   $('ask').onsubmit = async function (e) {
     e.preventDefault();
     var text = $('askText').value.trim();
     if (!text || !sampler) return;
-
     $('askText').value = '';
     $('askSend').disabled = true;
     addTurn('user', text);
@@ -942,17 +601,17 @@
 
     var into = addTurn('assistant', 'Thinking…');
     try {
+      // Claude keeps no memory between calls, so the room is pinned to the
+      // first turn every time. That is what makes this about THIS room.
       var send = turns.slice();
-      // Pin the room to the first turn so every reply is about this room.
       send[0] = {
         role: 'user',
-        content: roomBrief + '\n\nYou are an interior designer talking to a '
-               + 'client about the room above. Be specific and brief — a short '
-               + 'paragraph. Name real furniture and materials. Never move a '
-               + 'door or a window; say so if asked.\n\n' + turns[0].content,
+        content: roomBrief + '\n\nYou are an interior designer talking to a client ' +
+                 'about the room above. Be specific and brief. Name real furniture ' +
+                 'and materials. Never move a door or a window; say so if asked.\n\n' +
+                 turns[0].content,
       };
       var out = await sampler(send, {
-        modelTier: 'default',
         cache: false,
         onText: function (u) { into.textContent = u.text; },
       });
@@ -966,103 +625,7 @@
     }
   };
 
-  $('read').onclick = async function () {
-    if (!sampler) { say('Reading is not available in this view.', true); return; }
-    say('Reading the room…');
-    $('read').disabled = true;
-    try {
-      var data = await sampler.json(READ_BRIEF, {
-        images: [photo.files[0]],
-        modelTier: 'default',
-      });
-      renderReading(data);
-      roomBrief = 'This is the room, as read from a photograph:\n'
-        + (data.room || '') + '\nIn it: '
-        + (data.items || []).map(function (i) {
-            return (i.count > 1 ? i.count + ' ' : '') + i.name +
-                   (String(i.treatment).toLowerCase() === 'keep' ? ' (must stay)' : '');
-          }).join(', ')
-        + '\nDirections already proposed: '
-        + (data.directions || []).map(function (d) { return d.title; }).join('; ');
-      turns = [];
-      $('thread').innerHTML = '';
-      var kept = (data.items || []).filter(function (i) {
-        return String(i.treatment).toLowerCase() === 'keep';
-      }).length;
-      say((data.items || []).length + ' things found · ' + kept + ' held · 3 directions.');
-    } catch (e) {
-      say(e && e.message ? e.message : 'Could not read the room.', true);
-    } finally { refresh(); }
-  };
-  function say(t, bad) { $('msg').textContent = t; $('msg').classList.toggle('err', Boolean(bad)); }
-
-  function body(withStyle) {
-    var f = new FormData();
-    f.append('photo', photo.files[0]);
-    f.append('profile', $('profile').value);
-    if (withStyle) {
-      f.append('style', style);
-      f.append('extra_prompt', $('extra').value);
-      f.append('variants', $('variants').value);
-    }
-    return f;
-  }
-
-  async function post(url, form, pending) {
-    if (!live) {
-      say('No engine connected. Open "Engine address" above and paste one in.', true);
-      return null;
-    }
-    say(pending);
-    $('generate').disabled = $('read').disabled = true;
-    try {
-      var res = await fetch(api(url), { method: 'POST', body: form });
-      var data = await res.json();
-      if (!res.ok) throw new Error(data.detail || ('Request failed (' + res.status + ')'));
-      return data;
-    } catch (e) {
-      say(e.message, true);
-      return null;
-    } finally { refresh(); }
-  }
-
-  function paintAnalysis(a) {
-    var rows = $('rows'); rows.innerHTML = '';
-    a.objects.forEach(function (o) {
-      var bb = o.bounding_box, tr = document.createElement('tr');
-      tr.innerHTML =
-        '<td class="item">' + o.label + '</td>' +
-        '<td class="mono">' + bb.x + ',' + bb.y + ' · ' + bb.width + '×' + bb.height + '</td>' +
-        '<td class="mono">' + o.confidence.toFixed(2) + '</td>' +
-        '<td><span class="tag ' + (o.locked ? 'held' : 'open') + '">' + (o.locked ? 'Held' : 'Redrawn') + '</span></td>';
-      rows.appendChild(tr);
-    });
-    var held = a.objects.filter(function (o) { return o.locked; }).length;
-    $('counts').textContent = a.objects.length + ' regions read · ' + held + ' held · ' +
-      (a.objects.length - held) + ' redrawn · from ' + a.masks_returned + ' candidate regions · profile ' + a.lock_profile;
-    $('json').textContent = JSON.stringify(a, null, 2);
-    $('detected').classList.remove('hidden');
-  }
-
-  function paintShots(gens) {
-    var original = photo.files[0] ? URL.createObjectURL(photo.files[0]) : '';
-    var html = '<figure><img src="' + original + '" alt="The room as photographed"><figcaption>As photographed</figcaption></figure>';
-    gens.forEach(function (g, i) {
-      html += '<figure><img src="data:image/png;base64,' + g.image_base64 + '" alt="Option ' + (i + 1) + '">' +
-              '<figcaption>Option ' + (i + 1) + ' · seed ' + (g.seed == null ? '—' : g.seed) + '</figcaption></figure>';
-    });
-    html += '<figure><img src="data:image/png;base64,' + gens[0].inpaint_mask_base64 + '" alt="The mask sent to the generator">' +
-            '<figcaption>The boundary · pale was redrawn, dark was held</figcaption></figure>';
-    $('shots').innerHTML = html;
-    $('results').classList.remove('hidden');
-  }
-
-  $('generate').onclick = async function () {
-    var d = await post('/api/generate', body(true), 'Reading the room, then redrawing — this takes a minute…');
-    if (!d) return;
-    paintAnalysis(d.analysis);
-    paintShots(d.generations);
-    say(d.generations.length + ' option' + (d.generations.length > 1 ? 's' : '') + ' ready.');
-  };
+  checkEngine();
+  refresh();
 })();
 </script>
