@@ -77,6 +77,12 @@ class TestMetaEndpoints:
         assert 'claude.use("sample")' in html
         assert 'id="read"' in html
 
+    def test_site_carries_a_conversation(self, client):
+        """After the reading, the client can argue with it about their room."""
+        html = client.get("/").text
+        assert 'id="thread"' in html
+        assert "roomBrief" in html
+
     def test_site_can_point_at_a_remote_engine(self, client):
         """The page is a fixed address; the engine moves independently."""
         html = client.get("/").text
