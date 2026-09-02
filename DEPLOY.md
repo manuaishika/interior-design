@@ -1,60 +1,82 @@
-# Deploying it
+# Putting it online
 
-The app is one FastAPI service. What it can do depends only on which keys it
-has.
+Four steps, about twenty minutes, mostly waiting.
 
-| Feature | Needs | GPU? |
-| --- | --- | --- |
-| Read the room, three directions | `OPENAI_API_KEY` | no |
-| Talk it through | `OPENAI_API_KEY` | no |
-| Draw the designs | `REPLICATE_API_TOKEN` | no — Replicate has the GPUs |
+## 1 — Replicate (draws the pictures)
 
-Nothing here needs a GPU of your own. That is the point of `BACKEND=hosted`.
+1. Sign up at **replicate.com** with GitHub
+2. Billing → add a card
+3. **replicate.com/account/api-tokens** → copy the token (starts `r8_`)
 
-## Vercel
+Costs a few paise per image. A hundred rooms is a few hundred rupees.
 
-1. Push this branch to GitHub (already done).
-2. On vercel.com: **Add New → Project**, import `manuaishika/interior-design`.
-3. Settings → Environment Variables:
+## 2 — OpenAI (reads the room, does the chat)
 
-   ```
-   BACKEND            = hosted
-   OPENAI_API_KEY     = sk-...
-   REPLICATE_API_TOKEN = r8_...
-   ```
+1. Sign up at **platform.openai.com**
+2. Billing → add a card, put $10 on it
+3. API keys → create one → copy it (starts `sk-`)
 
-4. Deploy. `vercel.json` and `api/index.py` are already here, so there is
-   nothing to configure.
+This is **not** ChatGPT Plus. Different product, separate billing. A ChatGPT
+subscription gives you nothing here.
 
-**One catch worth knowing before you pick a plan.** Generating three images
-takes 30–60 seconds. Vercel's Hobby plan cuts requests off at 10 seconds, so
-reading and chat will work but drawing will time out. `maxDuration` is set to
-60, which needs a Pro plan. On Hobby, deploy the site for reading and run
-drawing somewhere without that limit.
+## 3 — Render (runs the site)
 
-## Render / Railway / Fly — no timeout problem
+1. Sign up at **render.com** with GitHub
+2. **New → Blueprint**
+3. Pick `manuaishika/interior-design`, branch
+   `claude/interior-design-room-analysis-yj4fvg`
+4. It reads `render.yaml` and fills everything in. It will ask for two values:
 
+   | | |
+   | --- | --- |
+   | `OPENAI_API_KEY` | the `sk-...` from step 2 |
+   | `REPLICATE_API_TOKEN` | the `r8_...` from step 1 |
+
+5. **Apply**. First build takes about five minutes.
+
+You get a URL like `https://second-draft.onrender.com`. That is the site.
+Send it to anyone.
+
+## 4 — Check it
+
+Open `your-url/api/health`. Both of these must say `true`:
+
+```json
+{ "can_read": true, "can_draw": true }
 ```
-Build:  pip install -r requirements.txt
-Start:  uvicorn app.main:app --host 0.0.0.0 --port $PORT
-```
 
-Same three environment variables. These have no request timeout, so drawing
-works on the free tier.
+If either is `false`, the key for that half is missing or wrong. Render →
+Environment → fix it → Manual Deploy.
 
-## Your own machine
+Then open the site, upload a room, press **Design**.
+
+---
+
+## Why Render and not Vercel
+
+Drawing three images takes 30–60 seconds. Vercel's Hobby plan cuts requests
+off at 10 seconds, so drawing would always fail there. Render has no request
+timeout. `vercel.json` is still in the repo if you want Vercel for the reading
+half on a Pro plan, but Render is the one that works.
+
+**One thing about Render's free tier:** it sleeps after 15 minutes idle, and
+the next visitor waits ~50 seconds while it wakes. Fine for testing, bad in
+front of a client. The `starter` plan in `render.yaml` (about $7/month) stays
+awake. Open the site a minute before any demo either way.
+
+## Running it on your own machine
 
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
-cp .env.example .env          # add your keys
+cp .env.example .env          # paste the same two keys
 .venv/bin/uvicorn app.main:app
 ```
 
-Open http://localhost:8000.
+http://localhost:8000
 
-## Running it free, with no keys at all
+## Free, with no keys at all
 
-`BACKEND=local` runs open-weight models in the process instead. It needs a GPU
-to be usable, which is what `notebooks/run_website_colab.py` is for — it starts
-this same site on Colab's free GPU and prints a public link. Good for a demo,
-not for a product.
+`notebooks/run_website_colab.py` runs this same site on Colab's free GPU with
+open-weight models instead. No accounts, no card. Good enough to prove the
+idea; not something to put in front of customers, because the link dies with
+the notebook.

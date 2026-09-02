@@ -49,6 +49,11 @@ the output:
 GPU with no keys and no card. Upload a room photo, pick a style, get several
 versions back. Open it from the repo with `File → Open notebook → GitHub`.
 
+## Put it online
+
+See **[DEPLOY.md](DEPLOY.md)** — a Replicate token, an OpenAI key, and
+Render's Blueprint button. `render.yaml` does the rest. Twenty minutes.
+
 ## Setup
 
 ```bash

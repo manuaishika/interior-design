@@ -1,16 +1,19 @@
+# --- the deployed app needs only these -------------------------------------
 fastapi>=0.110
 uvicorn[standard]>=0.27
 python-multipart>=0.0.9
 pillow>=10.2
 numpy>=1.26
+scipy>=1.11
 replicate>=0.25
 openai>=1.30
 pydantic>=2.6
 pydantic-settings>=2.2
 httpx>=0.27
 
-scipy>=1.11
-
-# dev
+# --- dev ---
 pytest>=8.0
 pytest-asyncio>=0.23
+
+# --- only for BACKEND=local (running the models yourself, needs a GPU).
+# --- Not installed on a normal deploy; see requirements-local.txt.

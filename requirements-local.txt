@@ -1,0 +1,8 @@
+# Only needed for BACKEND=local — running the image models on your own GPU.
+# A hosted deploy does not want these: they are several gigabytes and useless
+# without a GPU. Colab installs them itself.
+-r requirements.txt
+torch>=2.1
+diffusers>=0.27
+transformers>=4.40
+accelerate>=0.29
