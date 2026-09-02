@@ -54,6 +54,19 @@
   header p { color: var(--muted); }
   .stamp { margin-top: 1.1rem; font-size: .8rem; color: var(--muted); }
 
+  .gate { background: var(--brass-lo); border: 1px solid var(--brass);
+    border-radius: 12px; padding: 1.3rem 1.4rem; margin-bottom: 2rem; }
+  .gate h2 { font-size: 1.35rem; margin-bottom: .5rem; }
+  .gate p { font-size: .94rem; }
+  .gates { display: grid; gap: .6rem; margin: 1rem 0; }
+  @media (min-width: 620px) { .gates { grid-template-columns: 1fr 1fr; } }
+  .gates div { background: var(--panel); border-radius: 9px; padding: .8rem .9rem;
+    display: grid; gap: .2rem; }
+  .gates .d { font-size: .82rem; font-weight: 700; color: var(--brass);
+    letter-spacing: .02em; }
+  .gates div span:last-child { font-size: .93rem; }
+  .gate .warn { font-weight: 600; font-size: .9rem; }
+
   /* --- where we are --- */
   .now { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
     padding: 1.3rem 1.4rem; margin-bottom: 2.8rem; }
@@ -131,8 +144,20 @@
     <p>An AI room designer: a customer photographs a room, and gets it back
       several ways — with the doors, windows and walking space left exactly
       where the building put them.</p>
-    <p class="stamp mono">Prepared 2 September 2026 · dates are working estimates, not commitments</p>
+    <p class="stamp mono">Prepared 2 September 2026 · live to customers by 2 October</p>
   </header>
+
+  <div class="gate">
+    <h2>Two dates decide everything</h2>
+    <p>The build work here is days, not weeks. What sets the pace is how fast
+      material arrives from your side — so the whole plan hangs on these two:</p>
+    <div class="gates">
+      <div><span class="d mono">Fri 4 Sep</span><span>10–15 photographs of real rooms</span></div>
+      <div><span class="d mono">Fri 11 Sep</span><span>your catalogue as a spreadsheet, with sizes</span></div>
+    </div>
+    <p class="warn">Each week either of those is late moves everything after it
+      by the same week. Nothing else on this page is as important.</p>
+  </div>
 
   <div class="now">
     <h2>Where we are today</h2>
@@ -150,16 +175,16 @@
   <!-- ---------------- phases ---------------- -->
   <section class="phase">
     <div class="when">
-      <div class="dates">2 → 16 Sep</div>
-      <div class="len">2 weeks</div>
+      <div class="dates">Wed 2 →<br>Fri 4 Sep</div>
+      <div class="len">3 days</div>
     </div>
     <div class="body">
       <h2>1 · Get it live</h2>
-      <p>A permanent web address you can open on any device and send to anyone.</p>
+      <p>A permanent web address you can open on any device and send to anyone. Deploying is a day of work; the rest is checking it holds up.</p>
       <ul class="does">
         <li>Deploy to a proper host, with a real URL</li>
         <li>Switch image generation to a hosted service, so there is no laptop or notebook in the loop</li>
-        <li>Run it end to end on ten test rooms and fix what breaks</li>
+        <li>Run it end to end on test rooms and fix what breaks</li>
       </ul>
       <div class="need">
         <h3>What we need from you</h3>
@@ -168,22 +193,22 @@
           <li>A decision on the product name — it is currently "Second Draft"</li>
           <li>Your logo and brand colours, if it should carry them</li>
         </ul>
-        <p class="by">Needed by 9 Sep to stay on this date</p>
+        <p class="by">Needed by Thu 3 Sep — tomorrow</p>
       </div>
     </div>
   </section>
 
   <section class="phase">
     <div class="when">
-      <div class="dates">16 → 30 Sep</div>
-      <div class="len">2 weeks</div>
+      <div class="dates">Fri 4 →<br>Fri 11 Sep</div>
+      <div class="len">1 week</div>
     </div>
     <div class="body">
       <h2>2 · Make it good on your rooms</h2>
       <p>Test photos are not your properties. This is where quality is actually
         won or lost, and it cannot start without your photographs.</p>
       <ul class="does">
-        <li>Run every photo you send and review the output together</li>
+        <li>Run every photo you send, the day it arrives</li>
         <li>Tune the model settings for your room types and lighting</li>
         <li>Fix the specific failures we find — wrong counts, drifting proportions, style misses</li>
         <li>Agree what "good enough to show a customer" means</li>
@@ -195,15 +220,15 @@
           <li>Two or three examples of designs you consider <em>good</em>, so we are aiming at your taste rather than mine</li>
           <li>One hour together to review the first batch</li>
         </ul>
-        <p class="by">Photos needed by 16 Sep — this phase cannot start without them</p>
+        <p class="by">Photos needed by Fri 4 Sep — this phase cannot start without them</p>
       </div>
     </div>
   </section>
 
   <section class="phase">
     <div class="when">
-      <div class="dates">30 Sep → 14 Oct</div>
-      <div class="len">2 weeks</div>
+      <div class="dates">Fri 11 →<br>Fri 18 Sep</div>
+      <div class="len">1 week</div>
     </div>
     <div class="body">
       <h2>3 · Attach your products</h2>
@@ -221,15 +246,15 @@
           <li>30–50 products across five or six categories is enough to start</li>
           <li>The product photos themselves</li>
         </ul>
-        <p class="by">Spreadsheet needed by 30 Sep</p>
+        <p class="by">Spreadsheet needed by Fri 11 Sep</p>
       </div>
     </div>
   </section>
 
   <section class="phase">
     <div class="when">
-      <div class="dates">14 Oct → 4 Nov</div>
-      <div class="len">3 weeks</div>
+      <div class="dates">Fri 18 Sep →<br>Fri 2 Oct</div>
+      <div class="len">2 weeks</div>
     </div>
     <div class="body">
       <h2>4 · Put it in front of customers</h2>
@@ -238,7 +263,7 @@
       <ul class="does">
         <li>Add whatever a real customer needs that a demo does not — saving, sharing, downloading</li>
         <li>Run with a handful of customers and watch what actually happens</li>
-        <li>Weekly review of what they asked for and what confused them</li>
+        <li>Review twice a week — what they asked for, what confused them</li>
         <li>Decide together whether it is ready to open up</li>
       </ul>
       <div class="need">
@@ -248,7 +273,7 @@
           <li>One person on your side who fields their questions</li>
           <li>A decision on who pays for what if this becomes a paid service</li>
         </ul>
-        <p class="by">Pilot customers identified by 14 Oct</p>
+        <p class="by">Pilot customers identified by Fri 18 Sep</p>
       </div>
     </div>
   </section>
@@ -273,7 +298,7 @@
         <b>Does it need to show your products, or just the look?</b>
         <span>If products matter, phase 3 is essential and the catalogue is on
           the critical path. If inspiration is enough, we can skip it and move
-          the pilot forward by two weeks.</span>
+          starts a week earlier.</span>
       </div>
       <div class="q">
         <b>Should customers be able to save and come back?</b>
@@ -311,13 +336,13 @@
     <ul>
       <li><strong>It will not draw your exact sofa.</strong> No image generator can do that today — not this one, not ChatGPT. The picture sells the look; the product list beside it sells the product.</li>
       <li><strong>Quality on your rooms is genuinely unknown</strong> until phase 2. That is why phase 2 exists, and why the photographs are the most useful thing you can send.</li>
-      <li><strong>Every date here assumes materials arrive on time.</strong> Photographs late by a week move everything after them by a week.</li>
+      <li><strong>This is a fast plan and it is tight.</strong> It works because the build work is small and mostly done. It stops working the moment material is late — the two dates at the top are the whole schedule.</li>
       <li><strong>What it will not do</strong> is check building regulations, produce working drawings, or replace a designer's judgement. It gets the conversation started faster.</li>
     </ul>
   </section>
 
   <footer>
-    Second Draft · build plan, 2 September 2026. Dates are estimates for
-    planning, revised as we learn.
+    Second Draft · build plan, 2 September 2026. Live to customers by 2 October,
+    provided the two dates at the top are met.
   </footer>
 </div>
