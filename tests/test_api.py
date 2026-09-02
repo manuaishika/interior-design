@@ -65,25 +65,34 @@ class TestMetaEndpoints:
         assert "Second Draft" in res.text
 
     def test_site_is_a_tool_not_a_brochure(self, client):
-        """Three panes: what you are working on, the canvas, the controls.
-        The client called the old scrolling page complicated; this is the fix."""
+        """A sidebar and a working surface, with every control in one bar."""
         html = client.get("/").text
         assert 'class="app"' in html
-        assert 'class="rail"' in html and 'class="canvas"' in html
-        assert 'class="panel"' in html
+        assert 'class="side"' in html and 'class="stage"' in html
+        assert 'class="bar-in"' in html
         assert "/api/generate" in html
 
     def test_one_button_does_the_thing(self, client):
         html = client.get("/").text
-        assert 'id="design"' in html
-        assert 'id="drop"' in html
+        assert 'id="go"' in html and 'id="plus"' in html
 
-    def test_site_reads_rooms_without_an_engine(self, client):
-        """Reading runs in the page via Claude, so the published link is useful
-        even with no GPU behind it. Only drawing needs the engine."""
+    def test_styles_show_what_they_look_like(self, client):
+        """"Japandi" means nothing to most people, so each look carries the
+        colours and materials it is built from."""
         html = client.get("/").text
-        assert "claude.use('sample')" in html
-        assert 'id="read"' in html
+        assert "colours: [" in html
+        assert "pale oak" in html and "walnut" in html
+
+    def test_page_survives_without_the_claude_runtime(self, client):
+        """Deployed on your own server there is no `claude` object at all;
+        reading it unguarded would break the whole page."""
+        html = client.get("/").text
+        assert "typeof claude !== 'undefined'" in html
+
+    def test_reading_and_chat_work_from_your_own_server(self, client):
+        """The deployable path: vision endpoints that need no GPU."""
+        html = client.get("/").text
+        assert "/api/read" in html and "/api/chat" in html
 
     def test_site_carries_a_conversation(self, client):
         """After the reading, the client can argue with it about their room."""

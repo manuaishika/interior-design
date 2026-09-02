@@ -10,6 +10,7 @@ Endpoints:
 
 from __future__ import annotations
 
+import json
 import logging
 from pathlib import Path
 
@@ -22,6 +23,7 @@ from .config import LOCK_PROFILES, Settings, get_settings
 from .generation import STYLES, GenerationError
 from .models import AnalyzeResponse, GenerateResponse
 from .pipeline import analyze_room, prepare_image, run_pipeline
+from .reading import ReadingError, discuss, read_room
 from .segmentation import SegmentationError
 
 logging.basicConfig(
@@ -86,6 +88,8 @@ async def health():
         "status": "ok",
         "replicate_configured": bool(settings.replicate_api_token),
         "openai_configured": bool(settings.openai_api_key),
+        "can_read": bool(settings.openai_api_key),
+        "can_draw": bool(settings.replicate_api_token) or settings.backend == "local",
         "models": {
             "segmentation": settings.sam2_model,
             "labeling": settings.vlm_model,
@@ -128,6 +132,43 @@ async def analyze_endpoint(
     except RuntimeError as exc:
         raise HTTPException(502, str(exc)) from exc
     return AnalyzeResponse(analysis=analysis)
+
+
+@app.post("/api/read")
+async def read_endpoint(
+    photo: UploadFile = File(...),
+    room_type: str = Form("room"),
+):
+    """Look at a room and say what is in it, plus three directions.
+
+    Vision only — no GPU — so this works on any ordinary host.
+    """
+    settings = get_settings()
+    data = await _read_upload(photo, settings)
+    try:
+        return await read_room(data, room_type, settings)
+    except ReadingError as exc:
+        raise HTTPException(502, str(exc)) from exc
+
+
+@app.post("/api/chat")
+async def chat_endpoint(
+    room_summary: str = Form(...),
+    turns: str = Form(...),
+):
+    """Continue the conversation about a room already read."""
+    settings = get_settings()
+    try:
+        parsed = json.loads(turns)
+        if not isinstance(parsed, list):
+            raise ValueError("turns must be a list")
+    except (json.JSONDecodeError, ValueError) as exc:
+        raise HTTPException(400, f"Bad turns: {exc}") from exc
+
+    try:
+        return {"reply": await discuss(room_summary, parsed, settings)}
+    except ReadingError as exc:
+        raise HTTPException(502, str(exc)) from exc
 
 
 @app.post("/api/generate", response_model=GenerateResponse)
