@@ -72,6 +72,16 @@ class TestMetaEndpoints:
         assert 'class="bar-in"' in html
         assert "/api/generate" in html
 
+    def test_the_first_screen_explains_itself(self, client):
+        """Someone arriving cold needs to know what this is before an upload
+        box means anything. An earlier edit dropped this silently, so it is
+        pinned here."""
+        html = client.get("/").text
+        assert "AI interior design" in html
+        assert 'class="how"' in html
+        assert "It reads the room" in html
+        assert "Nothing structural moves" in html
+
     def test_one_button_does_the_thing(self, client):
         html = client.get("/").text
         assert 'id="go"' in html and 'id="plus"' in html
