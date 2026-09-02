@@ -5,16 +5,32 @@
 
 <style>
   :root {
-    --bg:      #0E0F11;
-    --raise:   #16181B;
-    --card:    #1C1F23;
-    --line:    #292D33;
-    --ink:     #F2F0EC;
-    --muted:   #8A9099;
-    --accent:  #C7A87B;
-    --ok:      #6FA277;
-    --bad:     #E08A72;
-    --bar-h:   auto;
+    --bg:     #FBFAF7;
+    --raise:  #FFFFFF;
+    --card:   #F4F1EB;
+    --line:   #E4DFD5;
+    --ink:    #1D2127;
+    --muted:  #6C7280;
+    --accent: #3E5C70;
+    --accent-soft: #E9EFF3;
+    --on-accent: #FFFFFF;
+    --keep:   #9C7A4E;
+    --ok:     #4B7F52;
+    --bad:    #A5442E;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #101317; --raise: #171B20; --card: #1E232A; --line: #2B313A;
+      --ink: #ECE9E3; --muted: #98A0AC;
+      --accent: #8FB2C6; --accent-soft: #1E2933; --on-accent: #101317;
+      --keep: #CFAC79; --ok: #6FA277; --bad: #E08A72;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #101317; --raise: #171B20; --card: #1E232A; --line: #2B313A;
+    --ink: #ECE9E3; --muted: #98A0AC;
+    --accent: #8FB2C6; --accent-soft: #1E2933; --on-accent: #101317;
+    --keep: #CFAC79; --ok: #6FA277; --bad: #E08A72;
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--ink);
@@ -33,7 +49,7 @@
     padding: 1.4rem 1rem; display: flex; flex-direction: column; gap: 1.7rem; }
   .logo { display: flex; align-items: center; gap: .55rem; padding: 0 .4rem; }
   .logo .mark { width: 28px; height: 28px; border-radius: 9px; flex: none;
-    background: linear-gradient(140deg, var(--accent), #7E6440);
+    background: var(--accent);
     display: grid; place-items: center; }
   .logo .mark svg { width: 16px; height: 16px; }
   .logo b { font-family: "Instrument Serif", Georgia, serif; font-weight: 400;
@@ -48,22 +64,12 @@
   .side button.nav:hover { background: var(--card); }
   .side button.nav.on { background: var(--card); }
   .side .tile { width: 22px; height: 22px; border-radius: 6px; flex: none;
-    display: grid; place-items: center; background: #23262B; }
+    display: grid; place-items: center; background: var(--card); }
   .side .tile svg { width: 13px; height: 13px; }
-  .side .tile.a { background: rgba(199,168,123,.18); color: var(--accent); }
+  .side .tile.a { background: var(--accent-soft); color: var(--accent); }
 
-  .side-foot { margin-top: auto; display: grid; gap: .5rem; }
-  .engine { border: 1px solid var(--line); border-radius: 10px; padding: .65rem .7rem;
-    background: var(--card); }
-  .engine .r { display: flex; align-items: center; gap: .45rem; font-size: .76rem;
-    color: var(--muted); }
-  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); flex: none; }
-  .dot.on { background: var(--ok); } .dot.off { background: var(--accent); }
-  .engine input { width: 100%; margin-top: .45rem; font-size: .72rem; padding: .35rem .45rem;
-    border: 1px solid var(--line); border-radius: 6px; background: var(--raise); }
-  .engine button { width: 100%; margin-top: .35rem; font-size: .68rem; padding: .35rem;
-    letter-spacing: .07em; text-transform: uppercase; border: 1px solid var(--line);
-    border-radius: 6px; background: var(--raise); cursor: pointer; }
+  .side-foot { margin-top: auto; }
+  .tiny { font-size: .74rem; color: var(--muted); margin: 0; padding: 0 .5rem; }
 
   /* ---------- stage ---------- */
   .stage { position: relative; display: flex; flex-direction: column;
@@ -74,8 +80,8 @@
   .fan { display: flex; justify-content: center; align-items: flex-end;
     gap: 0; margin-bottom: 2rem; min-height: 190px; }
   .fan .f { width: 150px; height: 186px; border-radius: 14px; overflow: hidden;
-    border: 1px solid rgba(255,255,255,.09); position: relative; flex: none;
-    box-shadow: 0 18px 40px rgba(0,0,0,.45); }
+    border: 1px solid var(--line); position: relative; flex: none;
+    box-shadow: 0 14px 34px rgba(29,33,39,.14); }
   .fan .f + .f { margin-left: -26px; }
   .fan .f:nth-child(1) { transform: rotate(-7deg) translateY(8px); }
   .fan .f:nth-child(2) { transform: rotate(-2.5deg); }
@@ -83,7 +89,7 @@
   .fan .f:nth-child(4) { transform: rotate(7deg) translateY(8px); }
   .fan .f figcaption { position: absolute; left: 0; right: 0; bottom: .5rem;
     text-align: center; font-family: "Instrument Serif", Georgia, serif;
-    font-size: 1.35rem; color: #fff; text-shadow: 0 2px 12px rgba(0,0,0,.6); }
+    font-size: 1.35rem; color: #fff; text-shadow: 0 2px 10px rgba(0,0,0,.45); }
   @media (max-width: 700px) { .fan .f:nth-child(n+3) { display: none; } }
 
   .hero h1 { font-size: clamp(2.2rem, 5vw, 3.4rem); }
@@ -95,12 +101,12 @@
   .room .frame img { display: block; width: 100%; }
   .room .swap { position: absolute; top: .7rem; right: .7rem; font-size: .76rem;
     padding: .35rem .75rem; border-radius: 8px; border: 0; cursor: pointer;
-    background: rgba(0,0,0,.6); color: #fff; backdrop-filter: blur(6px); }
+    background: rgba(20,22,26,.66); color: #fff; backdrop-filter: blur(6px); }
 
   .chips { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: .9rem; }
   .chip { font-size: .76rem; padding: .25rem .6rem; border-radius: 999px;
     background: var(--card); color: var(--muted); border: 1px solid var(--line); }
-  .chip.keep { color: var(--accent); border-color: rgba(199,168,123,.35); }
+  .chip.keep { color: var(--keep); border-color: var(--keep); }
 
   .sect { max-width: 900px; margin: 2.4rem auto 0; }
   .sect h2 { font-size: 1.5rem; margin-bottom: .15rem; }
@@ -134,7 +140,7 @@
     background: linear-gradient(to top, var(--bg) 62%, transparent); }
   .bar-in { max-width: 900px; margin: 0 auto; background: var(--raise);
     border: 1px solid var(--line); border-radius: 18px; padding: .7rem .8rem;
-    box-shadow: 0 20px 50px rgba(0,0,0,.5); }
+    box-shadow: 0 14px 40px rgba(29,33,39,.12); }
   .bar-top { display: flex; align-items: center; gap: .6rem; }
   .plus { width: 40px; height: 40px; border-radius: 12px; flex: none; cursor: pointer;
     border: 1px dashed var(--line); background: var(--card); display: grid;
@@ -145,7 +151,7 @@
     font-size: 1rem; }
   .bar-top input.say::placeholder { color: var(--muted); }
   .send { border: 0; border-radius: 12px; padding: .6rem 1.15rem; cursor: pointer;
-    background: var(--accent); color: #17140F; font-weight: 600; flex: none; }
+    background: var(--accent); color: var(--on-accent); font-weight: 600; flex: none; }
   .send:disabled { opacity: .4; cursor: not-allowed; }
 
   .pills { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: .6rem;
@@ -163,7 +169,7 @@
   .msg.bad { color: var(--bad); }
 
   /* ---------- style sheet (the popover) ---------- */
-  .sheet { position: fixed; inset: 0; background: rgba(6,7,8,.72);
+  .sheet { position: fixed; inset: 0; background: rgba(29,33,39,.42);
     backdrop-filter: blur(3px); display: grid; place-items: center; padding: 1.2rem;
     z-index: 50; }
   .sheet-in { background: var(--raise); border: 1px solid var(--line);
@@ -195,7 +201,7 @@
   <aside class="side">
     <div class="logo">
       <span class="mark">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#17140F" stroke-width="2.2"
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--on-accent)" stroke-width="2.2"
              stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/>
         </svg>
@@ -220,11 +226,7 @@
     </div>
 
     <div class="side-foot">
-      <div class="engine">
-        <div class="r"><span class="dot" id="dot"></span><span id="dotText">Checking…</span></div>
-        <input type="text" id="engineUrl" placeholder="Server address" spellcheck="false">
-        <button type="button" id="engineSave">Connect</button>
-      </div>
+      <p class="tiny" id="state">Getting ready…</p>
     </div>
   </aside>
 
@@ -395,36 +397,34 @@
   $('less').onclick = function () { count = Math.max(1, count - 1); $('countN').textContent = count; };
   $('more').onclick = function () { count = Math.min(4, count + 1); $('countN').textContent = count; };
 
-  /* ---- server ---- */
-  function server() {
-    try { return (localStorage.getItem('engineUrl') || '').replace(/\/+$/, ''); }
-    catch (e) { return ''; }
-  }
-  function api(p) { return server() + p; }
-  try { $('engineUrl').value = server(); } catch (e) {}
+  /* Where the work happens. Deployed, that is this same site, so there is
+     nothing to configure and nothing to show anyone. ?server=... exists only
+     so a demo can borrow a temporary GPU without a rebuild. */
+  var SERVER = (function () {
+    try {
+      var q = new URLSearchParams(location.search).get('server');
+      if (q) { localStorage.setItem('server', q.replace(/\/+$/, '')); }
+      return (localStorage.getItem('server') || '').replace(/\/+$/, '');
+    } catch (e) { return ''; }
+  })();
+  function api(p) { return SERVER + p; }
 
+  var canDraw = false;
   function check() {
-    $('dot').className = 'dot off';
-    $('dotText').textContent = 'Connecting…';
-    fetch(api('/api/health')).then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+    fetch(api('/api/health'))
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
       .then(function (h) {
         live = true;
-        $('dot').className = 'dot on';
-        $('dotText').textContent = h.can_draw ? 'Ready' : 'Reading only';
+        canDraw = Boolean(h.can_draw);
+        $('state').textContent = canDraw ? '' : 'Pictures are not switched on yet.';
         refresh();
       })
       .catch(function () {
         live = false;
-        $('dot').className = 'dot';
-        $('dotText').textContent = server() ? 'Not answering' : 'Not connected';
+        $('state').textContent = sampler ? '' : 'Setting up…';
         refresh();
       });
   }
-  $('engineSave').onclick = function () {
-    try { localStorage.setItem('engineUrl', $('engineUrl').value.trim().replace(/\/+$/, '')); }
-    catch (e) {}
-    check();
-  };
 
   /* The reader works two ways: through your own server once deployed, or
      straight from the page when this is opened inside claude.ai. */
@@ -432,7 +432,7 @@
     claude.use('sample').then(function (s) {
       if (!s) return;
       return s.limits().then(function (c) {
-        if (c && c.images) { sampler = s; refresh(); }
+        if (c && c.images) { sampler = s; $('state').textContent = ''; refresh(); }
       });
     }).catch(function () {});
   }
@@ -519,7 +519,7 @@
         'for doors, windows and the floor people walk on. Exactly three directions.',
         { images: [photo.files[0]] });
     }
-    throw new Error('Connect a server first — bottom left.');
+    throw new Error('The room reader is not available right now.');
   }
 
   async function draw() {
@@ -590,7 +590,7 @@
         paint(await readRoom());
         say('');
         if (live) { say('Drawing ' + count + '…'); await draw(); say(''); }
-        else { say('Connect a server to draw pictures.'); }
+        else { say('Pictures are not switched on yet.'); }
       } else {
         var text = $('text').value.trim();
         $('text').value = '';

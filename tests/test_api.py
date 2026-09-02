@@ -100,11 +100,13 @@ class TestMetaEndpoints:
         assert 'id="thread"' in html
         assert "roomBrief" in html
 
-    def test_site_can_point_at_a_remote_engine(self, client):
-        """The page is a fixed address; the engine moves independently."""
+    def test_no_plumbing_is_shown_to_the_user(self, client):
+        """A server address box is a developer's concern. It reaches the page
+        through a query string, never a field someone has to fill in."""
         html = client.get("/").text
-        assert "engineUrl" in html
+        assert "Server address" not in html
         assert "function api(" in html
+        assert "URLSearchParams" in html
 
 
 class TestGenerateEndpoint:
