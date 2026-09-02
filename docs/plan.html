@@ -1,0 +1,323 @@
+<title>Second Draft Build Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Karla:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
+
+<style>
+  :root {
+    --paper:   #FBFAF7;
+    --panel:   #FFFFFF;
+    --sunk:    #F3F0EA;
+    --line:    #E4DFD5;
+    --ink:     #1D2127;
+    --muted:   #6C7280;
+    --slate:   #3E5C70;
+    --slate-lo:#E9EFF3;
+    --brass:   #8C6D42;
+    --brass-lo:#F6EFE3;
+    --done:    #4B7F52;
+    --measure: 66ch;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #101317; --panel: #171B20; --sunk: #1D222A; --line: #2B313A;
+      --ink: #ECE9E3; --muted: #98A0AC;
+      --slate: #8FB2C6; --slate-lo: #1D2833;
+      --brass: #CFAC79; --brass-lo: #262015;
+      --done: #6FA277;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #101317; --panel: #171B20; --sunk: #1D222A; --line: #2B313A;
+    --ink: #ECE9E3; --muted: #98A0AC;
+    --slate: #8FB2C6; --slate-lo: #1D2833;
+    --brass: #CFAC79; --brass-lo: #262015;
+    --done: #6FA277;
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink);
+    font-family: "Karla", ui-sans-serif, system-ui, sans-serif;
+    font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 940px; margin: 0 auto; padding: 3rem clamp(1.1rem, 4vw, 2.5rem) 5rem; }
+
+  h1, h2, h3 { font-family: "Newsreader", Georgia, serif; font-weight: 400;
+    margin: 0; line-height: 1.15; text-wrap: balance; }
+  p { margin: 0; max-width: var(--measure); }
+  .mono { font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-variant-numeric: tabular-nums; }
+
+  header { border-bottom: 1px solid var(--line); padding-bottom: 2rem; margin-bottom: 2.6rem; }
+  .eyebrow { font-family: "JetBrains Mono", monospace; font-size: .74rem;
+    letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  h1 { font-size: clamp(2rem, 4.4vw, 2.9rem); margin: .5rem 0 .7rem; }
+  header p { color: var(--muted); }
+  .stamp { margin-top: 1.1rem; font-size: .8rem; color: var(--muted); }
+
+  /* --- where we are --- */
+  .now { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 1.3rem 1.4rem; margin-bottom: 2.8rem; }
+  .now h2 { font-size: 1.35rem; margin-bottom: .8rem; }
+  .state { display: grid; gap: .55rem; }
+  .state div { display: flex; gap: .7rem; align-items: baseline; font-size: .94rem; }
+  .state .tick { flex: none; width: 1.1rem; font-weight: 700; }
+  .state .yes .tick { color: var(--done); }
+  .state .no .tick { color: var(--brass); }
+  .state .no span:last-child { color: var(--muted); }
+
+  /* --- phases --- */
+  .phase { display: grid; grid-template-columns: 8.5rem 1fr; gap: 0 1.8rem;
+    border-top: 1px solid var(--line); padding: 2rem 0; }
+  @media (max-width: 720px) { .phase { grid-template-columns: 1fr; gap: .8rem; } }
+  .when { position: sticky; top: 1.5rem; align-self: start; }
+  .when .dates { font-family: "JetBrains Mono", monospace; font-size: .82rem;
+    font-weight: 500; color: var(--slate); letter-spacing: .01em; }
+  .when .len { font-size: .74rem; color: var(--muted); margin-top: .2rem; }
+  .body h2 { font-size: 1.5rem; margin-bottom: .4rem; }
+  .body > p { color: var(--muted); margin-bottom: 1rem; }
+
+  .does { list-style: none; padding: 0; margin: 0 0 1.1rem; display: grid; gap: .4rem; }
+  .does li { display: flex; gap: .65rem; font-size: .95rem; }
+  .does li::before { content: "—"; color: var(--slate); flex: none; }
+
+  .need { background: var(--brass-lo); border-left: 3px solid var(--brass);
+    border-radius: 0 9px 9px 0; padding: .9rem 1.1rem; }
+  .need h3 { font-family: "Karla", sans-serif; font-weight: 700; font-size: .76rem;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--brass);
+    margin-bottom: .5rem; }
+  .need ul { margin: 0; padding-left: 1.1rem; display: grid; gap: .3rem; font-size: .93rem; }
+  .need .by { font-size: .82rem; color: var(--brass); margin-top: .6rem; font-weight: 600; }
+  .need.none { background: var(--sunk); border-left-color: var(--line); }
+  .need.none h3 { color: var(--muted); }
+  .need.none p { font-size: .93rem; color: var(--muted); }
+
+  /* --- decisions --- */
+  .decide { margin-top: 3rem; border-top: 1px solid var(--line); padding-top: 2.4rem; }
+  .decide h2 { font-size: 1.6rem; margin-bottom: .3rem; }
+  .decide > p { color: var(--muted); margin-bottom: 1.4rem; }
+  .qs { display: grid; gap: .8rem; }
+  .q { border: 1px solid var(--line); border-radius: 10px; background: var(--panel);
+    padding: 1rem 1.15rem; }
+  .q b { display: block; margin-bottom: .25rem; }
+  .q span { font-size: .92rem; color: var(--muted); }
+
+  /* --- money --- */
+  .cost { margin-top: 2.6rem; }
+  .cost h2 { font-size: 1.6rem; margin-bottom: 1rem; }
+  .tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; min-width: 460px; }
+  th, td { text-align: left; padding: .8rem 1rem; border-bottom: 1px solid var(--line);
+    font-size: .93rem; }
+  thead th { background: var(--sunk); font-size: .74rem; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--muted); font-weight: 700; }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.num { font-family: "JetBrains Mono", monospace; font-variant-numeric: tabular-nums;
+    white-space: nowrap; }
+
+  .honest { margin-top: 2.6rem; background: var(--slate-lo); border-radius: 12px;
+    padding: 1.3rem 1.4rem; }
+  .honest h2 { font-size: 1.3rem; margin-bottom: .6rem; }
+  .honest ul { margin: 0; padding-left: 1.15rem; display: grid; gap: .45rem;
+    font-size: .94rem; max-width: var(--measure); }
+
+  footer { margin-top: 3rem; border-top: 1px solid var(--line); padding-top: 1.4rem;
+    font-size: .84rem; color: var(--muted); }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Build plan</div>
+    <h1>Second Draft — what happens next, and when</h1>
+    <p>An AI room designer: a customer photographs a room, and gets it back
+      several ways — with the doors, windows and walking space left exactly
+      where the building put them.</p>
+    <p class="stamp mono">Prepared 2 September 2026 · dates are working estimates, not commitments</p>
+  </header>
+
+  <div class="now">
+    <h2>Where we are today</h2>
+    <div class="state">
+      <div class="yes"><span class="tick">✓</span><span><strong>The reading works.</strong> It identifies what is in a room, counts it, and marks doors, windows and walkways as untouchable.</span></div>
+      <div class="yes"><span class="tick">✓</span><span><strong>Several designs at once.</strong> One reading, up to four different versions from it.</span></div>
+      <div class="yes"><span class="tick">✓</span><span><strong>The interface is built</strong> and ready to deploy.</span></div>
+      <div class="yes"><span class="tick">✓</span><span><strong>You can talk to it</strong> about your room and ask for changes.</span></div>
+      <div class="no"><span class="tick">○</span><span><strong>Not yet tuned on your rooms.</strong> It has run on test photos only — quality on your actual properties is unknown until we try.</span></div>
+      <div class="no"><span class="tick">○</span><span><strong>No product catalogue attached.</strong> Renders show a look, not your specific products.</span></div>
+      <div class="no"><span class="tick">○</span><span><strong>Not live on a permanent address.</strong> That is the first job below.</span></div>
+    </div>
+  </div>
+
+  <!-- ---------------- phases ---------------- -->
+  <section class="phase">
+    <div class="when">
+      <div class="dates">2 → 16 Sep</div>
+      <div class="len">2 weeks</div>
+    </div>
+    <div class="body">
+      <h2>1 · Get it live</h2>
+      <p>A permanent web address you can open on any device and send to anyone.</p>
+      <ul class="does">
+        <li>Deploy to a proper host, with a real URL</li>
+        <li>Switch image generation to a hosted service, so there is no laptop or notebook in the loop</li>
+        <li>Run it end to end on ten test rooms and fix what breaks</li>
+      </ul>
+      <div class="need">
+        <h3>What we need from you</h3>
+        <ul>
+          <li>Approval to spend roughly <strong>₹2,000–4,000 a month</strong> on the AI services (see costs below)</li>
+          <li>A decision on the product name — it is currently "Second Draft"</li>
+          <li>Your logo and brand colours, if it should carry them</li>
+        </ul>
+        <p class="by">Needed by 9 Sep to stay on this date</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="phase">
+    <div class="when">
+      <div class="dates">16 → 30 Sep</div>
+      <div class="len">2 weeks</div>
+    </div>
+    <div class="body">
+      <h2>2 · Make it good on your rooms</h2>
+      <p>Test photos are not your properties. This is where quality is actually
+        won or lost, and it cannot start without your photographs.</p>
+      <ul class="does">
+        <li>Run every photo you send and review the output together</li>
+        <li>Tune the model settings for your room types and lighting</li>
+        <li>Fix the specific failures we find — wrong counts, drifting proportions, style misses</li>
+        <li>Agree what "good enough to show a customer" means</li>
+      </ul>
+      <div class="need">
+        <h3>What we need from you</h3>
+        <ul>
+          <li><strong>10–15 photographs of real rooms</strong> — the kind you actually sell into, not staged shots. Wide enough to show a door or a window.</li>
+          <li>Two or three examples of designs you consider <em>good</em>, so we are aiming at your taste rather than mine</li>
+          <li>One hour together to review the first batch</li>
+        </ul>
+        <p class="by">Photos needed by 16 Sep — this phase cannot start without them</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="phase">
+    <div class="when">
+      <div class="dates">30 Sep → 14 Oct</div>
+      <div class="len">2 weeks</div>
+    </div>
+    <div class="body">
+      <h2>3 · Attach your products</h2>
+      <p>The render shows a look. Beside it, a list of your actual products that
+        fit that room — with prices and, crucially, whether they physically fit.</p>
+      <ul class="does">
+        <li>Load your catalogue and match products to what the system finds in each room</li>
+        <li>Check sizes against the space — no recommending a 240cm sofa for a 200cm wall</li>
+        <li>Show products beside each design, with price and a link</li>
+      </ul>
+      <div class="need">
+        <h3>What we need from you</h3>
+        <ul>
+          <li><strong>Your catalogue as a spreadsheet.</strong> One row per product: code, name, category, <strong>width / depth / height in cm</strong>, price, and a photo filename.</li>
+          <li>30–50 products across five or six categories is enough to start</li>
+          <li>The product photos themselves</li>
+        </ul>
+        <p class="by">Spreadsheet needed by 30 Sep</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="phase">
+    <div class="when">
+      <div class="dates">14 Oct → 4 Nov</div>
+      <div class="len">3 weeks</div>
+    </div>
+    <div class="body">
+      <h2>4 · Put it in front of customers</h2>
+      <p>A small, controlled pilot. Real customers, watched closely, before
+        anything is announced publicly.</p>
+      <ul class="does">
+        <li>Add whatever a real customer needs that a demo does not — saving, sharing, downloading</li>
+        <li>Run with a handful of customers and watch what actually happens</li>
+        <li>Weekly review of what they asked for and what confused them</li>
+        <li>Decide together whether it is ready to open up</li>
+      </ul>
+      <div class="need">
+        <h3>What we need from you</h3>
+        <ul>
+          <li><strong>Five to ten customers</strong> willing to try it and tell you honestly what they think</li>
+          <li>One person on your side who fields their questions</li>
+          <li>A decision on who pays for what if this becomes a paid service</li>
+        </ul>
+        <p class="by">Pilot customers identified by 14 Oct</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------------- decisions ---------------- -->
+  <section class="decide">
+    <h2>Decisions we need from you</h2>
+    <p>These change what gets built, so the earlier they are settled the better.</p>
+    <div class="qs">
+      <div class="q">
+        <b>Which rooms matter most?</b>
+        <span>Bedrooms, living rooms, whole flats? One room type done properly
+          beats four done badly. This decides where the tuning effort goes.</span>
+      </div>
+      <div class="q">
+        <b>Who is this for — your team, or your customers?</b>
+        <span>A tool your designers use internally is a different product from
+          one a customer uses alone on their phone. It affects the interface,
+          the hosting and the cost.</span>
+      </div>
+      <div class="q">
+        <b>Does it need to show your products, or just the look?</b>
+        <span>If products matter, phase 3 is essential and the catalogue is on
+          the critical path. If inspiration is enough, we can skip it and move
+          the pilot forward by two weeks.</span>
+      </div>
+      <div class="q">
+        <b>Should customers be able to save and come back?</b>
+        <span>That means accounts and a database — about a week of extra work.
+          Worth it for a real product, unnecessary for a pilot.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------------- money ---------------- -->
+  <section class="cost">
+    <h2>What it costs to run</h2>
+    <div class="tbl">
+      <table>
+        <thead>
+          <tr><th>What</th><th>Roughly</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Reading a room</td><td class="num">₹1–3</td><td>per photograph</td></tr>
+          <tr><td>Drawing three designs</td><td class="num">₹3–8</td><td>per room</td></tr>
+          <tr><td>Hosting</td><td class="num">₹0–2,000/mo</td><td>free tier is fine for a pilot</td></tr>
+          <tr><td><strong>100 rooms a month</strong></td><td class="num"><strong>₹2,000–4,000</strong></td><td>all in</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:.9rem; font-size:.9rem; color:var(--muted)">
+      Estimates at current provider prices, to be confirmed against live usage
+      in phase 1. The AI is the inexpensive part — the real cost is build time.
+    </p>
+  </section>
+
+  <!-- ---------------- honesty ---------------- -->
+  <section class="honest">
+    <h2>Worth saying plainly</h2>
+    <ul>
+      <li><strong>It will not draw your exact sofa.</strong> No image generator can do that today — not this one, not ChatGPT. The picture sells the look; the product list beside it sells the product.</li>
+      <li><strong>Quality on your rooms is genuinely unknown</strong> until phase 2. That is why phase 2 exists, and why the photographs are the most useful thing you can send.</li>
+      <li><strong>Every date here assumes materials arrive on time.</strong> Photographs late by a week move everything after them by a week.</li>
+      <li><strong>What it will not do</strong> is check building regulations, produce working drawings, or replace a designer's judgement. It gets the conversation started faster.</li>
+    </ul>
+  </section>
+
+  <footer>
+    Second Draft · build plan, 2 September 2026. Dates are estimates for
+    planning, revised as we learn.
+  </footer>
+</div>
