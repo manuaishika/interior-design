@@ -110,6 +110,17 @@
   .foot-note { max-width: 48ch; margin: 1.6rem auto 0; font-size: .87rem;
     color: var(--muted); border-top: 1px solid var(--line); padding-top: 1.1rem; }
 
+  .gal-head { display: flex; align-items: baseline; justify-content: space-between;
+    gap: 1rem; margin-bottom: .9rem; }
+  .gal-note { font-size: .8rem; color: var(--muted); }
+  .gal { display: grid; gap: .7rem; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); }
+  .gal .slot { aspect-ratio: 4/3; border: 1px dashed var(--line); border-radius: 12px;
+    background: var(--card); display: grid; place-items: center; }
+  .gal .slot span { font-size: .78rem; color: var(--muted); }
+  .gal figure { margin: 0; }
+  .gal img { width: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: 12px;
+    border: 1px solid var(--line); display: block; }
+
   .room { max-width: 900px; margin: 0 auto; }
   .room .frame { position: relative; border-radius: 14px; overflow: hidden;
     border: 1px solid var(--line); }
@@ -264,9 +275,20 @@
             designs of your room — not a stock photo of someone else's.</span></div>
         </div>
 
-        <p class="foot-note">Nothing structural moves. That is the difference
-          between this and asking a chatbot for a nice picture.</p>
       </div>
+
+      <section class="sect" id="galleryBlock">
+        <div class="gal-head">
+          <h2>Rooms redesigned</h2>
+          <span class="gal-note">Fills up as designs are made</span>
+        </div>
+        <div class="gal" id="gallery">
+          <div class="slot"><span>Your first room</span></div>
+          <div class="slot"><span>and the next</span></div>
+          <div class="slot"><span>and the next</span></div>
+          <div class="slot"><span>and the next</span></div>
+        </div>
+      </section>
 
       <div class="room hidden" id="room">
         <div class="frame">
@@ -568,6 +590,16 @@
              '</figcaption></figure>';
     }).join('');
     $('shotsBlock').classList.remove('hidden');
+
+    // Put them on the shelf too, so the page stops looking empty the moment
+    // there is anything real to show.
+    var gal = $('gallery');
+    d.generations.forEach(function (g) {
+      var slot = gal.querySelector('.slot');
+      var fig = document.createElement('figure');
+      fig.innerHTML = '<img src="data:image/png;base64,' + g.image_base64 + '" alt="">';
+      if (slot) { gal.replaceChild(fig, slot); } else { gal.prepend(fig); }
+    });
   }
 
   function addTurn(role, text) {

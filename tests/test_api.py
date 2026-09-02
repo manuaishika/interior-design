@@ -80,7 +80,14 @@ class TestMetaEndpoints:
         assert "AI interior design" in html
         assert 'class="how"' in html
         assert "It reads the room" in html
-        assert "Nothing structural moves" in html
+
+    def test_results_have_somewhere_to_live(self, client):
+        """Both reference products lead with a gallery of results. Ours had
+        nowhere for a finished design to go, which is most of why it read as a
+        chat box rather than a design tool."""
+        html = client.get("/").text
+        assert 'id="gallery"' in html
+        assert "Rooms redesigned" in html
 
     def test_one_button_does_the_thing(self, client):
         html = client.get("/").text
