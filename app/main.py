@@ -23,7 +23,7 @@ from .config import LOCK_PROFILES, Settings, get_settings
 from .generation import STYLES, GenerationError
 from .models import AnalyzeResponse, GenerateResponse
 from .pipeline import analyze_room, prepare_image, run_pipeline
-from .reading import ReadingError, discuss, read_room
+from .reading import NotARoomError, ReadingError, discuss, read_room
 from .segmentation import SegmentationError
 
 logging.basicConfig(
@@ -147,6 +147,9 @@ async def read_endpoint(
     data = await _read_upload(photo, settings)
     try:
         return await read_room(data, room_type, settings)
+    except NotARoomError as exc:
+        # 422, not 502: nothing is broken, the picture is just not a room.
+        raise HTTPException(422, str(exc)) from exc
     except ReadingError as exc:
         raise HTTPException(502, str(exc)) from exc
 

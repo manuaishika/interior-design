@@ -26,11 +26,41 @@ class ReadingError(RuntimeError):
     pass
 
 
+class NotARoomError(ReadingError):
+    """The photograph is not of a space that can be redesigned.
+
+    Its own class because it is not a failure: the reader worked perfectly and
+    the answer was no. It is the one error the caller should show as plain
+    guidance rather than as something being broken.
+    """
+
+    def __init__(self, subject: str) -> None:
+        self.subject = subject
+        super().__init__(
+            f"That looks like {subject}, not a room. Send a photograph of an "
+            f"interior — furnished or empty — with a wall, a floor and ideally "
+            f"a door or a window in frame."
+        )
+
+
 SURVEY = """\
 You are surveying a {room} from one photograph, for an interior designer.
 
-Return JSON only, exactly this shape:
-{{"room": "one sentence on the room and its condition",
+FIRST decide whether the photograph shows an interior space that could be
+redesigned. It counts as one if you can see the inside of a room — furnished,
+half-empty, bare, unfinished or mid-building all count, and so does a hallway,
+landing or open-plan area.
+
+It does NOT count if the subject is a person, an animal, a single object or
+piece of furniture on its own, food, a screenshot, a document, a drawing or
+floor plan, a landscape, or the outside of a building.
+
+If it does not count, return JSON only, and nothing else:
+{{"is_room": false, "subject": "a short plain description of what it is"}}
+
+Otherwise return JSON only, exactly this shape:
+{{"is_room": true,
+  "room": "one sentence on the room and its condition",
   "items": [{{"name": "bed", "count": 2, "treatment": "keep"}}],
   "directions": [{{"title": "", "palette": "", "pieces": ["", ""], "why": ""}}]}}
 
@@ -89,9 +119,16 @@ async def read_room(photo: bytes, room_type: str, settings: Settings) -> dict:
         raise ReadingError(f"Could not read the room: {exc}") from exc
 
     try:
-        return json.loads(response.choices[0].message.content or "{}")
+        answer = json.loads(response.choices[0].message.content or "{}")
     except json.JSONDecodeError as exc:
         raise ReadingError("The reader returned something unreadable") from exc
+
+    # The reader is the gate. It already has the photograph in front of it, and
+    # it runs before the expensive half, so a photo of somebody's dog is turned
+    # away before a GPU is ever billed for repainting it.
+    if answer.get("is_room") is False:
+        raise NotARoomError(str(answer.get("subject") or "something else"))
+    return answer
 
 
 async def discuss(

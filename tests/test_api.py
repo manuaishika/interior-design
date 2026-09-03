@@ -257,6 +257,69 @@ class TestGenerateEndpoint:
         assert res.status_code == 400
 
 
+class TestNotARoom:
+    """A photo of a dog used to sail straight through: the reader invented a
+    room, and the generator would have been billed to repaint it. The read pass
+    runs before the expensive half, so that is where the gate belongs."""
+
+    def test_reader_refuses_what_is_not_a_room(self, client, monkeypatch):
+        from app.reading import NotARoomError
+
+        async def not_a_room(*a, **k):
+            raise NotARoomError("a golden retriever on a lawn")
+
+        monkeypatch.setattr("app.main.read_room", not_a_room)
+        res = client.post("/api/read", files=upload())
+
+        # 422, not 502 — nothing is broken, the picture is just not a room.
+        assert res.status_code == 422
+        detail = res.json()["detail"]
+        assert "golden retriever" in detail
+        assert "not a room" in detail
+
+    def test_the_message_says_what_to_send_instead(self, client, monkeypatch):
+        from app.reading import NotARoomError
+
+        async def not_a_room(*a, **k):
+            raise NotARoomError("a screenshot")
+
+        monkeypatch.setattr("app.main.read_room", not_a_room)
+        detail = client.post("/api/read", files=upload()).json()["detail"]
+        assert "empty" in detail          # a bare room is still a room
+        assert "door or a window" in detail
+
+    def test_an_empty_room_is_still_a_room(self):
+        """The whole product is open space that can be transformed, so bare and
+        unfinished rooms must pass the gate rather than trip it."""
+        from app.reading import SURVEY
+
+        prompt = SURVEY.lower()
+        assert "bare" in prompt and "unfinished" in prompt
+        for rejected in ("person", "animal", "screenshot", "landscape"):
+            assert rejected in prompt
+
+    def test_a_real_reading_passes_through_untouched(self, monkeypatch):
+        import asyncio, json
+        from types import SimpleNamespace
+        from app.config import Settings
+        from app import reading
+
+        body = {"is_room": True, "room": "A small bedroom.", "items": [],
+                "directions": []}
+
+        class FakeClient:
+            class chat:
+                class completions:
+                    @staticmethod
+                    async def create(**kw):
+                        msg = SimpleNamespace(content=json.dumps(body))
+                        return SimpleNamespace(choices=[SimpleNamespace(message=msg)])
+
+        monkeypatch.setattr(reading, "_client", lambda settings: FakeClient)
+        out = asyncio.run(reading.read_room(b"x", "bedroom", Settings()))
+        assert out["room"] == "A small bedroom."
+
+
 class TestAnalyzeEndpoint:
     def test_returns_analysis_only(self, client, monkeypatch):
         async def fake_analyze(image, settings, **kwargs):

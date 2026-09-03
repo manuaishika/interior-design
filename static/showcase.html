@@ -911,6 +911,16 @@
     $('msg').classList.toggle('bad', Boolean(bad));
   }
 
+  /* Not a failure — the reader worked and the answer was no. It reads as
+     guidance rather than as something being broken. */
+  function NotARoom(subject) {
+    this.name = 'NotARoom';
+    this.message = 'That looks like ' + (subject || 'something else') +
+      ', not a room. Send a photograph of an interior — furnished or empty — ' +
+      'with a wall, a floor and ideally a door or a window in frame.';
+  }
+  NotARoom.prototype = Object.create(Error.prototype);
+
   /* ---- what it found ---- */
   function paint(d) {
     reading = d;
@@ -947,13 +957,21 @@
       return d;
     }
     if (sampler) {
-      return await sampler.json(
-        'Survey this ' + room.name.toLowerCase() + ' from the photograph. Return JSON only: ' +
-        '{"room":"one sentence","items":[{"name":"bed","count":2,"treatment":"keep|redraw"}],' +
+      var out = await sampler.json(
+        'Survey this ' + room.name.toLowerCase() + ' from the photograph. ' +
+        'First decide whether this is the inside of a room at all — furnished, ' +
+        'bare or unfinished all count; a person, an animal, a single object, ' +
+        'food, a screenshot, a document, a landscape or a building exterior do ' +
+        'not. If it is not, return {"is_room":false,"subject":"what it is"} and ' +
+        'nothing else. Otherwise return JSON only: ' +
+        '{"is_room":true,"room":"one sentence","items":[{"name":"bed","count":2,' +
+        '"treatment":"keep|redraw"}],' +
         '"directions":[{"title":"","palette":"","pieces":["",""],"why":""}]}. ' +
         'Count carefully — two single beds are two, not one double. treatment is "keep" ' +
         'for doors, windows and the floor people walk on. Exactly three directions.',
         { images: [photo.files[0]] });
+      if (out && out.is_room === false) throw new NotARoom(out.subject);
+      return out;
     }
     throw new Error('The room reader is not available right now.');
   }
@@ -1032,6 +1050,7 @@
       if (live && canDraw) { say('Drawing ' + count + '…'); await draw(); say(''); }
       else { say('Read done. Pictures need the drawing engine switched on.'); }
     } catch (e) {
+      if (e && e.name === 'NotARoom') { reading = null; }
       say((e && e.message) || 'Something went wrong.', true);
     } finally { refresh(); }
   };
