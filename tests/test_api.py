@@ -64,12 +64,14 @@ class TestMetaEndpoints:
         assert res.status_code == 200
         assert "Second Draft" in res.text
 
-    def test_site_is_a_tool_not_a_brochure(self, client):
-        """A sidebar and a working surface, with every control in one bar."""
+    def test_the_site_is_five_pages_in_one_file(self, client):
+        """Nav, studio, gallery, method, pricing — routed in the page so this
+        deploys anywhere that can serve a static file."""
         html = client.get("/").text
-        assert 'class="app"' in html
-        assert 'class="side"' in html and 'class="stage"' in html
-        assert 'class="bar-in"' in html
+        for page in ("studio", "explore", "how", "pricing"):
+            assert 'data-go="' + page + '"' in html
+            assert 'id="v-' + page + '"' in html
+        assert 'id="v-home"' in html
         assert "/api/generate" in html
 
     def test_the_first_screen_explains_itself(self, client):
@@ -77,17 +79,15 @@ class TestMetaEndpoints:
         box means anything. An earlier edit dropped this silently, so it is
         pinned here."""
         html = client.get("/").text
-        assert "AI interior design" in html
-        assert 'class="how"' in html
+        assert 'class="steps how"' in html
         assert "It reads the room" in html
 
     def test_results_have_somewhere_to_live(self, client):
-        """Both reference products lead with a gallery of results. Ours had
-        nowhere for a finished design to go, which is most of why it read as a
-        chat box rather than a design tool."""
+        """Both reference products lead with results. Ours needed a place for a
+        finished design to land, which is most of why it read as a chat box."""
         html = client.get("/").text
-        assert 'id="gallery"' in html
-        assert "Rooms redesigned" in html
+        assert 'id="pane"' in html and 'id="shots"' in html
+        assert "Your designs appear here" in html
 
     def test_one_button_does_the_thing(self, client):
         html = client.get("/").text
@@ -102,13 +102,23 @@ class TestMetaEndpoints:
 
     def test_every_look_is_drawn_not_just_named(self, client):
         """A swatch of four colours still leaves "Japandi" as a word. Each look
-        is drawn as the same room so the only thing that changes between them
-        is the style — that is the part a client can actually judge."""
+        is drawn as a room — that is the part a client can actually judge."""
         html = client.get("/").text
         assert 'id="looks"' in html
         assert "function scene(" in html
         assert "viewBox=\"0 0 300 220\"" in html
         assert html.count("scene: {") == 6
+
+    def test_no_two_looks_are_the_same_picture(self, client):
+        """Six identical bedrooms in six palettes all read as one picture, so
+        each look is drawn on a different kind of room, and the gallery carries
+        every combination."""
+        html = client.get("/").text
+        assert "function furniture(" in html
+        assert "LOOK_ROOMS" in html
+        for kind in ("living", "dining", "kitchen", "office", "bath"):
+            assert "'" + kind + "'" in html
+        assert 'id="explore"' in html
 
     def test_page_survives_without_the_claude_runtime(self, client):
         """Deployed on your own server there is no `claude` object at all;

@@ -4,387 +4,513 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap">
 
 <style>
+  /* One committed light palette. The room drawings supply the colour; the
+     page around them stays out of the way. */
   :root {
-    --bg:     #FBFAF7;
+    --bg:     #FAF7F0;
     --raise:  #FFFFFF;
-    --card:   #F4F1EB;
-    --line:   #E4DFD5;
-    --ink:    #1D2127;
-    --muted:  #6C7280;
-    --accent: #3E5C70;
-    --accent-soft: #E9EFF3;
-    --on-accent: #FFFFFF;
-    --keep:   #9C7A4E;
-    --ok:     #4B7F52;
+    --card:   #F3EEE3;
+    --line:   #E5DED0;
+    --ink:    #17140F;
+    --muted:  #6E6558;
+    --green:  #1E3A2B;
+    --clay:   #BE6F3C;
+    --dark:   #17120D;
     --bad:    #A5442E;
   }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #101317; --raise: #171B20; --card: #1E232A; --line: #2B313A;
-      --ink: #ECE9E3; --muted: #98A0AC;
-      --accent: #8FB2C6; --accent-soft: #1E2933; --on-accent: #101317;
-      --keep: #CFAC79; --ok: #6FA277; --bad: #E08A72;
-    }
-  }
-  :root[data-theme="dark"] {
-    --bg: #101317; --raise: #171B20; --card: #1E232A; --line: #2B313A;
-    --ink: #ECE9E3; --muted: #98A0AC;
-    --accent: #8FB2C6; --accent-soft: #1E2933; --on-accent: #101317;
-    --keep: #CFAC79; --ok: #6FA277; --bad: #E08A72;
-  }
   * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
   body { margin: 0; background: var(--bg); color: var(--ink);
     font-family: "Inter", ui-sans-serif, system-ui, sans-serif; font-size: 15px;
-    line-height: 1.55; -webkit-font-smoothing: antialiased; }
+    line-height: 1.6; -webkit-font-smoothing: antialiased; }
   h1, h2, h3, .serif { font-family: "Instrument Serif", Georgia, serif;
-    font-weight: 400; margin: 0; line-height: 1.15; }
+    font-weight: 400; margin: 0; line-height: 1.1; letter-spacing: -.01em; }
   button, input, select, textarea { font: inherit; color: inherit; }
-  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  :focus-visible { outline: 2px solid var(--clay); outline-offset: 2px; }
+  .hidden { display: none !important; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 clamp(1.1rem, 4vw, 2.6rem); }
+  .kick { font-size: .68rem; letter-spacing: .2em; text-transform: uppercase;
+    color: var(--clay); font-weight: 600; margin: 0 0 1rem; }
+  .lede { color: var(--muted); max-width: 46ch; font-size: 1.02rem; margin: 1.1rem 0 0; }
 
-  .app { display: grid; grid-template-columns: 236px minmax(0,1fr); min-height: 100vh; }
-  @media (max-width: 900px) { .app { grid-template-columns: 1fr; } .side { display: none; } }
+  /* ---------- top bar ---------- */
+  .top { position: sticky; top: 0; z-index: 40; background: rgba(250,247,240,.92);
+    backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+  .top-in { display: flex; align-items: center; gap: 1.4rem; height: 62px; }
+  .brand { font-family: "Instrument Serif", Georgia, serif; font-size: 1.4rem;
+    background: none; border: 0; cursor: pointer; padding: 0; }
+  nav { display: flex; gap: .3rem; margin: 0 auto; }
+  nav button { background: none; border: 0; cursor: pointer; padding: .4rem .7rem;
+    border-radius: 8px; font-size: .9rem; color: var(--muted); }
+  nav button:hover { color: var(--ink); }
+  nav button.on { color: var(--ink); font-weight: 500; }
+  .cta { background: var(--green); color: #fff; border: 0; border-radius: 999px;
+    padding: .55rem 1.15rem; font-size: .87rem; font-weight: 500; cursor: pointer;
+    white-space: nowrap; }
+  .cta:hover { background: #162d21; }
+  .cta.clay { background: var(--clay); }
+  .cta.clay:hover { background: #a95f31; }
+  .cta[disabled] { opacity: .45; cursor: default; }
+  @media (max-width: 760px) {
+    nav { margin: 0; overflow-x: auto; }
+    .top-in { gap: .8rem; }
+    .top-in .cta { display: none; }
+  }
 
-  /* ---------- sidebar ---------- */
-  .side { background: var(--raise); border-right: 1px solid var(--line);
-    padding: 1.4rem 1rem; display: flex; flex-direction: column; gap: 1.7rem; }
-  .logo { display: flex; align-items: center; gap: .55rem; padding: 0 .4rem; }
-  .logo .mark { width: 28px; height: 28px; border-radius: 9px; flex: none;
-    background: var(--accent);
-    display: grid; place-items: center; }
-  .logo .mark svg { width: 16px; height: 16px; }
-  .logo b { font-family: "Instrument Serif", Georgia, serif; font-weight: 400;
-    font-size: 1.3rem; letter-spacing: .01em; }
+  .view { padding: clamp(2.2rem, 6vw, 4.4rem) 0 5rem; }
+  h1.big { font-size: clamp(2.2rem, 5.4vw, 3.6rem); max-width: 20ch; }
+  h2.sec { font-size: clamp(1.6rem, 3vw, 2.2rem); }
+  .sec-head { display: flex; align-items: baseline; justify-content: space-between;
+    gap: 1rem; flex-wrap: wrap; margin-bottom: 1.4rem; }
+  .link { background: none; border: 0; color: var(--clay); cursor: pointer;
+    font-size: .87rem; padding: 0; }
+  .rule { border: 0; border-top: 1px solid var(--line); margin: 3.4rem 0; }
 
-  .grp { display: flex; flex-direction: column; gap: .18rem; }
-  .grp .cap { font-size: .67rem; letter-spacing: .13em; text-transform: uppercase;
-    color: var(--muted); padding: 0 .5rem .55rem; font-weight: 600; }
-  .side button.nav { display: flex; align-items: center; gap: .7rem; width: 100%;
-    padding: .58rem .55rem; border: 0; border-radius: 9px; background: none;
-    cursor: pointer; text-align: left; font-size: .92rem; color: var(--ink); }
-  .side button.nav:hover { background: var(--card); }
-  .side button.nav.on { background: var(--card); }
-  .side .tile { width: 22px; height: 22px; border-radius: 6px; flex: none;
-    display: grid; place-items: center; background: var(--card); }
-  .side .tile svg { width: 13px; height: 13px; }
-  .side .tile.a { background: var(--accent-soft); color: var(--accent); }
-
-  .side-foot { margin-top: auto; }
-  .tiny { font-size: .74rem; color: var(--muted); margin: 0; padding: 0 .5rem; }
-
-  /* ---------- stage ---------- */
-  .stage { position: relative; display: flex; flex-direction: column;
-    padding: 2rem clamp(1rem,4vw,3rem) 0; min-width: 0; }
-  .scroll { flex: 1; padding-bottom: 13rem; }
-
-  .hero { text-align: center; padding: clamp(1rem,4vh,3rem) 0 0; }
-  .fan { display: flex; justify-content: center; align-items: flex-end;
-    gap: 0; margin-bottom: 2rem; min-height: 190px; }
-  .fan .f { width: 150px; height: 186px; border-radius: 14px; overflow: hidden;
-    border: 1px solid var(--line); position: relative; flex: none;
-    box-shadow: 0 14px 34px rgba(29,33,39,.14); }
-  .fan .f + .f { margin-left: -26px; }
-  .fan .f:nth-child(1) { transform: rotate(-7deg) translateY(8px); }
-  .fan .f:nth-child(2) { transform: rotate(-2.5deg); }
-  .fan .f:nth-child(3) { transform: rotate(2.5deg); }
-  .fan .f:nth-child(4) { transform: rotate(7deg) translateY(8px); }
-  .fan .f figcaption { position: absolute; left: 0; right: 0; bottom: .5rem;
-    text-align: center; font-family: "Instrument Serif", Georgia, serif;
-    font-size: 1.35rem; color: #fff; text-shadow: 0 2px 10px rgba(0,0,0,.45); }
-  @media (max-width: 700px) { .fan .f:nth-child(n+3) { display: none; } }
-
-  .hero h1 { font-size: clamp(2rem, 4.6vw, 3.1rem); }
-  .kicker { font-size: .72rem; letter-spacing: .16em; text-transform: uppercase;
-    color: var(--accent); font-weight: 600; margin: 0 0 .7rem; }
-  .lede { color: var(--muted); max-width: 50ch; margin: .9rem auto 0; font-size: 1.02rem; }
-
-  .how { display: grid; gap: .8rem; max-width: 820px; margin: 2.4rem auto 0;
-    text-align: left; }
-  @media (min-width: 760px) { .how { grid-template-columns: repeat(3, 1fr); } }
-  .how > div { background: var(--raise); border: 1px solid var(--line);
-    border-radius: 12px; padding: 1rem 1.1rem; display: grid; gap: .25rem;
-    align-content: start; }
-  .how .n { font-family: "Instrument Serif", Georgia, serif; font-size: 1.35rem;
-    color: var(--accent); line-height: 1; }
-  .how b { font-size: .95rem; }
-  .how > div > span:last-child { font-size: .85rem; color: var(--muted); line-height: 1.5; }
-  .foot-note { max-width: 48ch; margin: 1.6rem auto 0; font-size: .87rem;
-    color: var(--muted); border-top: 1px solid var(--line); padding-top: 1.1rem; }
-
-  .gal-head { display: flex; align-items: baseline; justify-content: space-between;
-    gap: 1rem; margin-bottom: .9rem; }
-  .gal-note { font-size: .8rem; color: var(--muted); }
-  .gal { display: grid; gap: .7rem; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); }
-  .gal .slot { aspect-ratio: 4/3; border: 1px dashed var(--line); border-radius: 12px;
-    background: var(--card); display: grid; place-items: center; }
-  .gal .slot span { font-size: .78rem; color: var(--muted); }
-  .fan .f svg { display: block; width: 100%; height: 100%; }
-
-  /* ---------- the six looks, drawn ---------- */
-  .looks { display: grid; gap: .9rem;
-    grid-template-columns: repeat(auto-fit,minmax(210px,1fr)); }
-  .looks figure { margin: 0; border: 1px solid var(--line); border-radius: 13px;
+  /* ---------- drawn rooms ---------- */
+  .strip { display: grid; gap: .8rem; margin-top: 2.6rem;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  .strip.three { grid-template-columns: 1fr; }
+  @media (min-width: 620px) { .strip.three { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 940px) { .strip.three { grid-template-columns: repeat(3, 1fr); } }
+  .plate { margin: 0; border: 1px solid var(--line); border-radius: 12px;
     overflow: hidden; background: var(--raise); }
-  .looks svg { display: block; width: 100%; aspect-ratio: 15/11; }
-  .looks figcaption { padding: .6rem .8rem .8rem; }
-  .looks figcaption b { display: block; font-family: "Instrument Serif", Georgia, serif;
-    font-weight: 400; font-size: 1.22rem; }
-  .looks figcaption span { font-size: .76rem; color: var(--muted); }
+  .plate svg { display: block; width: 100%; aspect-ratio: 15/11; }
+  .plate figcaption { padding: .6rem .8rem .75rem; display: flex;
+    align-items: baseline; justify-content: space-between; gap: .6rem;
+    flex-wrap: wrap; }
+  .plate figcaption b { font-family: "Instrument Serif", Georgia, serif;
+    font-weight: 400; font-size: 1.15rem; }
+  .plate figcaption span { font-size: .74rem; color: var(--clay); }
+  .plate .made { display: block; padding: 0 .8rem .8rem; font-size: .76rem;
+    color: var(--muted); margin-top: -.4rem; }
 
-  .gal figure { margin: 0; }
-  .gal img { width: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: 12px;
-    border: 1px solid var(--line); display: block; }
+  /* ---------- numbered steps ---------- */
+  .steps { display: grid; gap: 0 2.2rem; }
+  @media (min-width: 780px) { .steps { grid-template-columns: repeat(3, 1fr); } }
+  .steps > div { border-top: 1px solid var(--line); padding: 1.1rem 0 1.6rem; }
+  .steps .n { font-size: .68rem; letter-spacing: .18em; color: var(--clay);
+    font-weight: 600; }
+  .steps h3 { font-size: 1.3rem; margin: .5rem 0 .4rem; }
+  .steps p { margin: 0; color: var(--muted); font-size: .89rem; }
 
-  .room { max-width: 900px; margin: 0 auto; }
-  .room .frame { position: relative; border-radius: 14px; overflow: hidden;
-    border: 1px solid var(--line); }
-  .room .frame img { display: block; width: 100%; }
-  .room .swap { position: absolute; top: .7rem; right: .7rem; font-size: .76rem;
-    padding: .35rem .75rem; border-radius: 8px; border: 0; cursor: pointer;
-    background: rgba(20,22,26,.66); color: #fff; backdrop-filter: blur(6px); }
+  /* ---------- dark band ---------- */
+  .band { background: var(--dark); color: #F3EFE7; text-align: center;
+    padding: clamp(3rem, 8vw, 5.5rem) 1.5rem; margin: 4rem 0 -5rem; }
+  .band h2 { font-size: clamp(1.9rem, 4.4vw, 3rem); color: #FBF7EF; }
+  .band p { color: #B8AFA1; margin: .9rem 0 1.8rem; font-size: .93rem; }
 
-  .chips { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: .9rem; }
-  .chip { font-size: .76rem; padding: .25rem .6rem; border-radius: 999px;
-    background: var(--card); color: var(--muted); border: 1px solid var(--line); }
-  .chip.keep { color: var(--keep); border-color: var(--keep); }
-
-  .sect { max-width: 900px; margin: 2.4rem auto 0; }
-  .sect h2 { font-size: 1.5rem; margin-bottom: .15rem; }
-  .sect .note { color: var(--muted); font-size: .87rem; margin: 0 0 1rem; }
-
-  .cards { display: grid; gap: .8rem; }
-  .dcard { border: 1px solid var(--line); border-radius: 12px; background: var(--card);
-    padding: 1rem 1.1rem; }
-  .dcard h3 { font-size: 1.25rem; }
-  .dcard .pal { font-size: .72rem; letter-spacing: .06em; text-transform: uppercase;
-    color: var(--accent); font-weight: 600; margin-top: .2rem; }
-  .dcard .pieces { font-size: .87rem; margin: .5rem 0 0; }
-  .dcard .why { font-size: .87rem; color: var(--muted); margin: .3rem 0 0; }
-
-  .shots { display: grid; gap: .9rem; grid-template-columns: repeat(auto-fit,minmax(250px,1fr)); }
-  .shots figure { margin: 0; }
-  .shots img { width: 100%; border-radius: 12px; border: 1px solid var(--line); display: block; }
-  .shots figcaption { font-size: .76rem; color: var(--muted); margin-top: .35rem; }
-
-  .thread { display: flex; flex-direction: column; gap: .9rem; border: 1px solid var(--line);
-    border-radius: 12px; background: var(--card); padding: 1rem; max-height: 22rem;
-    overflow-y: auto; }
-  .turn { display: flex; gap: .7rem; }
-  .turn .who { flex: none; width: 3.8rem; font-size: .66rem; font-weight: 600;
-    letter-spacing: .09em; text-transform: uppercase; color: var(--muted); padding-top: .2rem; }
-  .turn.them .who { color: var(--accent); }
-  .turn .said { flex: 1; white-space: pre-wrap; }
-
-  /* ---------- the bar ---------- */
-  .bar { position: sticky; bottom: 0; padding: 1rem 0 1.4rem;
-    background: linear-gradient(to top, var(--bg) 62%, transparent); }
-  .bar-in { max-width: 900px; margin: 0 auto; background: var(--raise);
-    border: 1px solid var(--line); border-radius: 18px; padding: .7rem .8rem;
-    box-shadow: 0 14px 40px rgba(29,33,39,.12); }
-  .bar-top { display: flex; align-items: center; gap: .6rem; }
-  .plus { width: 40px; height: 40px; border-radius: 12px; flex: none; cursor: pointer;
-    border: 1px dashed var(--line); background: var(--card); display: grid;
-    place-items: center; color: var(--muted); position: relative; overflow: hidden; }
-  .plus:hover { border-color: var(--accent); color: var(--accent); }
-  .plus img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-  .bar-top input.say { flex: 1; border: 0; background: none; padding: .5rem .2rem;
-    font-size: 1rem; }
-  .bar-top input.say::placeholder { color: var(--muted); }
-  .send { border: 0; border-radius: 12px; padding: .6rem 1.15rem; cursor: pointer;
-    background: var(--accent); color: var(--on-accent); font-weight: 600; flex: none; }
-  .send:disabled { opacity: .4; cursor: not-allowed; }
-
-  .pills { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: .6rem;
-    padding-top: .6rem; border-top: 1px solid var(--line); align-items: center; }
-  .pill { display: inline-flex; align-items: center; gap: .4rem; font-size: .8rem;
-    padding: .38rem .7rem; border-radius: 999px; border: 1px solid var(--line);
-    background: var(--card); cursor: pointer; color: var(--ink); }
-  .pill:hover { border-color: var(--accent); }
-  .pill .sw { width: 13px; height: 13px; border-radius: 4px; flex: none; }
-  .pill.step { gap: .55rem; padding: .3rem .5rem; }
-  .pill.step b { min-width: 1.1rem; text-align: center; font-weight: 600; }
-  .pill.step i { cursor: pointer; font-style: normal; padding: 0 .25rem; color: var(--muted); }
-  .pill.step i:hover { color: var(--accent); }
-  .msg { font-size: .78rem; color: var(--muted); margin-left: auto; }
+  /* ---------- the studio ---------- */
+  .panel { border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
+    background: var(--raise); margin-top: 2.2rem; }
+  .panel-top { display: flex; align-items: center; justify-content: space-between;
+    padding: .6rem 1rem; border-bottom: 1px solid var(--line); font-size: .68rem;
+    letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
+  .panel-top .dot { width: 7px; height: 7px; border-radius: 50%;
+    background: var(--clay); display: inline-block; margin-right: .5rem; }
+  .panel-top #state { letter-spacing: .04em; text-transform: none; font-size: .76rem; }
+  .panel-body { display: grid; }
+  @media (min-width: 860px) { .panel-body { grid-template-columns: 290px minmax(0,1fr); } }
+  .controls { padding: 1rem; border-right: 1px solid var(--line); }
+  .drop { border: 1px dashed var(--line); border-radius: 10px; background: var(--card);
+    padding: 1.5rem 1rem; text-align: center; cursor: pointer; width: 100%; }
+  .drop b { display: block; font-family: "Instrument Serif", Georgia, serif;
+    font-weight: 400; font-size: 1.2rem; }
+  .drop span { font-size: .74rem; color: var(--muted); }
+  .drop img { max-height: 116px; border-radius: 6px; margin-bottom: .4rem; }
+  .lab { font-size: .66rem; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--muted); font-weight: 600; margin: 1.2rem 0 .5rem; }
+  .pills { display: flex; flex-wrap: wrap; gap: .35rem; }
+  .pill { border: 1px solid var(--line); background: var(--raise); border-radius: 999px;
+    padding: .3rem .75rem; font-size: .8rem; cursor: pointer; color: var(--muted); }
+  .pill:hover { border-color: var(--clay); }
+  .pill.on { background: var(--dark); border-color: var(--dark); color: #F6F2EA; }
+  .pill.on.clay { background: var(--clay); border-color: var(--clay); color: #fff; }
+  textarea.brief { width: 100%; border: 1px solid var(--line); border-radius: 10px;
+    padding: .6rem .7rem; min-height: 74px; resize: vertical; background: var(--raise);
+    font-size: .86rem; }
+  .count { display: flex; align-items: center; gap: .8rem; font-size: .85rem;
+    color: var(--muted); }
+  .count button { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--line);
+    background: var(--raise); cursor: pointer; line-height: 1; }
+  .count b { font-size: .95rem; color: var(--ink); }
+  .controls .cta { width: 100%; margin-top: 1.3rem; padding: .7rem; border-radius: 10px;
+    font-size: .92rem; }
+  .msg { display: block; font-size: .78rem; color: var(--muted); margin-top: .6rem;
+    text-align: center; min-height: 1.1rem; }
   .msg.bad { color: var(--bad); }
 
-  /* ---------- style sheet (the popover) ---------- */
-  .sheet { position: fixed; inset: 0; background: rgba(29,33,39,.42);
-    backdrop-filter: blur(3px); display: grid; place-items: center; padding: 1.2rem;
-    z-index: 50; }
-  .sheet-in { background: var(--raise); border: 1px solid var(--line);
-    border-radius: 18px; padding: 1.4rem; max-width: 760px; width: 100%;
-    max-height: 84vh; overflow-y: auto; }
-  .sheet h2 { font-size: 1.6rem; }
-  .sheet .note { color: var(--muted); font-size: .87rem; margin: .2rem 0 1.2rem; }
-  .opts { display: grid; gap: .7rem; grid-template-columns: repeat(auto-fit,minmax(210px,1fr)); }
-  .opt { border: 1px solid var(--line); border-radius: 13px; overflow: hidden;
-    background: var(--card); cursor: pointer; text-align: left; padding: 0; }
-  .opt:hover { border-color: var(--accent); }
-  .opt[aria-pressed="true"] { border-color: var(--accent);
-    box-shadow: inset 0 0 0 1px var(--accent); }
-  .opt .look { height: 92px; display: flex; }
-  .opt .look span { flex: 1; }
-  .opt .look svg { width: 100%; height: 100%; display: block; }
-  .opt .txt { padding: .6rem .75rem .75rem; }
-  .opt .txt b { display: block; font-family: "Instrument Serif", Georgia, serif;
-    font-weight: 400; font-size: 1.15rem; }
-  .opt .txt span { font-size: .76rem; color: var(--muted); }
-  .sheet .close { margin-top: 1.2rem; width: 100%; padding: .75rem; border-radius: 11px;
-    border: 1px solid var(--line); background: var(--card); cursor: pointer; }
+  .pane { background: var(--dark); color: #EFEAE0; min-height: 380px; padding: 1.4rem;
+    display: grid; place-items: center; }
+  .pane .empty { text-align: center; max-width: 34ch; }
+  .pane .empty h3 { font-size: 1.6rem; color: #FBF7EF; }
+  .pane .empty p { font-size: .84rem; color: #A79E90; margin: .6rem 0 0; }
+  .shots { display: grid; gap: .8rem; width: 100%;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); align-self: start; }
+  .shots figure { margin: 0; }
+  .shots img { width: 100%; border-radius: 10px; display: block; }
+  .shots figcaption { font-size: .72rem; color: #A79E90; margin-top: .35rem; }
 
-  input[type=file] { display: none; }
-  .hidden { display: none !important; }
-  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  .readout { display: grid; gap: 1.6rem; margin-top: 2.2rem; }
+  @media (min-width: 860px) { .readout { grid-template-columns: 1fr 1fr; } }
+  .box { border: 1px solid var(--line); border-radius: 12px; background: var(--raise);
+    padding: 1.1rem 1.2rem; }
+  .box h3 { font-size: 1.25rem; margin-bottom: .2rem; }
+  .box .note { font-size: .8rem; color: var(--muted); margin: 0 0 .9rem; }
+  .chips { display: flex; gap: .35rem; flex-wrap: wrap; }
+  .chip { font-size: .76rem; padding: .22rem .6rem; border-radius: 999px;
+    background: var(--card); color: var(--muted); border: 1px solid var(--line); }
+  .chip.keep { color: var(--clay); border-color: var(--clay); }
+  .dcard { border-top: 1px solid var(--line); padding: .8rem 0 .2rem; }
+  .dcard:first-child { border-top: 0; padding-top: 0; }
+  .dcard h4 { font-family: "Instrument Serif", Georgia, serif; font-weight: 400;
+    font-size: 1.15rem; margin: 0; }
+  .dcard .pal { font-size: .68rem; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--clay); font-weight: 600; }
+  .dcard p { margin: .35rem 0 0; font-size: .84rem; color: var(--muted); }
+  .thread { display: flex; flex-direction: column; gap: .8rem; max-height: 20rem;
+    overflow-y: auto; }
+  .turn .who { font-size: .64rem; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--muted); font-weight: 600; }
+  .turn .said { font-size: .89rem; white-space: pre-wrap; }
+  .turn.me .said { color: var(--muted); }
+  .askrow { display: flex; gap: .5rem; margin-top: .9rem; }
+  .askrow input { flex: 1; border: 1px solid var(--line); border-radius: 999px;
+    padding: .5rem .9rem; font-size: .86rem; background: var(--raise); }
+
+  /* ---------- explore ---------- */
+  .filters { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: 1.6rem; }
+  .grid { column-count: 1; column-gap: .8rem; }
+  @media (min-width: 620px) { .grid { column-count: 2; } }
+  @media (min-width: 900px) { .grid { column-count: 3; } }
+  @media (min-width: 1180px) { .grid { column-count: 4; } }
+  .grid .plate { break-inside: avoid; margin-bottom: .8rem; }
+
+  /* ---------- how it works ---------- */
+  .passes { display: grid; gap: 2.4rem; align-items: start; }
+  @media (min-width: 900px) { .passes { grid-template-columns: 1fr 1fr; } }
+  .pass { border-top: 1px solid var(--line); padding: 1.1rem 0 1.4rem; }
+  .pass .n { font-size: .68rem; letter-spacing: .18em; color: var(--clay); font-weight: 600; }
+  .pass h3 { font-size: 1.4rem; margin: .45rem 0 .4rem; }
+  .pass p { margin: 0; color: var(--muted); font-size: .89rem; }
+  .stack { display: grid; gap: .8rem; }
+
+  /* ---------- pricing ---------- */
+  .tiers { display: grid; gap: 1rem; margin-top: 2.4rem; }
+  @media (min-width: 860px) { .tiers { grid-template-columns: repeat(3, 1fr); } }
+  .tier { border: 1px solid var(--line); border-radius: 14px; padding: 1.5rem 1.4rem;
+    background: var(--raise); display: flex; flex-direction: column; }
+  .tier.pick { background: var(--dark); border-color: var(--dark); color: #EFEAE0; }
+  .tier h3 { font-size: 1.4rem; }
+  .tier .price { font-family: "Instrument Serif", Georgia, serif; font-size: 2.6rem;
+    line-height: 1.1; margin-top: .5rem; }
+  .tier .per { font-size: .82rem; color: var(--muted); }
+  .tier.pick .per, .tier.pick li { color: #B8AFA1; }
+  .tier ul { list-style: none; padding: 0; margin: 1.4rem 0 1.6rem; }
+  .tier li { border-top: 1px solid var(--line); padding: .55rem 0; font-size: .85rem;
+    color: var(--muted); }
+  .tier.pick li { border-color: #2E2822; }
+  .tier .cta { margin-top: auto; width: 100%; border-radius: 10px; padding: .65rem; }
+
+  footer { border-top: 1px solid var(--line); padding: 2.6rem 0 3.4rem; }
+  .foot { display: grid; gap: 1.8rem; }
+  @media (min-width: 780px) { .foot { grid-template-columns: 2fr 1fr 1fr; } }
+  .foot h4 { font-family: "Instrument Serif", Georgia, serif; font-weight: 400;
+    font-size: 1.3rem; margin: 0 0 .5rem; }
+  .foot p, .foot li { font-size: .84rem; color: var(--muted); margin: 0; }
+  .foot .cap { font-size: .66rem; letter-spacing: .18em; text-transform: uppercase;
+    font-weight: 600; color: var(--ink); margin-bottom: .6rem; }
+  .foot ul { list-style: none; padding: 0; margin: 0; display: grid; gap: .35rem; }
+  .foot button { background: none; border: 0; padding: 0; cursor: pointer;
+    color: var(--muted); font-size: .84rem; }
+  .foot button:hover { color: var(--clay); }
 </style>
 
-<div class="app">
-  <aside class="side">
-    <div class="logo">
-      <span class="mark">
-        <svg viewBox="0 0 24 24" fill="none" stroke="var(--on-accent)" stroke-width="2.2"
-             stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/>
-        </svg>
-      </span>
-      <b>Second Draft</b>
+<header class="top">
+  <div class="wrap top-in">
+    <button class="brand" id="brand" type="button">Second Draft.</button>
+    <nav id="nav">
+      <button type="button" data-go="studio">Studio</button>
+      <button type="button" data-go="explore">Explore</button>
+      <button type="button" data-go="how">How it works</button>
+      <button type="button" data-go="pricing">Pricing</button>
+    </nav>
+    <button class="cta" type="button" data-go="studio">Open studio</button>
+  </div>
+</header>
+
+<!-- ============================ HOME ============================ -->
+<main class="view" id="v-home">
+  <div class="wrap">
+    <p class="kick">The studio</p>
+    <h1 class="big">Show it a room. Get it back several ways.</h1>
+    <p class="lede">It reads the photograph first — names what is in the room and
+       counts it — then redraws only what is allowed to change. Doors, windows
+       and the floor people walk on stay where the building put them.</p>
+    <div class="strip" id="heroStrip"></div>
+  </div>
+
+  <div class="wrap"><hr class="rule"></div>
+
+  <div class="wrap">
+    <div class="sec-head">
+      <h2 class="sec">Six looks, drawn out</h2>
+      <button class="link" type="button" data-go="explore">See the full gallery &rarr;</button>
     </div>
+    <p class="lede" style="max-width:56ch;margin-top:-.6rem;margin-bottom:1.6rem">
+       Style names are jargon. These are the colours, materials and shapes behind
+       the words — each one on a different room, so you can see what actually
+       changes.</p>
+    <div class="strip three" id="looks"></div>
+  </div>
 
-    <div class="grp">
-      <span class="cap">Design</span>
-      <button class="nav on" type="button">
-        <span class="tile a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-          stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/>
-          <path d="M3 15l5-5 4 4 3-3 6 6"/></svg></span>
-        Redesign a room
-      </button>
-      <button class="nav" type="button" id="again">
-        <span class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-          stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7"/>
-          <path d="M3 4v5h5"/></svg></span>
-        Start again
-      </button>
-    </div>
+  <div class="wrap"><hr class="rule"></div>
 
-    <div class="side-foot">
-      <p class="tiny" id="state">Getting ready…</p>
-    </div>
-  </aside>
-
-  <div class="stage">
-    <div class="scroll">
-      <div class="hero" id="hero">
-        <div class="fan" id="fan"></div>
-        <p class="kicker">AI interior design</p>
-        <h1>Redesign your room<br>from one photograph</h1>
-        <p class="lede">Send a photo of a room as it is — clutter and all — and get it
-           back several ways. The doors, windows and walkways stay exactly where
-           the building put them.</p>
-
-        <div class="how">
-          <div><span class="n">1</span><b>Add a photo</b><span>Any room, taken on a
-            phone. Wide enough to see a door or a window.</span></div>
-          <div><span class="n">2</span><b>It reads the room</b><span>Names what is
-            there and counts it. Two beds stay two beds.</span></div>
-          <div><span class="n">3</span><b>Pick a look, get options</b><span>Several
-            designs of your room — not a stock photo of someone else's.</span></div>
-        </div>
-
+  <div class="wrap">
+    <h2 class="sec" style="margin-bottom:1.8rem">Three steps, one afternoon</h2>
+    <div class="steps how">
+      <div>
+        <span class="n">01</span>
+        <h3>Photograph the space</h3>
+        <p>One phone snapshot is enough. Daylight helps, mess is fine — the mess
+           is part of what it is looking at.</p>
       </div>
-
-      <section class="sect" id="looksBlock">
-        <h2>What the looks actually look like</h2>
-        <p class="note">Style names are jargon. These are the rooms behind the
-           words — the colours, materials and shapes each one asks for.</p>
-        <div class="looks" id="looks"></div>
-      </section>
-
-      <section class="sect" id="galleryBlock">
-        <div class="gal-head">
-          <h2>Rooms redesigned</h2>
-          <span class="gal-note">Fills up as designs are made</span>
-        </div>
-        <div class="gal" id="gallery">
-          <div class="slot"><span>Your first room</span></div>
-          <div class="slot"><span>and the next</span></div>
-          <div class="slot"><span>and the next</span></div>
-          <div class="slot"><span>and the next</span></div>
-        </div>
-      </section>
-
-      <div class="room hidden" id="room">
-        <div class="frame">
-          <img id="preview" alt="Your room">
-          <button class="swap" id="swap" type="button">Change photo</button>
-        </div>
-        <div class="chips" id="chips"></div>
+      <div>
+        <span class="n">02</span>
+        <h3>It reads the room</h3>
+        <p>Names what is there and counts it. Two beds stay two beds. Doors and
+           windows get marked as untouchable.</p>
       </div>
-
-      <section class="sect hidden" id="dirsBlock">
-        <h2>Three directions</h2>
-        <p class="note" id="roomLine"></p>
-        <div class="cards" id="dirs"></div>
-      </section>
-
-      <section class="sect hidden" id="shotsBlock">
-        <h2>Your designs</h2>
-        <p class="note">Same room, same doors and windows.</p>
-        <div class="shots" id="shots"></div>
-      </section>
-
-      <section class="sect hidden" id="chatBlock">
-        <h2>Talk it through</h2>
-        <p class="note">It has your room in front of it.</p>
-        <div class="thread" id="thread"></div>
-      </section>
+      <div>
+        <span class="n">03</span>
+        <h3>Live with the result</h3>
+        <p>Several designs of your room — not a stock photo of someone else's —
+           plus the list of what changed.</p>
+      </div>
     </div>
+  </div>
 
-    <!-- the bar -->
-    <div class="bar">
-      <div class="bar-in">
-        <div class="bar-top">
-          <button class="plus" id="plus" type="button" aria-label="Add a room photo">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                 stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+  <div class="band">
+    <h2>Your next room is one photo away</h2>
+    <p>No mood board, no measuring tape, no showroom.</p>
+    <button class="cta clay" type="button" data-go="studio">Open the studio</button>
+  </div>
+</main>
+
+<!-- ============================ STUDIO ============================ -->
+<main class="view hidden" id="v-studio">
+  <div class="wrap">
+    <p class="kick">The studio</p>
+    <h1 class="big">Point it at a room.</h1>
+    <p class="lede">Add a photo, choose a direction, and let it work. What it
+       found in your room is listed underneath, so you can see what it kept.</p>
+
+    <div class="panel">
+      <div class="panel-top">
+        <span><span class="dot"></span>Second Draft engine</span>
+        <span id="state">Getting ready&hellip;</span>
+      </div>
+      <div class="panel-body">
+        <div class="controls">
+          <button class="drop" id="plus" type="button">
             <img id="thumb" class="hidden" alt="">
+            <b id="dropTitle">Drop a room photo</b>
+            <span id="dropNote">JPG or PNG &middot; a phone snapshot is plenty</span>
           </button>
-          <input class="say" id="text" autocomplete="off"
-                 placeholder="Add a photo, then say anything you want changed…">
-          <button class="send" id="go" type="button" disabled>Design</button>
-        </div>
-        <div class="pills">
-          <button class="pill" id="pStyle" type="button">
-            <span class="sw" id="styleSw"></span><span id="styleName">Japandi</span>
-          </button>
-          <button class="pill" id="pRoom" type="button"><span id="roomName">Bedroom</span></button>
-          <button class="pill" id="pDepth" type="button"><span id="depthName">Full redesign</span></button>
-          <span class="pill step">
-            <i id="less" role="button" tabindex="0">−</i><b id="countN">3</b><i id="more" role="button" tabindex="0">+</i>
-          </span>
+
+          <p class="lab">Room</p>
+          <div class="pills" id="roomPills"></div>
+
+          <p class="lab">Look</p>
+          <div class="pills" id="stylePills"></div>
+
+          <p class="lab">How far to go</p>
+          <div class="pills" id="depthPills"></div>
+
+          <p class="lab">Brief</p>
+          <textarea class="brief" id="text"
+            placeholder="Keep the window, add a reading corner, warmer light&hellip;"></textarea>
+
+          <p class="lab">Options</p>
+          <div class="count">
+            <button id="less" type="button" aria-label="Fewer">&minus;</button>
+            <b id="countN">3</b>
+            <button id="more" type="button" aria-label="More">+</button>
+            <span>designs per run</span>
+          </div>
+
+          <button class="cta" id="go" type="button" disabled>Reimagine this room</button>
           <span class="msg" id="msg"></span>
         </div>
+
+        <div class="pane" id="pane">
+          <div class="empty" id="paneEmpty">
+            <h3>Your designs appear here</h3>
+            <p>Add a photo and choose a direction. Nothing is generated until you
+               press the button.</p>
+          </div>
+          <div class="shots hidden" id="shots"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="readout hidden" id="readout">
+      <div class="box">
+        <h3>What it found</h3>
+        <p class="note" id="roomLine"></p>
+        <div class="chips" id="chips"></div>
+        <div id="dirs" style="margin-top:1.2rem"></div>
+      </div>
+      <div class="box">
+        <h3>Talk it through</h3>
+        <p class="note">It has your room in front of it.</p>
+        <div class="thread" id="thread"></div>
+        <div class="askrow">
+          <input id="ask" placeholder="Ask for a change, or ask why&hellip;">
+          <button class="cta" id="askGo" type="button">Ask</button>
+        </div>
       </div>
     </div>
   </div>
-</div>
+</main>
 
-<input type="file" id="photo" accept="image/*">
-
-<!-- style chooser -->
-<div class="sheet hidden" id="sheet">
-  <div class="sheet-in">
-    <h2 id="sheetTitle">Choose a look</h2>
-    <p class="note" id="sheetNote">The colours and materials each one is built from.</p>
-    <div class="opts" id="opts"></div>
-    <button class="close" id="sheetClose" type="button">Done</button>
+<!-- ============================ EXPLORE ============================ -->
+<main class="view hidden" id="v-explore">
+  <div class="wrap">
+    <p class="kick">Gallery</p>
+    <h1 class="big">Every look, on every room.</h1>
+    <p class="lede">Thirty-six combinations of room and direction. These are
+       drawings, not photographs — finished renders of real rooms land here once
+       the engine is switched on.</p>
+    <div class="filters" id="filters" style="margin-top:2.2rem"></div>
+    <div class="grid" id="explore"></div>
   </div>
-</div>
+</main>
+
+<!-- ============================ HOW IT WORKS ============================ -->
+<main class="view hidden" id="v-how">
+  <div class="wrap">
+    <p class="kick">Under the hood</p>
+    <h1 class="big">Four passes between your photo and a room you would build.</h1>
+    <div class="passes" style="margin-top:2.8rem">
+      <div>
+        <div class="pass">
+          <span class="n">01</span>
+          <h3>Read pass</h3>
+          <p>A segmentation model cuts the photo into regions, then a vision model
+             names each one: sofa, door, window, wall, floor, walkway, clutter.
+             Every region comes back with a bounding box.</p>
+        </div>
+        <div class="pass">
+          <span class="n">02</span>
+          <h3>Lock pass</h3>
+          <p>Doors, windows and circulation are marked locked. Furniture, floor
+             and clutter are marked editable. The locked regions are grown by a
+             few pixels, because generators bleed across a hard edge and eat
+             door frames.</p>
+        </div>
+        <div class="pass">
+          <span class="n">03</span>
+          <h3>Mask pass</h3>
+          <p>The locked regions become an inpainting mask — white repaints, black
+             is preserved. Where an editable sofa overlaps a locked window, the
+             window wins. The mask is returned with the render so you can check
+             the door really was protected.</p>
+        </div>
+        <div class="pass">
+          <span class="n">04</span>
+          <h3>Draw pass</h3>
+          <p>Several options at once, differing only by seed, all constrained by
+             the same mask. What changes between them is what the generator
+             invents inside the editable area — never which parts of the room
+             were allowed to move.</p>
+        </div>
+      </div>
+      <div class="stack" id="howArt"></div>
+    </div>
+  </div>
+</main>
+
+<!-- ============================ PRICING ============================ -->
+<main class="view hidden" id="v-pricing">
+  <div class="wrap">
+    <p class="kick">Pricing</p>
+    <h1 class="big">Cheaper than one wrong sofa.</h1>
+    <p class="lede">Draft figures — placeholders showing the shape of the plan.
+       Set your own before this page goes in front of a customer.</p>
+    <div class="tiers">
+      <div class="tier">
+        <h3>Sketch</h3>
+        <div class="price">Free</div>
+        <span class="per">For one room, one afternoon</span>
+        <ul>
+          <li>5 designs a month</li>
+          <li>All six core looks</li>
+          <li>Downloads without a watermark</li>
+          <li>Public gallery access</li>
+        </ul>
+        <button class="cta" type="button" data-go="studio">Start for free</button>
+      </div>
+      <div class="tier pick">
+        <h3>Studio</h3>
+        <div class="price">&mdash;</div>
+        <span class="per">Per month, for people mid-renovation</span>
+        <ul>
+          <li>200 designs a month</li>
+          <li>Custom briefs in your own words</li>
+          <li>Before and after exports</li>
+          <li>Material and furniture lists</li>
+        </ul>
+        <button class="cta clay" type="button" data-go="studio">Choose Studio</button>
+      </div>
+      <div class="tier">
+        <h3>Practice</h3>
+        <div class="price">&mdash;</div>
+        <span class="per">Per seat, for design teams</span>
+        <ul>
+          <li>Unlimited designs</li>
+          <li>Boards you can share with clients</li>
+          <li>Your own brand style presets</li>
+          <li>Priority queue</li>
+        </ul>
+        <button class="cta" type="button" data-go="studio">Talk to us</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <div>
+      <h4>Second Draft</h4>
+      <p>Redesigns a real room from one photograph — geometry, light and
+         materials included.</p>
+    </div>
+    <div>
+      <p class="cap">Product</p>
+      <ul>
+        <li><button type="button" data-go="studio">Studio</button></li>
+        <li><button type="button" data-go="explore">Explore</button></li>
+        <li><button type="button" data-go="how">How it works</button></li>
+        <li><button type="button" data-go="pricing">Pricing</button></li>
+      </ul>
+    </div>
+    <div>
+      <p class="cap">Studio</p>
+      <ul><li><span id="year"></span></li></ul>
+    </div>
+  </div>
+</footer>
+
+<input type="file" id="photo" accept="image/*" class="hidden">
 
 <script>
 (function () {
   var $ = function (id) { return document.getElementById(id); };
 
-  /* Style names mean nothing to most people, so each one carries the colours
-     and materials it is actually built from. That is what a swatch is for. */
+  /* ------------------------------------------------------------------
+     The six looks. Each carries the colours and materials it is built
+     from, plus the handful of traits that make its drawing its own.
+     ------------------------------------------------------------------ */
   var STYLES = [
     { id: 'japandi', name: 'Japandi', colours: ['#E8E2D6','#C9B79A','#6E6A61','#38403A'],
       made: 'pale oak · linen · paper · charcoal',
@@ -412,27 +538,127 @@
                soft:true, plant:false } }
   ];
 
-  /* ---- each look, drawn ------------------------------------------------
-     "Japandi" is jargon until you can see it. Every look is drawn as the
-     same room -- same wall, same window, same bed -- so the only thing that
-     changes between them is the style itself. These are drawings, plainly
-     so: nothing here is passed off as a room we have already designed. */
+  var ROOMS = [
+    { id: 'bedroom', name: 'Bedroom' },
+    { id: 'living',  name: 'Living room' },
+    { id: 'dining',  name: 'Dining room' },
+    { id: 'kitchen', name: 'Kitchen' },
+    { id: 'office',  name: 'Study' },
+    { id: 'bath',    name: 'Bathroom' }
+  ];
+  var DEPTHS = [
+    { id: 'renovate', name: 'Full redesign', note: 'New furniture, new finishes. Structure stays.' },
+    { id: 'restyle',  name: 'Light restyle', note: 'Keeps more of the room as it is.' }
+  ];
+
+  /* ------------------------------------------------------------------
+     Drawing a room.
+
+     A style used to be four coloured squares, which still leaves the word
+     "Japandi" meaning nothing. Every look is drawn instead — and drawn on a
+     different kind of room, because six identical bedrooms in six palettes
+     all read as the same picture.
+
+     These are plainly drawings. Nothing here is passed off as a room this
+     has already designed.
+     ------------------------------------------------------------------ */
   function lum(hex) {
     var n = parseInt(hex.slice(1), 16);
     return (0.2126 * (n >> 16 & 255) + 0.7152 * (n >> 8 & 255) + 0.0722 * (n & 255)) / 255;
   }
-  /* Palettes are not written light-to-dark -- industrial starts on brick --
-     so roles are taken by brightness, not by position. That keeps the
-     drawing legible whatever order a palette happens to be in. */
+  /* Palettes are not written light-to-dark — industrial starts on brick — so
+     roles are taken by brightness, never by position. That keeps a drawing
+     legible whatever order a palette happens to be in. */
   function roles(cs) {
     var a = cs.slice().sort(function (x, y) { return lum(y) - lum(x); });
     return { light: a[0], warm: a[1], mid: a[2], dark: a[3] };
   }
 
-  function scene(s) {
-    var r = roles(s.colours), t = s.scene, o = [], x, y, i;
+  function furniture(kind, r, t) {
+    var soft = t.soft ? 12 : 3, s = '';
+    var legs =
+      t.legs === 'taper'
+        ? '<path d="M36 142 L28 158 M162 142 L170 158" stroke="' + r.dark +
+          '" stroke-opacity="1" stroke-width="5" stroke-linecap="round"/>'
+        : t.legs === 'block'
+          ? '<rect x="32" y="140" width="9" height="15" fill="' + r.dark + '"/>' +
+            '<rect x="157" y="140" width="9" height="15" fill="' + r.dark + '"/>'
+          : '<rect x="28" y="140" width="142" height="9" rx="2" fill="' + r.mid + '"/>';
+
+    if (kind === 'living') {
+      s = '<rect x="30" y="84" width="140" height="38" rx="' + soft + '" fill="' + r.mid + '"/>' +
+          '<rect x="16" y="98" width="20" height="46" rx="' + soft + '" fill="' + r.mid + '"/>' +
+          '<rect x="164" y="98" width="20" height="46" rx="' + soft + '" fill="' + r.mid + '"/>' +
+          '<rect x="34" y="114" width="132" height="28" rx="7" fill="' + r.light + '"/>' +
+          '<rect x="46" y="90" width="36" height="24" rx="6" fill="' + r.light + '"/>' +
+          '<rect x="118" y="90" width="36" height="24" rx="6" fill="' + r.warm + '"/>' + legs +
+          '<rect x="62" y="166" width="80" height="7" rx="3" fill="' + r.dark + '"/>' +
+          '<rect x="70" y="173" width="6" height="15" fill="' + r.dark + '"/>' +
+          '<rect x="128" y="173" width="6" height="15" fill="' + r.dark + '"/>';
+    } else if (kind === 'dining') {
+      /* chair backs have to clear the table by enough that they read as
+         chairs behind it rather than objects sitting on it */
+      s = '<rect x="42" y="72" width="28" height="58" rx="' + soft + '" fill="' + r.mid + '"/>' +
+          '<rect x="86" y="72" width="28" height="58" rx="' + soft + '" fill="' + r.mid + '"/>' +
+          '<rect x="130" y="72" width="28" height="58" rx="' + soft + '" fill="' + r.mid + '"/>' +
+          '<rect x="20" y="126" width="160" height="11" rx="3" fill="' + r.warm + '"/>' +
+          '<rect x="34" y="137" width="9" height="30" fill="' + r.dark + '"/>' +
+          '<rect x="157" y="137" width="9" height="30" fill="' + r.dark + '"/>' +
+          '<ellipse cx="100" cy="123" rx="16" ry="5" fill="' + r.dark + '"/>';
+    } else if (kind === 'kitchen') {
+      s = '<rect x="14" y="112" width="172" height="48" fill="' + r.mid + '"/>' +
+          '<rect x="10" y="103" width="180" height="10" rx="2" fill="' + r.dark + '"/>' +
+          '<rect x="28" y="122" width="66" height="32" rx="2" fill="' + r.warm + '" opacity=".65"/>' +
+          '<rect x="106" y="122" width="66" height="32" rx="2" fill="' + r.warm + '" opacity=".65"/>' +
+          '<rect x="26" y="50" width="106" height="8" rx="2" fill="' + r.mid + '"/>' +
+          '<rect x="26" y="78" width="106" height="8" rx="2" fill="' + r.mid + '"/>' +
+          '<circle cx="44" cy="42" r="8" fill="' + r.warm + '"/>' +
+          '<rect x="62" y="32" width="11" height="18" rx="2" fill="' + r.dark + '"/>' +
+          '<rect x="82" y="36" width="9" height="14" rx="2" fill="' + r.warm + '"/>' +
+          '<circle cx="46" cy="70" r="8" fill="' + r.dark + '"/>' +
+          '<rect x="64" y="62" width="13" height="16" rx="2" fill="' + r.warm + '"/>' +
+          '<path d="M150 103 v-18 h16" stroke="' + r.dark + '" stroke-width="3" fill="none"/>';
+    } else if (kind === 'office') {
+      s = '<rect x="24" y="44" width="72" height="8" rx="2" fill="' + r.mid + '"/>' +
+          '<rect x="24" y="74" width="72" height="8" rx="2" fill="' + r.mid + '"/>' +
+          '<rect x="30" y="26" width="8" height="18" fill="' + r.dark + '"/>' +
+          '<rect x="41" y="30" width="7" height="14" fill="' + r.warm + '"/>' +
+          '<rect x="51" y="24" width="9" height="20" fill="' + r.mid + '"/>' +
+          '<rect x="34" y="58" width="8" height="16" fill="' + r.warm + '"/>' +
+          '<rect x="45" y="54" width="7" height="20" fill="' + r.dark + '"/>' +
+          '<rect x="18" y="118" width="152" height="10" rx="2" fill="' + r.warm + '"/>' +
+          '<rect x="26" y="128" width="8" height="32" fill="' + r.dark + '"/>' +
+          '<rect x="154" y="128" width="8" height="32" fill="' + r.dark + '"/>' +
+          '<rect x="92" y="96" width="32" height="30" rx="' + soft + '" fill="' + r.mid + '"/>' +
+          '<rect x="105" y="126" width="7" height="26" fill="' + r.dark + '"/>' +
+          '<path d="M40 118 v-22 h18" stroke="' + r.dark + '" stroke-width="3" fill="none"/>';
+    } else if (kind === 'bath') {
+      s = '<circle cx="62" cy="58" r="27" fill="' + r.warm + '"/>' +
+          '<rect x="132" y="52" width="52" height="6" rx="2" fill="' + r.dark + '"/>' +
+          '<rect x="140" y="56" width="15" height="40" rx="2" fill="' + r.light + '"/>' +
+          '<rect x="160" y="56" width="15" height="33" rx="2" fill="' + r.mid + '"/>' +
+          '<rect x="22" y="104" width="140" height="54" rx="' + (t.soft ? 20 : 6) +
+            '" fill="' + r.light + '"/>' +
+          '<rect x="30" y="112" width="124" height="10" rx="5" fill="' + r.mid +
+            '" opacity=".5"/>' +
+          '<rect x="34" y="158" width="12" height="12" fill="' + r.dark + '"/>' +
+          '<rect x="138" y="158" width="12" height="12" fill="' + r.dark + '"/>' +
+          '<path d="M32 104 v-16 h18" stroke="' + r.dark + '" stroke-width="3" fill="none"/>';
+    } else {
+      s = '<rect x="34" y="70" width="132" height="48" rx="' + soft + '" fill="' + r.mid + '"/>' +
+          '<rect x="24" y="110" width="150" height="30" rx="6" fill="' + r.light + '"/>' +
+          '<rect x="24" y="130" width="150" height="12" rx="4" fill="' + r.dark + '" opacity=".85"/>' +
+          '<rect x="42" y="88" width="42" height="24" rx="7" fill="' + r.light + '"/>' +
+          '<rect x="90" y="88" width="42" height="24" rx="7" fill="' + r.warm + '"/>' + legs;
+    }
+    return '<g stroke="' + r.dark + '" stroke-opacity=".42" stroke-width="1.5">' + s + '</g>';
+  }
+
+  function scene(s, kind) {
+    kind = kind || 'bedroom';
+    var r = roles(s.colours), t = s.scene, o = [], i, x, y;
     o.push('<svg viewBox="0 0 300 220" preserveAspectRatio="xMidYMid slice" ' +
-           'role="img" aria-label="A room in the ' + s.name + ' style">');
+           'role="img" aria-label="A ' + kind + ' in the ' + s.name + ' style">');
     o.push('<rect width="300" height="220" fill="' + r.light + '"/>');
 
     if (t.wall === 'brick') {
@@ -446,7 +672,6 @@
                r.warm + '" opacity=".35"/>');
     }
 
-    /* floor and skirting */
     o.push('<rect y="150" width="300" height="70" fill="' + r.warm + '"/>');
     o.push('<rect y="146" width="300" height="5" fill="' + r.mid + '" opacity=".55"/>');
 
@@ -466,57 +691,46 @@
       o.push('<path d="M225 ' + wy + 'V' + (wy + wh) + '" stroke="' + r.dark + '" stroke-width="2.5"/>');
     o.push('<rect x="180" y="134" width="90" height="6" rx="2" fill="' + r.mid + '"/>');
 
-    /* rug, under everything */
-    if (t.rug === 'round')
-      o.push('<ellipse cx="112" cy="180" rx="98" ry="27" fill="' + r.light + '" opacity=".8"/>');
-    else {
-      o.push('<rect x="16" y="156" width="198" height="50" rx="3" fill="' + r.light +
-             '" opacity=".85"/>');
-      if (t.rug === 'stripes')
-        for (i = 0; i < 5; i++)
-          o.push('<rect x="16" y="' + (161 + i * 9) + '" width="198" height="3" fill="' +
-                 r.dark + '" opacity=".32"/>');
-    }
-
-    /* the bed, outlined so it reads on any palette */
-    var soft = t.soft ? 12 : 3;
-    o.push('<g stroke="' + r.dark + '" stroke-opacity=".42" stroke-width="1.5">');
-    o.push('<rect x="34" y="70" width="132" height="48" rx="' + soft + '" fill="' + r.mid + '"/>');
-    o.push('<rect x="24" y="110" width="150" height="30" rx="6" fill="' + r.light + '"/>');
-    o.push('<rect x="24" y="130" width="150" height="12" rx="4" fill="' + r.dark + '" opacity=".85"/>');
-    o.push('<rect x="42" y="88" width="42" height="24" rx="7" fill="' + r.light + '"/>');
-    o.push('<rect x="90" y="88" width="42" height="24" rx="7" fill="' + r.warm + '"/>');
-    if (t.legs === 'taper')
-      o.push('<path d="M36 142 L28 158 M162 142 L170 158" stroke="' + r.dark +
-             '" stroke-opacity="1" stroke-width="5" stroke-linecap="round"/>');
-    else if (t.legs === 'block')
-      o.push('<rect x="32" y="140" width="9" height="15" fill="' + r.dark + '"/>' +
-             '<rect x="157" y="140" width="9" height="15" fill="' + r.dark + '"/>');
-    else
-      o.push('<rect x="28" y="140" width="142" height="9" rx="2" fill="' + r.mid + '"/>');
-    o.push('</g>');
-
-    /* the light */
-    o.push('<path d="M104 0 V34" stroke="' + r.dark + '" stroke-width="2"/>');
-    if (t.lamp === 'globe')
-      o.push('<circle cx="104" cy="48" r="14" fill="' + r.light + '" stroke="' + r.dark +
-             '" stroke-width="2"/>');
-    else if (t.lamp === 'cone')
-      o.push('<path d="M86 60 L104 34 L122 60 Z" fill="' + r.dark + '"/>');
-    else if (t.lamp === 'sunburst') {
-      o.push('<circle cx="104" cy="40" r="6" fill="' + r.dark + '"/>');
-      for (i = 0; i < 7; i++) {
-        var a = Math.PI * (0.12 + i * 0.127);
-        o.push('<path d="M104 40 L' + (104 + Math.cos(a) * 30).toFixed(1) + ' ' +
-               (40 + Math.sin(a) * 30).toFixed(1) + '" stroke="' + r.dark + '" stroke-width="2"/>');
+    /* a rug, where a rug belongs */
+    if (kind !== 'kitchen' && kind !== 'bath') {
+      if (t.rug === 'round')
+        o.push('<ellipse cx="112" cy="180" rx="98" ry="27" fill="' + r.light + '" opacity=".8"/>');
+      else {
+        o.push('<rect x="16" y="156" width="198" height="50" rx="3" fill="' + r.light +
+               '" opacity=".85"/>');
+        if (t.rug === 'stripes')
+          for (i = 0; i < 5; i++)
+            o.push('<rect x="16" y="' + (161 + i * 9) + '" width="198" height="3" fill="' +
+                   r.dark + '" opacity=".32"/>');
       }
-    } else {
-      o.push('<path d="M84 34 H124 L112 56 H96 Z" fill="' + r.dark + '" opacity=".9"/>');
-      o.push('<path d="M92 56 v8 M104 56 v11 M116 56 v8" stroke="' + r.dark + '" stroke-width="2"/>');
     }
 
-    /* a plant, where the style asks for one */
-    if (t.plant) {
+    o.push(furniture(kind, r, t));
+
+    /* the light — a kitchen and a bath keep theirs flush to the ceiling */
+    if (kind !== 'kitchen' && kind !== 'bath') {
+      /* a study keeps its shelves where the pendant would otherwise hang */
+      var lx = kind === 'office' ? 148 : 104;
+      o.push('<path d="M' + lx + ' 0 V34" stroke="' + r.dark + '" stroke-width="2"/>');
+      if (t.lamp === 'globe')
+        o.push('<circle cx="' + lx + '" cy="48" r="14" fill="' + r.light + '" stroke="' + r.dark +
+               '" stroke-width="2"/>');
+      else if (t.lamp === 'cone')
+        o.push('<path d="M' + (lx - 18) + ' 60 L' + lx + ' 34 L' + (lx + 18) + ' 60 Z" fill="' + r.dark + '"/>');
+      else if (t.lamp === 'sunburst') {
+        o.push('<circle cx="' + lx + '" cy="40" r="6" fill="' + r.dark + '"/>');
+        for (i = 0; i < 7; i++) {
+          var a = Math.PI * (0.12 + i * 0.127);
+          o.push('<path d="M' + lx + ' 40 L' + (lx + Math.cos(a) * 30).toFixed(1) + ' ' +
+                 (40 + Math.sin(a) * 30).toFixed(1) + '" stroke="' + r.dark + '" stroke-width="2"/>');
+        }
+      } else {
+        o.push('<path d="M' + (lx - 20) + ' 34 H' + (lx + 20) + ' L' + (lx + 8) + ' 56 H' + (lx - 8) + ' Z" fill="' + r.dark + '" opacity=".9"/>');
+        o.push('<path d="M' + (lx - 12) + ' 56 v8 M' + lx + ' 56 v11 M' + (lx + 12) + ' 56 v8" stroke="' + r.dark + '" stroke-width="2"/>');
+      }
+    }
+
+    if (t.plant && kind !== 'bath') {
       o.push('<path d="M276 196 q-16 -26 -22 -40 M276 196 q14 -24 22 -34 M276 196 v-30"' +
              ' stroke="' + r.mid + '" stroke-width="4" fill="none" stroke-linecap="round"/>');
       o.push('<path d="M264 194 h24 l-4 20 h-16 Z" fill="' + r.dark + '"/>');
@@ -525,77 +739,101 @@
     o.push('</svg>');
     return o.join('');
   }
-  var ROOMS = ['Bedroom','Living room','Kitchen','Dining room','Study','Bathroom'];
-  var DEPTHS = [
-    { id: 'renovate', name: 'Full redesign', note: 'New furniture, new finishes. Structure stays.' },
-    { id: 'restyle',  name: 'Light restyle', note: 'Keeps more of the room as it is.' }
-  ];
 
+  function plate(s, kind, showMade) {
+    var rm = ROOMS.filter(function (x) { return x.id === kind; })[0];
+    return '<figure class="plate">' + scene(s, kind) +
+      '<figcaption><b>' + s.name + '</b><span>' + (rm ? rm.name : '') + '</span></figcaption>' +
+      (showMade ? '<span class="made">' + s.made + '</span>' : '') + '</figure>';
+  }
+
+  /* ---- what goes where ---- */
+  $('heroStrip').innerHTML =
+    plate(STYLES[0], 'living') + plate(STYLES[4], 'dining') +
+    plate(STYLES[3], 'kitchen') + plate(STYLES[1], 'bedroom');
+
+  /* One look per room, so no two cards are the same picture. */
+  var LOOK_ROOMS = ['bedroom','living','dining','kitchen','office','bath'];
+  $('looks').innerHTML = STYLES.map(function (s, i) {
+    return plate(s, LOOK_ROOMS[i], true);
+  }).join('');
+
+  $('howArt').innerHTML =
+    plate(STYLES[2], 'office') + plate(STYLES[5], 'bath');
+
+  /* ---- explore: every look on every room, filterable ---- */
+  var filter = 'all';
+  function drawExplore() {
+    var out = [];
+    ROOMS.forEach(function (rm) {
+      if (filter !== 'all' && filter !== rm.id) return;
+      STYLES.forEach(function (s) { out.push(plate(s, rm.id)); });
+    });
+    $('explore').innerHTML = out.join('');
+  }
+  function drawFilters() {
+    var all = [{ id: 'all', name: 'All' }].concat(ROOMS);
+    $('filters').innerHTML = all.map(function (rm) {
+      return '<button class="pill' + (filter === rm.id ? ' on' : '') +
+        '" type="button" data-filter="' + rm.id + '">' + rm.name + '</button>';
+    }).join('');
+  }
+  $('filters').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-filter]');
+    if (!b) return;
+    filter = b.getAttribute('data-filter');
+    drawFilters(); drawExplore();
+  });
+  drawFilters(); drawExplore();
+
+  /* ------------------------------------------------------------------
+     Routing. Five pages in one file, so this deploys anywhere that can
+     serve a static file — no server-side routes to configure.
+     ------------------------------------------------------------------ */
+  var VIEWS = ['home','studio','explore','how','pricing'];
+  function show(v) {
+    if (VIEWS.indexOf(v) < 0) v = 'home';
+    VIEWS.forEach(function (n) { $('v-' + n).classList.toggle('hidden', n !== v); });
+    Array.prototype.forEach.call($('nav').children, function (b) {
+      b.classList.toggle('on', b.getAttribute('data-go') === v);
+    });
+    if (location.hash !== '#/' + v) location.hash = '#/' + v;
+    window.scrollTo(0, 0);
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-go]');
+    if (b) { e.preventDefault(); show(b.getAttribute('data-go')); }
+  });
+  $('brand').onclick = function () { show('home'); };
+  window.addEventListener('hashchange', function () {
+    show((location.hash || '').replace(/^#\/?/, '') || 'home');
+  });
+  show((location.hash || '').replace(/^#\/?/, '') || 'home');
+  $('year').textContent = '© ' + new Date().getFullYear() + ' Second Draft';
+
+  /* ------------------------------------------------------------------
+     The studio itself.
+     ------------------------------------------------------------------ */
   var style = STYLES[0], room = ROOMS[0], depth = DEPTHS[0], count = 3;
   var live = false, sampler = null, turns = [], roomBrief = '', reading = null;
 
-  /* ---- hero fan: the four styles, as their own colours ---- */
-  $('fan').innerHTML = STYLES.slice(0, 4).map(function (s) {
-    return '<figure class="f">' + scene(s) + '<figcaption>' + s.name +
-           '</figcaption></figure>';
-  }).join('');
-
-  /* ---- the six looks, full size ---- */
-  $('looks').innerHTML = STYLES.map(function (s) {
-    return '<figure>' + scene(s) + '<figcaption><b>' + s.name + '</b><span>' +
-           s.made + '</span></figcaption></figure>';
-  }).join('');
-
-  function swatch(s) {
-    return 'linear-gradient(135deg,' + s.colours.join(',') + ')';
+  function pillRow(el, items, current, onPick, clay) {
+    el.innerHTML = items.map(function (it) {
+      return '<button class="pill' + (it.id === current.id ? ' on' + (clay ? ' clay' : '') : '') +
+        '" type="button" data-id="' + it.id + '">' + it.name + '</button>';
+    }).join('');
+    el.onclick = function (e) {
+      var b = e.target.closest('[data-id]');
+      if (!b) return;
+      var picked = items.filter(function (x) { return x.id === b.getAttribute('data-id'); })[0];
+      onPick(picked);
+      pillRow(el, items, picked, onPick, clay);
+    };
   }
-  function showStyle() {
-    $('styleName').textContent = style.name;
-    $('styleSw').style.background = swatch(style);
-  }
-  showStyle();
+  pillRow($('roomPills'),  ROOMS,  room,  function (x) { room = x; }, false);
+  pillRow($('stylePills'), STYLES, style, function (x) { style = x; }, true);
+  pillRow($('depthPills'), DEPTHS, depth, function (x) { depth = x; }, false);
 
-  /* ---- the chooser, reused for style / room / depth ---- */
-  function choose(title, note, items, render, pick) {
-    $('sheetTitle').textContent = title;
-    $('sheetNote').textContent = note;
-    $('opts').innerHTML = '';
-    items.forEach(function (it) {
-      var b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'opt';
-      b.innerHTML = render(it);
-      b.onclick = function () { pick(it); $('sheet').classList.add('hidden'); };
-      $('opts').appendChild(b);
-    });
-    $('sheet').classList.remove('hidden');
-  }
-  $('sheetClose').onclick = function () { $('sheet').classList.add('hidden'); };
-  $('sheet').onclick = function (e) {
-    if (e.target === $('sheet')) $('sheet').classList.add('hidden');
-  };
-
-  $('pStyle').onclick = function () {
-    choose('Choose a look', 'The colours and materials each one is actually built from.',
-      STYLES,
-      function (s) {
-        return '<span class="look">' + scene(s) + '</span><span class="txt"><b>' +
-          s.name + '</b><span>' + s.made + '</span></span>';
-      },
-      function (s) { style = s; showStyle(); });
-  };
-  $('pRoom').onclick = function () {
-    choose('Which room', 'So it knows what it is looking at.', ROOMS,
-      function (r) { return '<span class="txt"><b>' + r + '</b></span>'; },
-      function (r) { room = r; $('roomName').textContent = r; });
-  };
-  $('pDepth').onclick = function () {
-    choose('How far to go', '', DEPTHS,
-      function (d) {
-        return '<span class="txt"><b>' + d.name + '</b><span>' + d.note + '</span></span>';
-      },
-      function (d) { depth = d; $('depthName').textContent = d.name; });
-  };
   $('less').onclick = function () { count = Math.max(1, count - 1); $('countN').textContent = count; };
   $('more').onclick = function () { count = Math.min(4, count + 1); $('countN').textContent = count; };
 
@@ -618,12 +856,12 @@
       .then(function (h) {
         live = true;
         canDraw = Boolean(h.can_draw);
-        $('state').textContent = canDraw ? '' : 'Pictures are not switched on yet.';
+        $('state').textContent = canDraw ? 'Ready' : 'Reading only — pictures are not switched on yet';
         refresh();
       })
       .catch(function () {
         live = false;
-        $('state').textContent = sampler ? '' : 'Setting up…';
+        $('state').textContent = sampler ? 'Ready' : 'Preview — no engine connected';
         refresh();
       });
   }
@@ -634,7 +872,7 @@
     claude.use('sample').then(function (s) {
       if (!s) return;
       return s.limits().then(function (c) {
-        if (c && c.images) { sampler = s; $('state').textContent = ''; refresh(); }
+        if (c && c.images) { sampler = s; $('state').textContent = 'Ready'; refresh(); }
       });
     }).catch(function () {});
   }
@@ -642,40 +880,27 @@
   /* ---- photo ---- */
   var photo = $('photo');
   $('plus').onclick = function () { photo.click(); };
-  $('swap').onclick = function () { photo.click(); };
   photo.onchange = function () {
     if (!photo.files[0]) return;
     var url = URL.createObjectURL(photo.files[0]);
-    $('preview').src = url;
     $('thumb').src = url;
     $('thumb').classList.remove('hidden');
-    $('hero').classList.add('hidden');
-    $('room').classList.remove('hidden');
+    $('dropTitle').textContent = 'Photo added';
+    $('dropNote').textContent = 'Click to choose a different one';
     refresh();
-  };
-
-  $('again').onclick = function () {
-    photo.value = ''; turns = []; roomBrief = ''; reading = null;
-    ['room','dirsBlock','shotsBlock','chatBlock'].forEach(function (i) {
-      $(i).classList.add('hidden');
-    });
-    $('thumb').classList.add('hidden');
-    $('hero').classList.remove('hidden');
-    $('text').value = '';
-    say(''); refresh();
   };
 
   function refresh() {
     var has = Boolean(photo.files[0]);
     $('go').disabled = !has || (!live && !sampler);
-    $('go').textContent = reading ? 'Redesign' : 'Design';
+    $('go').textContent = reading ? 'Draw it again' : 'Reimagine this room';
   }
   function say(t, bad) {
     $('msg').textContent = t || '';
     $('msg').classList.toggle('bad', Boolean(bad));
   }
 
-  /* ---- read ---- */
+  /* ---- what it found ---- */
   function paint(d) {
     reading = d;
     $('roomLine').textContent = d.room || '';
@@ -686,11 +911,10 @@
     }).join('');
 
     $('dirs').innerHTML = (d.directions || []).map(function (x) {
-      return '<div class="dcard"><h3>' + (x.title || '') + '</h3><div class="pal">' +
-        (x.palette || '') + '</div><p class="pieces">' + (x.pieces || []).join(' · ') +
-        '</p><p class="why">' + (x.why || '') + '</p></div>';
+      return '<div class="dcard"><h4>' + (x.title || '') + '</h4><div class="pal">' +
+        (x.palette || '') + '</div><p>' + (x.pieces || []).join(' · ') +
+        '</p><p>' + (x.why || '') + '</p></div>';
     }).join('');
-    $('dirsBlock').classList.remove('hidden');
 
     roomBrief = (d.room || '') + ' In it: ' + (d.items || []).map(function (i) {
       return (i.count > 1 ? i.count + ' ' : '') + i.name +
@@ -698,15 +922,14 @@
     }).join(', ');
     turns = [];
     $('thread').innerHTML = '';
-    $('chatBlock').classList.remove('hidden');
-    $('text').placeholder = 'Ask for a change, or ask why…';
+    $('readout').classList.remove('hidden');
   }
 
   async function readRoom() {
     if (live) {
       var f = new FormData();
       f.append('photo', photo.files[0]);
-      f.append('room_type', room.toLowerCase());
+      f.append('room_type', room.name.toLowerCase());
       var r = await fetch(api('/api/read'), { method: 'POST', body: f });
       var d = await r.json();
       if (!r.ok) throw new Error(d.detail || 'Could not read the room');
@@ -714,7 +937,7 @@
     }
     if (sampler) {
       return await sampler.json(
-        'Survey this ' + room.toLowerCase() + ' from the photograph. Return JSON only: ' +
+        'Survey this ' + room.name.toLowerCase() + ' from the photograph. Return JSON only: ' +
         '{"room":"one sentence","items":[{"name":"bed","count":2,"treatment":"keep|redraw"}],' +
         '"directions":[{"title":"","palette":"","pieces":["",""],"why":""}]}. ' +
         'Count carefully — two single beds are two, not one double. treatment is "keep" ' +
@@ -737,19 +960,10 @@
     $('shots').innerHTML = d.generations.map(function (g, i) {
       return '<figure><img src="data:image/png;base64,' + g.image_base64 +
              '" alt="Design ' + (i + 1) + '"><figcaption>Design ' + (i + 1) +
-             '</figcaption></figure>';
+             ' · ' + style.name + '</figcaption></figure>';
     }).join('');
-    $('shotsBlock').classList.remove('hidden');
-
-    // Put them on the shelf too, so the page stops looking empty the moment
-    // there is anything real to show.
-    var gal = $('gallery');
-    d.generations.forEach(function (g) {
-      var slot = gal.querySelector('.slot');
-      var fig = document.createElement('figure');
-      fig.innerHTML = '<img src="data:image/png;base64,' + g.image_base64 + '" alt="">';
-      if (slot) { gal.replaceChild(fig, slot); } else { gal.prepend(fig); }
-    });
+    $('paneEmpty').classList.add('hidden');
+    $('shots').classList.remove('hidden');
   }
 
   function addTurn(role, text) {
@@ -786,14 +1000,16 @@
           onText: function (u) { into.textContent = u.text; } });
         into.textContent = out.text;
         turns.push({ role: 'assistant', content: out.text });
+      } else {
+        into.textContent = 'No engine connected.';
       }
     } catch (e) {
       into.textContent = (e && e.message) || 'Could not answer.';
     }
   }
 
-  /* One button. It reads the room first, then draws; after that it is a
-     conversation. Nobody should have to know which step they are on. */
+  /* One button. It reads the room first, then draws. Nobody should have to
+     know which step they are on. */
   $('go').onclick = async function () {
     $('go').disabled = true;
     try {
@@ -801,20 +1017,21 @@
         say('Reading the room…');
         paint(await readRoom());
         say('');
-        if (live) { say('Drawing ' + count + '…'); await draw(); say(''); }
-        else { say('Pictures are not switched on yet.'); }
-      } else {
-        var text = $('text').value.trim();
-        $('text').value = '';
-        if (text) { say(''); await ask(text); }
-        else if (live) { say('Drawing ' + count + '…'); await draw(); say(''); }
       }
+      if (live && canDraw) { say('Drawing ' + count + '…'); await draw(); say(''); }
+      else { say('Read done. Pictures need the drawing engine switched on.'); }
     } catch (e) {
       say((e && e.message) || 'Something went wrong.', true);
     } finally { refresh(); }
   };
-  $('text').addEventListener('keydown', function (e) {
-    if (e.key === 'Enter' && !$('go').disabled) { e.preventDefault(); $('go').click(); }
+  $('askGo').onclick = function () {
+    var t = $('ask').value.trim();
+    if (!t) return;
+    $('ask').value = '';
+    ask(t);
+  };
+  $('ask').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); $('askGo').click(); }
   });
 
   check();
