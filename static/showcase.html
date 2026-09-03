@@ -32,6 +32,10 @@
   .kick { font-size: .68rem; letter-spacing: .2em; text-transform: uppercase;
     color: var(--clay); font-weight: 600; margin: 0 0 1rem; }
   .lede { color: var(--muted); max-width: 46ch; font-size: 1.02rem; margin: 1.1rem 0 0; }
+  .hero-do { display: flex; align-items: center; gap: .9rem; flex-wrap: wrap;
+    margin: 1.8rem 0 0; }
+  .hero-do .cta { padding: .7rem 1.5rem; font-size: .95rem; }
+  .hero-do span { font-size: .86rem; color: var(--muted); }
 
   /* ---------- top bar ---------- */
   .top { position: sticky; top: 0; z-index: 40; background: rgba(250,247,240,.92);
@@ -48,6 +52,8 @@
     padding: .55rem 1.15rem; font-size: .87rem; font-weight: 500; cursor: pointer;
     white-space: nowrap; }
   .cta:hover { background: #162d21; }
+  .cta.ghost { background: none; color: var(--ink); border: 1px solid var(--line); }
+  .cta.ghost:hover { border-color: var(--clay); background: none; }
   .cta.clay { background: var(--clay); }
   .cta.clay:hover { background: #a95f31; }
   .cta[disabled] { opacity: .45; cursor: default; }
@@ -234,7 +240,8 @@
       <button type="button" data-go="how">How it works</button>
       <button type="button" data-go="pricing">Pricing</button>
     </nav>
-    <button class="cta" type="button" data-go="studio">Open studio</button>
+    <button class="cta ghost" id="login" type="button"
+      title="Accounts are not switched on yet">Log in</button>
   </div>
 </header>
 
@@ -246,6 +253,10 @@
     <p class="lede">It reads the photograph first — names what is in the room and
        counts it — then redraws only what is allowed to change. Doors, windows
        and the floor people walk on stay where the building put them.</p>
+    <p class="hero-do">
+      <button class="cta" type="button" data-go="studio">Try the studio</button>
+      <span>Take a photo of a room and see it come back.</span>
+    </p>
     <div class="strip" id="heroStrip"></div>
   </div>
 
@@ -443,7 +454,7 @@
         <div class="price">Free</div>
         <span class="per">For one room, one afternoon</span>
         <ul>
-          <li>5 designs a month</li>
+          <li>5 designs a day</li>
           <li>All six core looks</li>
           <li>Downloads without a watermark</li>
           <li>Public gallery access</li>
@@ -455,7 +466,7 @@
         <div class="price">&mdash;</div>
         <span class="per">Per month, for people mid-renovation</span>
         <ul>
-          <li>200 designs a month</li>
+          <li>100 designs a day</li>
           <li>Custom briefs in your own words</li>
           <li>Before and after exports</li>
           <li>Material and furniture lists</li>
