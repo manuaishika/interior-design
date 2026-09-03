@@ -117,6 +117,19 @@
   .gal .slot { aspect-ratio: 4/3; border: 1px dashed var(--line); border-radius: 12px;
     background: var(--card); display: grid; place-items: center; }
   .gal .slot span { font-size: .78rem; color: var(--muted); }
+  .fan .f svg { display: block; width: 100%; height: 100%; }
+
+  /* ---------- the six looks, drawn ---------- */
+  .looks { display: grid; gap: .9rem;
+    grid-template-columns: repeat(auto-fit,minmax(210px,1fr)); }
+  .looks figure { margin: 0; border: 1px solid var(--line); border-radius: 13px;
+    overflow: hidden; background: var(--raise); }
+  .looks svg { display: block; width: 100%; aspect-ratio: 15/11; }
+  .looks figcaption { padding: .6rem .8rem .8rem; }
+  .looks figcaption b { display: block; font-family: "Instrument Serif", Georgia, serif;
+    font-weight: 400; font-size: 1.22rem; }
+  .looks figcaption span { font-size: .76rem; color: var(--muted); }
+
   .gal figure { margin: 0; }
   .gal img { width: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: 12px;
     border: 1px solid var(--line); display: block; }
@@ -211,6 +224,7 @@
     box-shadow: inset 0 0 0 1px var(--accent); }
   .opt .look { height: 92px; display: flex; }
   .opt .look span { flex: 1; }
+  .opt .look svg { width: 100%; height: 100%; display: block; }
   .opt .txt { padding: .6rem .75rem .75rem; }
   .opt .txt b { display: block; font-family: "Instrument Serif", Georgia, serif;
     font-weight: 400; font-size: 1.15rem; }
@@ -276,6 +290,13 @@
         </div>
 
       </div>
+
+      <section class="sect" id="looksBlock">
+        <h2>What the looks actually look like</h2>
+        <p class="note">Style names are jargon. These are the rooms behind the
+           words — the colours, materials and shapes each one asks for.</p>
+        <div class="looks" id="looks"></div>
+      </section>
 
       <section class="sect" id="galleryBlock">
         <div class="gal-head">
@@ -366,18 +387,144 @@
      and materials it is actually built from. That is what a swatch is for. */
   var STYLES = [
     { id: 'japandi', name: 'Japandi', colours: ['#E8E2D6','#C9B79A','#6E6A61','#38403A'],
-      made: 'pale oak · linen · paper · charcoal' },
+      made: 'pale oak · linen · paper · charcoal',
+      scene: { wall:'plain', win:'tall', lamp:'globe', rug:'plain', legs:'platform',
+               soft:false, plant:true } },
     { id: 'scandinavian', name: 'Scandinavian', colours: ['#F6F4F0','#DCD3C6','#A9B6BE','#6E7681'],
-      made: 'birch · wool · white walls · soft blue' },
+      made: 'birch · wool · white walls · soft blue',
+      scene: { wall:'plain', win:'grid', lamp:'cone', rug:'round', legs:'taper',
+               soft:true, plant:true } },
     { id: 'mid-century-modern', name: 'Mid-century', colours: ['#E7DCC7','#B98B4E','#7C7A3C','#3E3730'],
-      made: 'walnut · mustard · olive · brass' },
+      made: 'walnut · mustard · olive · brass',
+      scene: { wall:'plain', win:'tall', lamp:'sunburst', rug:'plain', legs:'taper',
+               soft:false, plant:true } },
     { id: 'industrial', name: 'Industrial', colours: ['#8E5B45','#4A4744','#2B2A28','#A9814F'],
-      made: 'brick · blackened steel · leather' },
+      made: 'brick · blackened steel · leather',
+      scene: { wall:'brick', win:'grid', lamp:'cone', rug:'plain', legs:'block',
+               soft:false, plant:false } },
     { id: 'bohemian', name: 'Bohemian', colours: ['#C8794E','#D8A552','#8C9B6B','#6E4433'],
-      made: 'rattan · terracotta · plants · ochre' },
+      made: 'rattan · terracotta · plants · ochre',
+      scene: { wall:'plain', win:'arch', lamp:'globe', rug:'stripes', legs:'block',
+               soft:true, plant:true } },
     { id: 'modern-luxury', name: 'Modern luxury', colours: ['#EFEBE4','#C2A15E','#2E3440','#5B4257'],
-      made: 'marble · brass · velvet · deep navy' }
+      made: 'marble · brass · velvet · deep navy',
+      scene: { wall:'panel', win:'tall', lamp:'chandelier', rug:'round', legs:'block',
+               soft:true, plant:false } }
   ];
+
+  /* ---- each look, drawn ------------------------------------------------
+     "Japandi" is jargon until you can see it. Every look is drawn as the
+     same room -- same wall, same window, same bed -- so the only thing that
+     changes between them is the style itself. These are drawings, plainly
+     so: nothing here is passed off as a room we have already designed. */
+  function lum(hex) {
+    var n = parseInt(hex.slice(1), 16);
+    return (0.2126 * (n >> 16 & 255) + 0.7152 * (n >> 8 & 255) + 0.0722 * (n & 255)) / 255;
+  }
+  /* Palettes are not written light-to-dark -- industrial starts on brick --
+     so roles are taken by brightness, not by position. That keeps the
+     drawing legible whatever order a palette happens to be in. */
+  function roles(cs) {
+    var a = cs.slice().sort(function (x, y) { return lum(y) - lum(x); });
+    return { light: a[0], warm: a[1], mid: a[2], dark: a[3] };
+  }
+
+  function scene(s) {
+    var r = roles(s.colours), t = s.scene, o = [], x, y, i;
+    o.push('<svg viewBox="0 0 300 220" preserveAspectRatio="xMidYMid slice" ' +
+           'role="img" aria-label="A room in the ' + s.name + ' style">');
+    o.push('<rect width="300" height="220" fill="' + r.light + '"/>');
+
+    if (t.wall === 'brick') {
+      for (y = 0; y < 150; y += 12)
+        for (x = (y / 12 % 2 ? -13 : 0); x < 300; x += 26)
+          o.push('<rect x="' + x + '" y="' + y + '" width="24" height="10" rx="1" fill="' +
+                 r.warm + '" opacity=".5"/>');
+    } else if (t.wall === 'panel') {
+      for (x = 16; x < 300; x += 34)
+        o.push('<rect x="' + x + '" y="12" width="20" height="138" rx="3" fill="' +
+               r.warm + '" opacity=".35"/>');
+    }
+
+    /* floor and skirting */
+    o.push('<rect y="150" width="300" height="70" fill="' + r.warm + '"/>');
+    o.push('<rect y="146" width="300" height="5" fill="' + r.mid + '" opacity=".55"/>');
+
+    /* window */
+    var wx = 188, wy = 34, ww = 74, wh = 100;
+    if (t.win === 'arch')
+      o.push('<path d="M' + wx + ' ' + (wy + wh) + ' V' + (wy + 37) +
+             ' a37 37 0 0 1 74 0 V' + (wy + wh) + ' Z" fill="#FFFFFF" opacity=".92" stroke="' +
+             r.dark + '" stroke-width="3"/>');
+    else
+      o.push('<rect x="' + wx + '" y="' + wy + '" width="' + ww + '" height="' + wh +
+             '" fill="#FFFFFF" opacity=".92" stroke="' + r.dark + '" stroke-width="3"/>');
+    if (t.win === 'grid')
+      o.push('<path d="M225 ' + wy + 'V' + (wy + wh) + ' M' + wx + ' ' + (wy + 33) + 'H262 M' +
+             wx + ' ' + (wy + 66) + 'H262" stroke="' + r.dark + '" stroke-width="2.5"/>');
+    else if (t.win === 'tall')
+      o.push('<path d="M225 ' + wy + 'V' + (wy + wh) + '" stroke="' + r.dark + '" stroke-width="2.5"/>');
+    o.push('<rect x="180" y="134" width="90" height="6" rx="2" fill="' + r.mid + '"/>');
+
+    /* rug, under everything */
+    if (t.rug === 'round')
+      o.push('<ellipse cx="112" cy="180" rx="98" ry="27" fill="' + r.light + '" opacity=".8"/>');
+    else {
+      o.push('<rect x="16" y="156" width="198" height="50" rx="3" fill="' + r.light +
+             '" opacity=".85"/>');
+      if (t.rug === 'stripes')
+        for (i = 0; i < 5; i++)
+          o.push('<rect x="16" y="' + (161 + i * 9) + '" width="198" height="3" fill="' +
+                 r.dark + '" opacity=".32"/>');
+    }
+
+    /* the bed, outlined so it reads on any palette */
+    var soft = t.soft ? 12 : 3;
+    o.push('<g stroke="' + r.dark + '" stroke-opacity=".42" stroke-width="1.5">');
+    o.push('<rect x="34" y="70" width="132" height="48" rx="' + soft + '" fill="' + r.mid + '"/>');
+    o.push('<rect x="24" y="110" width="150" height="30" rx="6" fill="' + r.light + '"/>');
+    o.push('<rect x="24" y="130" width="150" height="12" rx="4" fill="' + r.dark + '" opacity=".85"/>');
+    o.push('<rect x="42" y="88" width="42" height="24" rx="7" fill="' + r.light + '"/>');
+    o.push('<rect x="90" y="88" width="42" height="24" rx="7" fill="' + r.warm + '"/>');
+    if (t.legs === 'taper')
+      o.push('<path d="M36 142 L28 158 M162 142 L170 158" stroke="' + r.dark +
+             '" stroke-opacity="1" stroke-width="5" stroke-linecap="round"/>');
+    else if (t.legs === 'block')
+      o.push('<rect x="32" y="140" width="9" height="15" fill="' + r.dark + '"/>' +
+             '<rect x="157" y="140" width="9" height="15" fill="' + r.dark + '"/>');
+    else
+      o.push('<rect x="28" y="140" width="142" height="9" rx="2" fill="' + r.mid + '"/>');
+    o.push('</g>');
+
+    /* the light */
+    o.push('<path d="M104 0 V34" stroke="' + r.dark + '" stroke-width="2"/>');
+    if (t.lamp === 'globe')
+      o.push('<circle cx="104" cy="48" r="14" fill="' + r.light + '" stroke="' + r.dark +
+             '" stroke-width="2"/>');
+    else if (t.lamp === 'cone')
+      o.push('<path d="M86 60 L104 34 L122 60 Z" fill="' + r.dark + '"/>');
+    else if (t.lamp === 'sunburst') {
+      o.push('<circle cx="104" cy="40" r="6" fill="' + r.dark + '"/>');
+      for (i = 0; i < 7; i++) {
+        var a = Math.PI * (0.12 + i * 0.127);
+        o.push('<path d="M104 40 L' + (104 + Math.cos(a) * 30).toFixed(1) + ' ' +
+               (40 + Math.sin(a) * 30).toFixed(1) + '" stroke="' + r.dark + '" stroke-width="2"/>');
+      }
+    } else {
+      o.push('<path d="M84 34 H124 L112 56 H96 Z" fill="' + r.dark + '" opacity=".9"/>');
+      o.push('<path d="M92 56 v8 M104 56 v11 M116 56 v8" stroke="' + r.dark + '" stroke-width="2"/>');
+    }
+
+    /* a plant, where the style asks for one */
+    if (t.plant) {
+      o.push('<path d="M276 196 q-16 -26 -22 -40 M276 196 q14 -24 22 -34 M276 196 v-30"' +
+             ' stroke="' + r.mid + '" stroke-width="4" fill="none" stroke-linecap="round"/>');
+      o.push('<path d="M264 194 h24 l-4 20 h-16 Z" fill="' + r.dark + '"/>');
+    }
+
+    o.push('</svg>');
+    return o.join('');
+  }
   var ROOMS = ['Bedroom','Living room','Kitchen','Dining room','Study','Bathroom'];
   var DEPTHS = [
     { id: 'renovate', name: 'Full redesign', note: 'New furniture, new finishes. Structure stays.' },
@@ -389,8 +536,14 @@
 
   /* ---- hero fan: the four styles, as their own colours ---- */
   $('fan').innerHTML = STYLES.slice(0, 4).map(function (s) {
-    return '<figure class="f" style="background:linear-gradient(160deg,' +
-      s.colours.join(',') + ')"><figcaption>' + s.name + '</figcaption></figure>';
+    return '<figure class="f">' + scene(s) + '<figcaption>' + s.name +
+           '</figcaption></figure>';
+  }).join('');
+
+  /* ---- the six looks, full size ---- */
+  $('looks').innerHTML = STYLES.map(function (s) {
+    return '<figure>' + scene(s) + '<figcaption><b>' + s.name + '</b><span>' +
+           s.made + '</span></figcaption></figure>';
   }).join('');
 
   function swatch(s) {
@@ -426,10 +579,8 @@
     choose('Choose a look', 'The colours and materials each one is actually built from.',
       STYLES,
       function (s) {
-        return '<span class="look">' + s.colours.map(function (c) {
-          return '<span style="background:' + c + '"></span>';
-        }).join('') + '</span><span class="txt"><b>' + s.name + '</b><span>' +
-          s.made + '</span></span>';
+        return '<span class="look">' + scene(s) + '</span><span class="txt"><b>' +
+          s.name + '</b><span>' + s.made + '</span></span>';
       },
       function (s) { style = s; showStyle(); });
   };

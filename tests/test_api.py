@@ -100,6 +100,16 @@ class TestMetaEndpoints:
         assert "colours: [" in html
         assert "pale oak" in html and "walnut" in html
 
+    def test_every_look_is_drawn_not_just_named(self, client):
+        """A swatch of four colours still leaves "Japandi" as a word. Each look
+        is drawn as the same room so the only thing that changes between them
+        is the style — that is the part a client can actually judge."""
+        html = client.get("/").text
+        assert 'id="looks"' in html
+        assert "function scene(" in html
+        assert "viewBox=\"0 0 300 220\"" in html
+        assert html.count("scene: {") == 6
+
     def test_page_survives_without_the_claude_runtime(self, client):
         """Deployed on your own server there is no `claude` object at all;
         reading it unguarded would break the whole page."""
