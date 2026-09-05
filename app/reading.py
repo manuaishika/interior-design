@@ -17,7 +17,7 @@ import logging
 
 from openai import AsyncOpenAI
 
-from .config import Settings
+from .config import Settings, resolve_backend
 
 log = logging.getLogger(__name__)
 
@@ -96,7 +96,23 @@ def _client(settings: Settings) -> AsyncOpenAI:
 
 
 async def read_room(photo: bytes, room_type: str, settings: Settings) -> dict:
-    """Look at the photograph and describe what is in the room."""
+    """Look at the photograph and describe what is in the room.
+
+    Two readers, one prompt. The free one is a different company's model on a
+    key with no card behind it; it is handed the identical instructions so the
+    two cannot quietly drift into reading rooms differently.
+    """
+    prompt = SURVEY.format(room=room_type or "room")
+
+    if resolve_backend(settings) == "free":
+        from . import google_ai
+
+        try:
+            answer = await google_ai.read_room(photo, room_type, prompt, settings)
+        except google_ai.GoogleError as exc:
+            raise ReadingError(str(exc)) from exc
+        return _checked(answer)
+
     data_uri = "data:image/jpeg;base64," + base64.b64encode(photo).decode("ascii")
 
     try:
@@ -105,7 +121,7 @@ async def read_room(photo: bytes, room_type: str, settings: Settings) -> dict:
             messages=[{
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": SURVEY.format(room=room_type or "room")},
+                    {"type": "text", "text": prompt},
                     {"type": "image_url", "image_url": {"url": data_uri}},
                 ],
             }],
@@ -122,10 +138,16 @@ async def read_room(photo: bytes, room_type: str, settings: Settings) -> dict:
         answer = json.loads(response.choices[0].message.content or "{}")
     except json.JSONDecodeError as exc:
         raise ReadingError("The reader returned something unreadable") from exc
+    return _checked(answer)
 
-    # The reader is the gate. It already has the photograph in front of it, and
-    # it runs before the expensive half, so a photo of somebody's dog is turned
-    # away before a GPU is ever billed for repainting it.
+
+def _checked(answer: dict) -> dict:
+    """The reader is the gate, on either engine.
+
+    It already has the photograph in front of it and it runs before the
+    expensive half, so a photo of somebody's dog is turned away before a GPU
+    is ever billed for repainting it.
+    """
     if answer.get("is_room") is False:
         raise NotARoomError(str(answer.get("subject") or "something else"))
     return answer
@@ -142,7 +164,17 @@ async def discuss(
     if not turns:
         raise ReadingError("Nothing was asked")
 
-    messages = [{"role": "system", "content": DESIGNER.format(room=room_summary)}]
+    system = DESIGNER.format(room=room_summary)
+
+    if resolve_backend(settings) == "free":
+        from . import google_ai
+
+        try:
+            return await google_ai.discuss(system, turns, settings)
+        except google_ai.GoogleError as exc:
+            raise ReadingError(str(exc)) from exc
+
+    messages = [{"role": "system", "content": system}]
     for turn in turns[-12:]:                       # keep the request bounded
         role = "assistant" if turn.get("role") == "assistant" else "user"
         content = str(turn.get("content", ""))[:4000]

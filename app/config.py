@@ -85,11 +85,29 @@ class Settings(BaseSettings):
     # --- credentials -------------------------------------------------------
     replicate_api_token: str = ""
     openai_api_key: str = ""
+    # One key, no card, both halves of the job. aistudio.google.com/apikey
+    google_api_key: str = ""
 
     # --- backend -----------------------------------------------------------
     # "hosted" calls Replicate + OpenAI and needs two paid accounts.
-    # "local"  runs open-weight models in-process and needs no keys at all.
-    backend: str = "hosted"
+    # "free"   calls Google AI Studio for both halves on a no-card key.
+    # "local"  runs open-weight models in-process and needs a GPU.
+    #
+    # Left unset this resolves itself from whichever keys are present, so a
+    # deploy needs one environment variable rather than two that must agree.
+    backend: str = ""
+
+    # --- the free path -----------------------------------------------------
+    google_vision_model: str = "gemini-2.5-flash"
+    google_image_model: str = "gemini-2.5-flash-image"
+
+    # --- the door ----------------------------------------------------------
+    # Set a code and the studio asks for it before spending anything. Leave it
+    # blank and there is no door, which is what local development wants.
+    studio_access_code: str = ""
+    # Set this and sessions survive a restart. Leave it and they do not, which
+    # is the safe direction to fail.
+    session_secret: str = ""
 
     # --- keyless (local) models ---------------------------------------------
     # One ADE20K segmentation model replaces both SAM2 and the VLM: its class
@@ -152,6 +170,26 @@ class Settings(BaseSettings):
     max_upload_bytes: int = 20 * 1024 * 1024
     # Longest edge the uploaded photo is resized to before analysis.
     max_image_edge: int = 1536
+
+
+def resolve_backend(settings: Settings) -> str:
+    """Which engine actually runs, given the keys that exist.
+
+    An explicit BACKEND always wins. Otherwise: the paid pair if it is there,
+    then the free key, then the paid path anyway so the error message names
+    the key that is missing rather than silently doing nothing.
+
+    Auto-resolving matters because the commonest way to deploy this wrong is
+    to paste a key and forget the flag that turns its engine on.
+    """
+    chosen = (settings.backend or "").strip().lower()
+    if chosen:
+        return chosen
+    if settings.openai_api_key and settings.replicate_api_token:
+        return "hosted"
+    if settings.google_api_key:
+        return "free"
+    return "hosted"
 
 
 @lru_cache

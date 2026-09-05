@@ -220,6 +220,17 @@
   .tier.pick li { border-color: #2E2C26; }
   .tier .cta { margin-top: auto; width: 100%; border-radius: 2px; padding: .65rem; }
 
+  .veil { position: fixed; inset: 0; z-index: 60; background: rgba(20,19,15,.5);
+    display: grid; place-items: center; padding: 1.5rem; }
+  .dialog { background: var(--raise); border: 1px solid var(--line);
+    border-radius: 2px; padding: 1.6rem; width: min(340px, 100%); }
+  .dialog h2 { font-size: 1rem; }
+  .dialog p { font-size: .84rem; color: var(--muted); margin: .4rem 0 1rem; }
+  .dialog input { width: 100%; border: 1px solid var(--line); border-radius: 2px;
+    padding: .55rem .7rem; background: var(--bg); font-size: .9rem; }
+  .dialog-row { display: flex; gap: .5rem; margin-top: 1rem; }
+  .dialog-row .cta { flex: 1; border-radius: 2px; }
+
   footer { border-top: 1px solid var(--line); padding: 2.6rem 0 3.4rem; }
   .foot { display: grid; gap: 1.8rem; }
   @media (min-width: 780px) { .foot { grid-template-columns: 2fr 1fr 1fr; } }
@@ -243,8 +254,7 @@
       <button type="button" data-go="how">How it works</button>
       <button type="button" data-go="pricing">Pricing</button>
     </nav>
-    <button class="cta ghost" id="login" type="button"
-      title="Accounts are not switched on yet">Log in</button>
+    <button class="cta ghost" id="login" type="button">Log in</button>
   </div>
 </header>
 
@@ -516,6 +526,20 @@
 </footer>
 
 <input type="file" id="photo" accept="image/*" class="hidden">
+
+<div class="veil hidden" id="veil">
+  <div class="dialog">
+    <h2>Studio access</h2>
+    <p>Enter the access code you were given.</p>
+    <input id="code" type="password" autocomplete="one-time-code"
+      placeholder="Access code">
+    <span class="msg" id="loginMsg"></span>
+    <div class="dialog-row">
+      <button class="cta ghost" id="loginCancel" type="button">Cancel</button>
+      <button class="cta" id="loginGo" type="button">Sign in</button>
+    </div>
+  </div>
+</div>
 
 <script>
 (function () {
@@ -863,14 +887,26 @@
   })();
   function api(p) { return SERVER + p; }
 
-  var canDraw = false;
+  var canDraw = false, needsCode = false, signedIn = true;
+
+  /* The status line says which engine is actually answering, because "free"
+     and "paid" behave differently in a way worth knowing before you judge the
+     output: only one of them can truly hold a door in place. */
+  var ENGINES = {
+    free:   'Free engine — structure is asked for, not locked',
+    hosted: 'Full engine — doors and windows are masked off',
+    local:  'Local engine'
+  };
+
   function check() {
     fetch(api('/api/health'))
       .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
       .then(function (h) {
         live = true;
         canDraw = Boolean(h.can_draw);
-        $('state').textContent = canDraw ? 'Ready' : 'Reading only — pictures are not switched on yet';
+        $('state').textContent = canDraw
+          ? (ENGINES[h.engine] || 'Ready')
+          : 'Reading only — pictures are not switched on yet';
         refresh();
       })
       .catch(function () {
@@ -878,7 +914,59 @@
         $('state').textContent = sampler ? 'Ready' : 'Preview — no engine connected';
         refresh();
       });
+    fetch(api('/api/session'))
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+      .then(function (s) {
+        needsCode = Boolean(s.required);
+        signedIn = Boolean(s.signed_in);
+        showDoor();
+      })
+      .catch(function () { needsCode = false; signedIn = true; showDoor(); });
   }
+
+  function showDoor() {
+    $('login').textContent = !needsCode ? 'Log in'
+      : signedIn ? 'Sign out' : 'Log in';
+    refresh();
+  }
+
+  function openDialog() {
+    $('loginMsg').textContent = '';
+    $('code').value = '';
+    $('veil').classList.remove('hidden');
+    $('code').focus();
+  }
+  $('login').onclick = function () {
+    if (needsCode && signedIn) {
+      fetch(api('/api/logout'), { method: 'POST', credentials: 'include' })
+        .then(function () { signedIn = false; showDoor(); });
+      return;
+    }
+    openDialog();
+  };
+  $('loginCancel').onclick = function () { $('veil').classList.add('hidden'); };
+  $('veil').onclick = function (e) {
+    if (e.target === $('veil')) $('veil').classList.add('hidden');
+  };
+  $('loginGo').onclick = function () {
+    var body = new FormData();
+    body.append('code', $('code').value);
+    $('loginMsg').textContent = 'Checking…';
+    fetch(api('/api/login'), { method: 'POST', body: body, credentials: 'include' })
+      .then(function (r) {
+        if (!r.ok) throw new Error('That code is not right.');
+        signedIn = true;
+        $('veil').classList.add('hidden');
+        showDoor();
+      })
+      .catch(function (e) {
+        $('loginMsg').textContent = e.message;
+        $('loginMsg').classList.add('bad');
+      });
+  };
+  $('code').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); $('loginGo').click(); }
+  });
 
   /* The reader works two ways: through your own server once deployed, or
      straight from the page when this is opened inside claude.ai. */
@@ -906,7 +994,9 @@
 
   function refresh() {
     var has = Boolean(photo.files[0]);
-    $('go').disabled = !has || (!live && !sampler);
+    var barred = needsCode && !signedIn;
+    $('go').disabled = barred || !has || (!live && !sampler);
+    if (barred) { say('Sign in to use the studio.'); }
     $('go').textContent = reading ? 'Draw it again' : 'Reimagine this room';
   }
   function say(t, bad) {
@@ -954,7 +1044,7 @@
       var f = new FormData();
       f.append('photo', photo.files[0]);
       f.append('room_type', room.name.toLowerCase());
-      var r = await fetch(api('/api/read'), { method: 'POST', body: f });
+      var r = await fetch(api('/api/read'), { method: 'POST', body: f, credentials: 'include' });
       var d = await r.json();
       if (!r.ok) throw new Error(d.detail || 'Could not read the room');
       return d;
@@ -986,7 +1076,7 @@
     f.append('profile', depth.id);
     f.append('variants', String(count));
     f.append('extra_prompt', $('text').value);
-    var r = await fetch(api('/api/generate'), { method: 'POST', body: f });
+    var r = await fetch(api('/api/generate'), { method: 'POST', body: f, credentials: 'include' });
     var d = await r.json();
     if (!r.ok) throw new Error(d.detail || 'Could not draw');
     $('shots').innerHTML = d.generations.map(function (g, i) {
@@ -1018,7 +1108,7 @@
         var f = new FormData();
         f.append('room_summary', roomBrief);
         f.append('turns', JSON.stringify(turns));
-        var r = await fetch(api('/api/chat'), { method: 'POST', body: f });
+        var r = await fetch(api('/api/chat'), { method: 'POST', body: f, credentials: 'include' });
         var d = await r.json();
         if (!r.ok) throw new Error(d.detail || 'Could not answer');
         into.textContent = d.reply;

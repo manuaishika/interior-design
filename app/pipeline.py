@@ -7,15 +7,17 @@ is unchanged.
 from __future__ import annotations
 
 import asyncio
+import base64
 import logging
 import random
 
 from PIL import Image
 
-from .config import DEFAULT_PROFILE, Settings, is_locked
+from .config import DEFAULT_PROFILE, Settings, is_locked, resolve_backend
 from .describe import count_instances, describe_room, keep_clause
-from .generation import build_prompt, encode_mask
+from .generation import GenerationError, build_prompt, encode_mask
 from .imaging import (
+    image_to_png_bytes,
     Mask,
     build_inpaint_mask,
     editable_fraction,
@@ -31,7 +33,57 @@ log = logging.getLogger(__name__)
 
 
 def _is_local(settings: Settings) -> bool:
-    return settings.backend.strip().lower() == "local"
+    return resolve_backend(settings) == "local"
+
+
+def _is_free(settings: Settings) -> bool:
+    return resolve_backend(settings) == "free"
+
+
+async def _run_free(data, style, settings, *, extra_prompt, variants):
+    """The free path: no segmentation, no mask, one image model.
+
+    There is nothing to segment because there is nothing to mask — the whole
+    lock lives in the instruction. So this skips analysis entirely and returns
+    an empty one, which is honest: no region was measured, so none is claimed.
+    What the room contains still reaches the client through /api/read.
+    """
+    from . import google_ai
+
+    count = max(1, min(variants or settings.default_variants,
+                       settings.max_variants))
+    image = prepare_image(data, settings)
+    photo = image_to_png_bytes(image)
+    prompt = build_prompt(style, extra_prompt)
+
+    drawn = await asyncio.gather(
+        *(google_ai.redraw(photo, prompt, settings, variant=i)
+          for i in range(count)),
+        return_exceptions=True,
+    )
+
+    generations: list[GenerationResult] = []
+    failures: list[BaseException] = []
+    for index, result in enumerate(drawn):
+        if isinstance(result, BaseException):
+            log.warning("Free option %d failed: %s", index, result)
+            failures.append(result)
+            continue
+        generations.append(GenerationResult(
+            image_base64=base64.b64encode(result).decode("ascii"),
+            inpaint_mask_base64="",
+            prompt=prompt,
+            variant_index=index,
+        ))
+
+    if not generations:
+        raise failures[0] if failures else GenerationError("Nothing came back")
+
+    analysis = RoomAnalysis(
+        image_width=image.size[0], image_height=image.size[1],
+        objects=[], masks_returned=0, masks_labeled=0,
+    )
+    return analysis, generations
 
 
 async def read_room(image: Image.Image, settings: Settings):
@@ -237,6 +289,10 @@ async def run_pipeline(
     labeling are the expensive, slow part, and every option is constrained by
     the same locked-region mask anyway.
     """
+    if _is_free(settings):
+        return await _run_free(data, style, settings,
+                               extra_prompt=extra_prompt, variants=variants)
+
     count = settings.default_variants if variants is None else variants
     count = max(1, min(count, settings.max_variants))
 

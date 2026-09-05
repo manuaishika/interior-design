@@ -7,11 +7,21 @@ services:
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/health
     envVars:
-      - key: BACKEND
-        value: hosted      # models run on Replicate's GPUs, not ours
       - key: PYTHON_VERSION
         value: "3.11"
-      - key: OPENAI_API_KEY
+      # Which engine runs is worked out from whichever keys are present, so
+      # there is no BACKEND to set and get wrong. Fill in ONE of these groups.
+      #
+      # Free, no card — aistudio.google.com/apikey
+      - key: GOOGLE_API_KEY
         sync: false        # you paste this in Render, it is never in the repo
+      # Paid, and the only path where doors are masked rather than asked about
+      - key: OPENAI_API_KEY
+        sync: false
       - key: REPLICATE_API_TOKEN
         sync: false
+      # The door on the studio. Leave blank for no door.
+      - key: STUDIO_ACCESS_CODE
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true    # so sessions survive a restart

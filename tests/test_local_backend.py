@@ -123,9 +123,26 @@ class TestWalkway:
 
 class TestBackendSwitch:
     def test_default_backend_is_hosted(self):
-        from app.config import Settings
+        """The field is now blank by default and resolved from the keys that
+        exist, so the guarantee worth pinning is the behaviour: configure
+        nothing and you are still on the hosted path."""
+        from app.config import Settings, resolve_backend
 
-        assert Settings().backend == "hosted"
+        assert resolve_backend(Settings()) == "hosted"
+
+    def test_a_free_key_alone_switches_the_engine(self):
+        """The commonest way to deploy this wrong is to paste a key and forget
+        the flag that turns its engine on, so the key is enough by itself."""
+        from app.config import Settings, resolve_backend
+
+        assert resolve_backend(Settings(google_api_key="k")) == "free"
+        # An explicit choice still wins over what the keys imply.
+        assert resolve_backend(
+            Settings(google_api_key="k", backend="hosted")) == "hosted"
+        # And a paid pair is preferred, because its locks are real.
+        assert resolve_backend(Settings(
+            google_api_key="k", openai_api_key="o",
+            replicate_api_token="r")) == "hosted"
 
     def test_local_backend_is_recognised(self):
         from app.config import Settings

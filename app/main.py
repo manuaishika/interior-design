@@ -14,12 +14,13 @@ import json
 import logging
 from pathlib import Path
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from .config import LOCK_PROFILES, Settings, get_settings
+from . import auth
+from .config import LOCK_PROFILES, Settings, get_settings, resolve_backend
 from .generation import STYLES, GenerationError
 from .models import AnalyzeResponse, GenerateResponse
 from .pipeline import analyze_room, prepare_image, run_pipeline
@@ -83,19 +84,69 @@ async def index():
 
 @app.get("/api/health")
 async def health():
+    """What this deployment can actually do, right now.
+
+    The page reads `can_read` and `can_draw` to decide what to offer, and
+    `engine` to say so out loud. Guessing from key names would go wrong the
+    moment a second engine existed, so the resolution happens in one place
+    and is reported rather than inferred.
+    """
     settings = get_settings()
+    engine = resolve_backend(settings)
+
+    if engine == "free":
+        can_read = can_draw = bool(settings.google_api_key)
+        models = {"reading": settings.google_vision_model,
+                  "drawing": settings.google_image_model}
+    elif engine == "local":
+        can_read = can_draw = True
+        models = {"reading": settings.local_seg_model,
+                  "drawing": settings.local_inpaint_model}
+    else:
+        can_read = bool(settings.openai_api_key)
+        can_draw = bool(settings.replicate_api_token)
+        models = {"segmentation": settings.sam2_model,
+                  "labeling": settings.vlm_model,
+                  "generation": settings.inpaint_model}
+
     return {
         "status": "ok",
+        "engine": engine,
+        # The free path has no mask: the lock is asked for, not enforced.
+        "locks_are_enforced": engine != "free",
         "replicate_configured": bool(settings.replicate_api_token),
         "openai_configured": bool(settings.openai_api_key),
-        "can_read": bool(settings.openai_api_key),
-        "can_draw": bool(settings.replicate_api_token) or settings.backend == "local",
-        "models": {
-            "segmentation": settings.sam2_model,
-            "labeling": settings.vlm_model,
-            "generation": settings.inpaint_model,
-        },
+        "google_configured": bool(settings.google_api_key),
+        "can_read": can_read,
+        "can_draw": can_draw,
+        "models": models,
     }
+
+
+@app.get("/api/session")
+async def session_state(request: Request):
+    """Whether there is a door, and whether you are through it."""
+    settings = get_settings()
+    return {"required": auth.required(settings),
+            "signed_in": auth.signed_in(request, settings)}
+
+
+@app.post("/api/login")
+async def login(request: Request, response: Response, code: str = Form(...)):
+    settings = get_settings()
+    if not auth.required(settings):
+        return {"signed_in": True, "required": False}
+    if not auth.matches(code, settings):
+        raise HTTPException(401, "That code is not right.")
+    token, max_age = auth.issue(settings)
+    auth.set_cookie(response, token, max_age, secure=auth.over_https(request))
+    return {"signed_in": True, "required": True}
+
+
+@app.post("/api/logout")
+async def logout(response: Response):
+    auth.clear_cookie(response)
+    return {"signed_in": False}
 
 
 @app.get("/api/styles")
@@ -136,6 +187,7 @@ async def analyze_endpoint(
 
 @app.post("/api/read")
 async def read_endpoint(
+    request: Request,
     photo: UploadFile = File(...),
     room_type: str = Form("room"),
 ):
@@ -144,6 +196,7 @@ async def read_endpoint(
     Vision only — no GPU — so this works on any ordinary host.
     """
     settings = get_settings()
+    auth.guard(request, settings)
     data = await _read_upload(photo, settings)
     try:
         return await read_room(data, room_type, settings)
@@ -156,11 +209,13 @@ async def read_endpoint(
 
 @app.post("/api/chat")
 async def chat_endpoint(
+    request: Request,
     room_summary: str = Form(...),
     turns: str = Form(...),
 ):
     """Continue the conversation about a room already read."""
     settings = get_settings()
+    auth.guard(request, settings)
     try:
         parsed = json.loads(turns)
         if not isinstance(parsed, list):
@@ -176,6 +231,7 @@ async def chat_endpoint(
 
 @app.post("/api/generate", response_model=GenerateResponse)
 async def generate_endpoint(
+    request: Request,
     photo: UploadFile = File(...),
     style: str = Form(...),
     extra_prompt: str = Form(""),
@@ -190,6 +246,7 @@ async def generate_endpoint(
     Returns N design options plus the structured JSON they were built from.
     """
     settings = get_settings()
+    auth.guard(request, settings)
     data = await _read_upload(photo, settings)
     try:
         analysis, generations = await run_pipeline(
