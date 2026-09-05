@@ -25,7 +25,20 @@ class GenerationError(RuntimeError):
     pass
 
 
+# Two of these are not looks at all. "none" is for someone who wants the room
+# fixed rather than restyled, and "brief" is for someone who would rather
+# describe what they want than pick a label off a list — the commonest thing a
+# real client does. Both live here rather than as a special case in the caller,
+# so every path that resolves a style resolves these too.
 STYLES: dict[str, str] = {
+    "none": (
+        "a clean, well-resolved contemporary interior that follows the room's "
+        "own architecture rather than any particular decorating style"
+    ),
+    "brief": (
+        "the interior described in the instructions that follow, and no other "
+        "decorating style"
+    ),
     "scandinavian": (
         "Scandinavian interior, pale oak, soft white walls, linen textiles, "
         "minimal uncluttered furniture, abundant natural light"
@@ -69,8 +82,10 @@ def build_prompt(
     and what there is more than one of. Without them the model draws an average
     room of that type, which is how two single beds come back as one double.
     """
-    base = STYLES.get(style.strip().lower(), style.strip())
-    prompt = f"Interior design photograph of this room restyled in {base}."
+    key = style.strip().lower()
+    base = STYLES.get(key, style.strip())
+    verb = "photographed as" if key in ("none", "brief") else "restyled in"
+    prompt = f"Interior design photograph of this room {verb} {base}."
     if contents.strip():
         prompt += f" The room contains {contents.strip()}."
     if keep.strip():

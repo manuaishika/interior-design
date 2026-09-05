@@ -120,6 +120,58 @@ class TestMetaEndpoints:
             assert "'" + kind + "'" in html
         assert 'id="explore"' in html
 
+    def test_a_look_is_shown_not_just_named(self, client):
+        """Hovering a look shows rooms in that look, beside the pill. It must
+        not navigate: browsing eight looks should cost no page loads."""
+        html = client.get("/").text
+        assert 'id="peek"' in html and "function peek(" in html
+        assert "mouseover" in html
+        # the popup carries no route of its own
+        peek = html[html.index('id="peek"'):html.index('id="veil"')]
+        assert "data-go" not in peek and "href" not in peek
+
+    def test_reference_photos_fall_back_to_drawings(self, client):
+        """Photographs are not here yet and half a set may arrive first, so the
+        fallback is per-image and silent rather than a broken frame."""
+        html = client.get("/").text
+        assert "photosFor" in html
+        assert "photo.onerror" in html
+        assert "looks/" in html
+
+    def test_the_studio_takes_more_than_the_six_drawable_rooms(self, client):
+        """The reader is a vision model, not a list of six. A stairway or a
+        balcony is exactly the awkward space people most want redrawn."""
+        html = client.get("/").text
+        assert "ROOM_TYPES" in html
+        for room in ("Hallway", "Stairway", "Balcony", "Somewhere else"):
+            assert room in html
+
+    def test_not_choosing_a_look_is_a_choice(self, client):
+        """Two of the options are not looks: one for a room that wants
+        resolving rather than restyling, one for someone who would rather
+        describe what they want than pick a label."""
+        html = client.get("/").text
+        assert "NON_STYLES" in html
+        assert "Stick to the brief" in html
+        assert ">None<" in html or "'None'" in html
+
+    def test_the_comments_box_says_what_it_is_for(self, client):
+        html = client.get("/").text
+        assert "Extra comments" in html
+        assert 'class="hint"' in html
+
+    def test_none_and_brief_reach_the_generator_as_real_prompts(self):
+        """They are resolved in the same place as every other style, so no
+        caller has to special-case them."""
+        from app.generation import STYLES, build_prompt
+
+        assert "none" in STYLES and "brief" in STYLES
+        for key in ("none", "brief"):
+            prompt = build_prompt(key, extra="More storage.")
+            assert "none" not in prompt.split()      # not the bare word
+            assert "More storage." in prompt
+        assert "no other decorating style" in build_prompt("brief")
+
     def test_page_survives_without_the_claude_runtime(self, client):
         """Deployed on your own server there is no `claude` object at all;
         reading it unguarded would break the whole page."""

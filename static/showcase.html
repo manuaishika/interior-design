@@ -220,6 +220,29 @@
   .tier.pick li { border-color: #2E2C26; }
   .tier .cta { margin-top: auto; width: 100%; border-radius: 2px; padding: .65rem; }
 
+  .hint { font-size: .76rem; color: var(--muted); margin: -.25rem 0 .5rem;
+    line-height: 1.45; }
+  .drop-sel { width: 100%; border: 1px solid var(--line); border-radius: 2px;
+    padding: .5rem .6rem; background: var(--raise); font-size: .86rem; }
+
+  /* The look popup. A style name is a word; this is the room it means. */
+  .peek { position: fixed; z-index: 70; width: 340px; max-width: calc(100vw - 2rem);
+    background: var(--raise); border: 1px solid var(--ink); border-radius: 2px;
+    padding: .8rem; box-shadow: 0 12px 30px rgba(20,19,15,.18); }
+  .peek-head { display: flex; align-items: baseline; justify-content: space-between;
+    gap: .6rem; margin-bottom: .6rem; flex-wrap: wrap; }
+  .peek-head b { font-family: "Space Mono", ui-monospace, monospace;
+    font-size: .9rem; letter-spacing: -.03em; }
+  .peek-head span { font-size: .72rem; color: var(--clay); }
+  .peek-shots { display: grid; grid-template-columns: repeat(3, 1fr); gap: .4rem; }
+  .peek-shots figure { margin: 0; border: 1px solid var(--line); overflow: hidden; }
+  .peek-shots img, .peek-shots svg { display: block; width: 100%;
+    aspect-ratio: 4/3; object-fit: cover; }
+  .peek-foot { font-size: .7rem; color: var(--muted); margin: .55rem 0 0; }
+  .peek-note { grid-column: 1 / -1; display: grid; place-items: center;
+    aspect-ratio: 3/1; background: var(--card); font-size: .74rem;
+    color: var(--muted); padding: .6rem; text-align: center; }
+
   .veil { position: fixed; inset: 0; z-index: 60; background: rgba(20,19,15,.5);
     display: grid; place-items: center; padding: 1.5rem; }
   .dialog { background: var(--raise); border: 1px solid var(--line);
@@ -341,14 +364,17 @@
             <span id="dropNote">JPG or PNG &middot; a phone snapshot is plenty</span>
           </button>
 
-          <p class="lab">Brief</p>
+          <p class="lab">Extra comments</p>
+          <p class="hint">Anything you want kept, changed or avoided. Written
+             in plain words — it is read alongside the photograph.</p>
           <textarea class="brief" id="text"
             placeholder="Keep the window, add a reading corner, warmer light&hellip;"></textarea>
 
           <p class="lab">Room</p>
-          <div class="pills" id="roomPills"></div>
+          <select class="drop-sel" id="roomSel"></select>
 
           <p class="lab">Look</p>
+          <p class="hint">Hover any look to see what it means.</p>
           <div class="pills" id="stylePills"></div>
 
           <p class="lab">How far to go</p>
@@ -527,6 +553,15 @@
 
 <input type="file" id="photo" accept="image/*" class="hidden">
 
+<div class="peek hidden" id="peek">
+  <div class="peek-head">
+    <b id="peekName"></b>
+    <span id="peekMade"></span>
+  </div>
+  <div class="peek-shots" id="peekShots"></div>
+  <p class="peek-foot" id="peekFoot"></p>
+</div>
+
 <div class="veil hidden" id="veil">
   <div class="dialog">
     <h2>Studio access</h2>
@@ -576,6 +611,9 @@
                soft:true, plant:false } }
   ];
 
+  /* The six the gallery can draw. Kept separate from what the studio offers,
+     because the studio should accept any room a building has and the drawings
+     only exist for these. */
   var ROOMS = [
     { id: 'bedroom', name: 'Bedroom' },
     { id: 'living',  name: 'Living room' },
@@ -584,6 +622,38 @@
     { id: 'office',  name: 'Study' },
     { id: 'bath',    name: 'Bathroom' }
   ];
+
+  /* What the studio offers. A room is whatever the photograph is of — the
+     reader is a vision model, not a list of six, and a stairway or a balcony
+     is exactly the kind of awkward space people most want redrawn. */
+  var ROOM_TYPES = [
+    'Bedroom', 'Living room', 'Dining room', 'Kitchen', 'Study or office',
+    'Bathroom', 'Hallway', 'Stairway or landing', 'Kids\' room or nursery',
+    'Utility or laundry room', 'Balcony or terrace', 'Home gym',
+    'Studio flat', 'Open-plan living and kitchen', 'Shop, café or salon',
+    'Somewhere else — say so in the comments'
+  ];
+
+  /* Reference photographs, when there are any. Until then the drawing stands
+     in, so the popup is never an empty box. */
+  var PHOTO_COUNT = 3;
+  function photosFor(id) {
+    var out = [];
+    for (var i = 1; i <= PHOTO_COUNT; i++) out.push('looks/' + id + '-' + i + '.jpg');
+    return out;
+  }
+  /* Not looks, but they belong in the same list: one for a room that wants
+     resolving rather than restyling, one for someone who would rather describe
+     what they want than pick a label. */
+  var NON_STYLES = [
+    { id: 'none', name: 'None',
+      made: 'no decorating style — just resolve the room as it is',
+      plain: true },
+    { id: 'brief', name: 'Stick to the brief',
+      made: 'follow the comments below and nothing else',
+      plain: true }
+  ];
+
   var DEPTHS = [
     { id: 'renovate', name: 'Full redesign', note: 'New furniture, new finishes. Structure stays.' },
     { id: 'restyle',  name: 'Light restyle', note: 'Keeps more of the room as it is.' }
@@ -852,7 +922,8 @@
   /* ------------------------------------------------------------------
      The studio itself.
      ------------------------------------------------------------------ */
-  var style = STYLES[0], room = ROOMS[0], depth = DEPTHS[0], count = 3;
+  var LOOKS = STYLES.concat(NON_STYLES);
+  var style = STYLES[0], room = ROOM_TYPES[0], depth = DEPTHS[0], count = 3;
   var live = false, sampler = null, turns = [], roomBrief = '', reading = null;
 
   function pillRow(el, items, current, onPick, clay) {
@@ -868,9 +939,114 @@
       pillRow(el, items, picked, onPick, clay);
     };
   }
-  pillRow($('roomPills'),  ROOMS,  room,  function (x) { room = x; }, false);
-  pillRow($('stylePills'), STYLES, style, function (x) { style = x; }, true);
+  /* Sixteen rooms is too many to sit as pills next to a photo box, so the
+     room is a list. The looks stay pills — there are eight and you want to
+     see them all at once. */
+  $('roomSel').innerHTML = ROOM_TYPES.map(function (r) {
+    return '<option>' + r + '</option>';
+  }).join('');
+  $('roomSel').onchange = function () { room = $('roomSel').value; };
+
+  pillRow($('stylePills'), LOOKS, style, function (x) { style = x; peek(x); }, true);
   pillRow($('depthPills'), DEPTHS, depth, function (x) { depth = x; }, false);
+
+  /* A look popup, not a look page.
+     "Japandi" is a word until you have seen three rooms that are Japandi. It
+     appears beside the pill you are pointing at and dies when you leave, so
+     browsing eight looks costs no navigation at all.
+
+     Photographs when there are photographs; the drawing until then. The
+     fallback is per-image and silent, so half a set works as well as a whole
+     one and nobody sees a broken frame. */
+  var peekTimer = null, peekOver = false;
+
+  var PEEK_ROOMS = ['living', 'bedroom', 'kitchen'];
+
+  function peekFrames(look, into) {
+    into.innerHTML = '';
+
+    if (look.plain) {
+      var note = document.createElement('figure');
+      note.className = 'peek-note';
+      note.textContent = look.made;
+      into.appendChild(note);
+      return;
+    }
+
+    photosFor(look.id).forEach(function (src, i) {
+      var frame = document.createElement('figure');
+      var drawing = scene(look, PEEK_ROOMS[i % PEEK_ROOMS.length]);
+      var photo = document.createElement('img');
+
+      // Built as nodes rather than markup so the drawing, which is a whole
+      // SVG document full of quotes, never has to survive being escaped into
+      // an attribute and back out again.
+      photo.alt = look.name;
+      photo.loading = 'lazy';
+      photo.onerror = function () { frame.innerHTML = drawing; };
+      photo.src = src;
+
+      frame.appendChild(photo);
+      into.appendChild(frame);
+    });
+  }
+
+  function peek(look, anchor) {
+    if (!look) return;
+    $('peekName').textContent = look.name;
+    $('peekMade').textContent = look.plain ? '' : look.made;
+    peekFrames(look, $('peekShots'));
+    $('peekFoot').textContent = look.plain ? ''
+      : 'Reference rooms. Drawings stand in until photographs are added.';
+    $('peek').classList.remove('hidden');
+    place(anchor || $('stylePills').querySelector('.pill.on'));
+  }
+
+  /* Beside the pill where there is room, above or below where there is not.
+     A popup that opens off the edge of the screen is worse than none. */
+  function place(anchor) {
+    if (!anchor) return;
+    var box = $('peek'), a = anchor.getBoundingClientRect();
+    var w = box.offsetWidth, hgt = box.offsetHeight, pad = 12;
+    var left = a.right + pad;
+    if (left + w > window.innerWidth - pad) left = a.left - w - pad;
+    if (left < pad) left = Math.max(pad, (window.innerWidth - w) / 2);
+    var top = a.top - 8;
+    if (top + hgt > window.innerHeight - pad) top = window.innerHeight - hgt - pad;
+    box.style.left = Math.round(left) + 'px';
+    box.style.top = Math.round(Math.max(pad, top)) + 'px';
+  }
+
+  function hidePeek() {
+    if (!peekOver) $('peek').classList.add('hidden');
+  }
+
+  $('stylePills').addEventListener('mouseover', function (e) {
+    var pill = e.target.closest('[data-id]');
+    if (!pill) return;
+    clearTimeout(peekTimer);
+    peekTimer = setTimeout(function () {
+      var found = LOOKS.filter(function (s) {
+        return s.id === pill.getAttribute('data-id');
+      })[0];
+      peek(found, pill);
+    }, 110);
+  });
+  $('stylePills').addEventListener('mouseleave', function () {
+    clearTimeout(peekTimer);
+    setTimeout(hidePeek, 180);
+  });
+  $('peek').addEventListener('mouseenter', function () { peekOver = true; });
+  $('peek').addEventListener('mouseleave', function () {
+    peekOver = false;
+    hidePeek();
+  });
+  /* Touch has no hover, and a popup pinned to the viewport does not travel
+     with the page, so both are dismissed the same way. */
+  window.addEventListener('scroll', function () {
+    peekOver = false;
+    $('peek').classList.add('hidden');
+  }, { passive: true });
 
   $('less').onclick = function () { count = Math.max(1, count - 1); $('countN').textContent = count; };
   $('more').onclick = function () { count = Math.min(4, count + 1); $('countN').textContent = count; };
@@ -1043,7 +1219,7 @@
     if (live) {
       var f = new FormData();
       f.append('photo', photo.files[0]);
-      f.append('room_type', room.name.toLowerCase());
+      f.append('room_type', room.toLowerCase());
       var r = await fetch(api('/api/read'), { method: 'POST', body: f, credentials: 'include' });
       var d = await r.json();
       if (!r.ok) throw new Error(d.detail || 'Could not read the room');
@@ -1051,7 +1227,7 @@
     }
     if (sampler) {
       var out = await sampler.json(
-        'Survey this ' + room.name.toLowerCase() + ' from the photograph. ' +
+        'Survey this ' + room.toLowerCase() + ' from the photograph. ' +
         'First decide whether this is the inside of a room at all — furnished, ' +
         'bare or unfinished all count; a person, an animal, a single object, ' +
         'food, a screenshot, a document, a landscape or a building exterior do ' +
