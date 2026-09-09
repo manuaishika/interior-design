@@ -239,6 +239,15 @@
   .peek-shots img, .peek-shots svg { display: block; width: 100%;
     aspect-ratio: 4/3; object-fit: cover; }
   .peek-foot { font-size: .7rem; color: var(--muted); margin: .55rem 0 0; }
+  .saved-card { position: relative; }
+  .saved-card img { display: block; width: 100%; aspect-ratio: 4/3;
+    object-fit: cover; }
+  .saved-card .bin { position: absolute; top: .4rem; right: .4rem; border: 0;
+    background: rgba(20,19,15,.7); color: #F5F2EA; font-size: .68rem;
+    padding: .2rem .5rem; border-radius: 2px; cursor: pointer; }
+  .shots .keep { margin-top: .4rem; width: 100%; border-radius: 2px;
+    padding: .35rem; font-size: .76rem; }
+
   .peek-note { grid-column: 1 / -1; display: grid; place-items: center;
     aspect-ratio: 3/1; background: var(--card); font-size: .74rem;
     color: var(--muted); padding: .6rem; text-align: center; }
@@ -251,6 +260,13 @@
   .dialog p { font-size: .84rem; color: var(--muted); margin: .4rem 0 1rem; }
   .dialog input { width: 100%; border: 1px solid var(--line); border-radius: 2px;
     padding: .55rem .7rem; background: var(--bg); font-size: .9rem; }
+  .dialog input + input { margin-top: .5rem; }
+  .dialog .google { width: 100%; display: flex; align-items: center;
+    justify-content: center; gap: .5rem; margin-bottom: .8rem; }
+  .dialog .or { text-align: center; font-size: .74rem; color: var(--muted);
+    margin: 0 0 .8rem; }
+  .swap-mode { margin: .8rem 0 0; display: flex; gap: .9rem;
+    justify-content: center; }
   .dialog-row { display: flex; gap: .5rem; margin-top: 1rem; }
   .dialog-row .cta { flex: 1; border-radius: 2px; }
 
@@ -402,6 +418,14 @@
         </div>
       </div>
     </div>
+
+    <section class="sect hidden" id="savedBlock">
+      <div class="sec-head">
+        <h2 class="sec">Your designs</h2>
+        <span class="gal-note" id="savedNote"></span>
+      </div>
+      <div class="strip" id="saved"></div>
+    </section>
 
     <div class="readout hidden" id="readout">
       <div class="box">
@@ -564,15 +588,34 @@
 
 <div class="veil hidden" id="veil">
   <div class="dialog">
-    <h2>Studio access</h2>
-    <p>Enter the access code you were given.</p>
-    <input id="code" type="password" autocomplete="one-time-code"
-      placeholder="Access code">
+    <h2 id="dlgTitle">Sign in</h2>
+    <p id="dlgNote">So your designs are here next time.</p>
+
+    <button class="cta ghost google hidden" id="googleGo" type="button">
+      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+        <path fill="#4285F4" d="M22 12.2c0-.7-.06-1.4-.18-2H12v3.8h5.6a4.8 4.8 0 0 1-2.08 3.15v2.6h3.36C20.85 17.9 22 15.3 22 12.2z"/>
+        <path fill="#34A853" d="M12 22c2.7 0 4.97-.9 6.62-2.43l-3.36-2.6c-.93.62-2.12.99-3.26.99-2.6 0-4.8-1.76-5.6-4.12H2.94v2.6A10 10 0 0 0 12 22z"/>
+        <path fill="#FBBC05" d="M6.4 13.84a6 6 0 0 1 0-3.68v-2.6H2.94a10 10 0 0 0 0 8.88l3.46-2.6z"/>
+        <path fill="#EA4335" d="M12 5.94c1.47 0 2.79.5 3.83 1.5l2.87-2.87A10 10 0 0 0 2.94 7.56l3.46 2.6C7.2 7.7 9.4 5.94 12 5.94z"/>
+      </svg>
+      Continue with Google
+    </button>
+    <p class="or hidden" id="dlgOr">or</p>
+
+    <input id="dlgName" class="hidden" placeholder="Your name" autocomplete="name">
+    <input id="dlgEmail" type="email" placeholder="Email" autocomplete="email">
+    <input id="dlgPass" type="password" placeholder="Password"
+      autocomplete="current-password">
     <span class="msg" id="loginMsg"></span>
+
     <div class="dialog-row">
       <button class="cta ghost" id="loginCancel" type="button">Cancel</button>
       <button class="cta" id="loginGo" type="button">Sign in</button>
     </div>
+    <p class="swap-mode">
+      <button class="link" id="dlgSwap" type="button">Create an account</button>
+      <button class="link hidden" id="dlgCode" type="button">Use an access code</button>
+    </p>
   </div>
 </div>
 
@@ -1078,7 +1121,7 @@
   })();
   function api(p) { return SERVER + p; }
 
-  var canDraw = false, needsCode = false, signedIn = true;
+  var canDraw = false;
 
   /* The status line says which engine is actually answering, because "free"
      and "paid" behave differently in a way worth knowing before you judge the
@@ -1105,59 +1148,207 @@
         $('state').textContent = sampler ? 'Ready' : 'Preview — no engine connected';
         refresh();
       });
-    fetch(api('/api/session'))
+    loadSession();
+  }
+
+  /* ---- who is signed in --------------------------------------------
+     An access code answered "are you allowed in", which is a different
+     question from "who are you" — and only the second one can answer "where
+     are my designs". Signing in is now about keeping your work, so it is
+     offered whether or not this deployment gates anything. */
+  var needsCode = false, signedIn = true, account = null, googleReady = false;
+  var mode = 'in';                       // 'in' | 'up' | 'code'
+
+  function loadSession() {
+    return fetch(api('/api/session'), { credentials: 'include' })
       .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
       .then(function (s) {
         needsCode = Boolean(s.required);
         signedIn = Boolean(s.signed_in);
+        account = s.account || null;
+        googleReady = Boolean(s.google_available);
         showDoor();
+        loadSaved();
       })
-      .catch(function () { needsCode = false; signedIn = true; showDoor(); });
+      .catch(function () {
+        needsCode = false; signedIn = true; account = null;
+        showDoor();
+      });
   }
 
   function showDoor() {
-    $('login').textContent = !needsCode ? 'Log in'
-      : signedIn ? 'Sign out' : 'Log in';
+    $('login').textContent = account
+      ? (account.name || account.email).split('@')[0] + ' · Sign out'
+      : (needsCode && signedIn ? 'Sign out' : 'Sign in');
     refresh();
   }
 
-  function openDialog() {
+  function setMode(next) {
+    mode = next;
+    var up = mode === 'up', code = mode === 'code';
+    $('dlgTitle').textContent = code ? 'Studio access'
+      : up ? 'Create an account' : 'Sign in';
+    $('dlgNote').textContent = code
+      ? 'Enter the access code you were given. It opens the studio, but it '
+        + 'cannot save designs — an account does that.'
+      : up ? 'So your designs are still here next time.'
+           : 'So your designs are here next time.';
+    $('dlgName').classList.toggle('hidden', !up);
+    $('dlgEmail').classList.toggle('hidden', code);
+    $('dlgPass').type = code ? 'text' : 'password';
+    $('dlgPass').placeholder = code ? 'Access code' : 'Password';
+    $('dlgPass').autocomplete = code ? 'one-time-code'
+      : up ? 'new-password' : 'current-password';
+    $('googleGo').classList.toggle('hidden', code || !googleReady);
+    $('dlgOr').classList.toggle('hidden', code || !googleReady);
+    $('loginGo').textContent = code ? 'Enter' : up ? 'Create account' : 'Sign in';
+    $('dlgSwap').textContent = up ? 'I already have an account'
+      : 'Create an account';
+    $('dlgSwap').classList.toggle('hidden', code);
+    $('dlgCode').classList.toggle('hidden', !needsCode || code);
     $('loginMsg').textContent = '';
-    $('code').value = '';
-    $('veil').classList.remove('hidden');
-    $('code').focus();
   }
+
+  function openDialog() {
+    $('dlgEmail').value = ''; $('dlgPass').value = ''; $('dlgName').value = '';
+    setMode('in');
+    $('veil').classList.remove('hidden');
+    $('dlgEmail').focus();
+  }
+
   $('login').onclick = function () {
-    if (needsCode && signedIn) {
+    if (account || (needsCode && signedIn)) {
       fetch(api('/api/logout'), { method: 'POST', credentials: 'include' })
-        .then(function () { signedIn = false; showDoor(); });
+        .then(loadSession);
       return;
     }
     openDialog();
   };
+  $('dlgSwap').onclick = function () { setMode(mode === 'up' ? 'in' : 'up'); };
+  $('dlgCode').onclick = function () { setMode('code'); };
   $('loginCancel').onclick = function () { $('veil').classList.add('hidden'); };
   $('veil').onclick = function (e) {
     if (e.target === $('veil')) $('veil').classList.add('hidden');
   };
+  $('googleGo').onclick = function () {
+    // A full navigation, not fetch: Google will not be framed or XHR'd.
+    window.location.href = api('/api/auth/google');
+  };
+
   $('loginGo').onclick = function () {
-    var body = new FormData();
-    body.append('code', $('code').value);
+    var body = new FormData(), where;
+    if (mode === 'code') {
+      body.append('code', $('dlgPass').value);
+      where = '/api/login';
+    } else {
+      body.append('email', $('dlgEmail').value.trim());
+      body.append('password', $('dlgPass').value);
+      if (mode === 'up') { body.append('name', $('dlgName').value.trim()); }
+      where = mode === 'up' ? '/api/signup' : '/api/login';
+    }
+    $('loginMsg').classList.remove('bad');
     $('loginMsg').textContent = 'Checking…';
-    fetch(api('/api/login'), { method: 'POST', body: body, credentials: 'include' })
+    fetch(api(where), { method: 'POST', body: body, credentials: 'include' })
       .then(function (r) {
-        if (!r.ok) throw new Error('That code is not right.');
-        signedIn = true;
+        return r.json().catch(function () { return {}; }).then(function (d) {
+          if (!r.ok) throw new Error(d.detail || 'That did not work.');
+          return d;
+        });
+      })
+      .then(function () {
         $('veil').classList.add('hidden');
-        showDoor();
+        return loadSession();
       })
       .catch(function (e) {
         $('loginMsg').textContent = e.message;
         $('loginMsg').classList.add('bad');
       });
   };
-  $('code').addEventListener('keydown', function (e) {
-    if (e.key === 'Enter') { e.preventDefault(); $('loginGo').click(); }
+  ['dlgEmail', 'dlgPass', 'dlgName'].forEach(function (id) {
+    $(id).addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); $('loginGo').click(); }
+    });
   });
+
+  /* Google sends people back here, and a failure has to say so somewhere. */
+  (function () {
+    try {
+      var why = new URLSearchParams(location.search).get('auth_error');
+      if (why) {
+        say(why, true);
+        history.replaceState(null, '', location.pathname + location.hash);
+      }
+    } catch (e) {}
+  })();
+
+  /* ---- designs somebody kept ---------------------------------------- */
+  function loadSaved() {
+    if (!account) {
+      $('savedBlock').classList.add('hidden');
+      return;
+    }
+    fetch(api('/api/designs'), { credentials: 'include' })
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+      .then(function (d) {
+        var list = d.designs || [];
+        $('savedBlock').classList.toggle('hidden', list.length === 0);
+        $('savedNote').textContent = list.length
+          ? list.length + (list.length === 1 ? ' design' : ' designs') : '';
+        $('saved').innerHTML = '';
+        list.forEach(function (item) {
+          var card = document.createElement('figure');
+          card.className = 'plate saved-card';
+          var img = document.createElement('img');
+          img.src = api(item.url);
+          img.alt = item.title || 'Design';
+          var bin = document.createElement('button');
+          bin.className = 'bin';
+          bin.type = 'button';
+          bin.textContent = 'Remove';
+          bin.onclick = function () {
+            fetch(api('/api/designs/' + item.id),
+                  { method: 'DELETE', credentials: 'include' })
+              .then(loadSaved);
+          };
+          var cap = document.createElement('figcaption');
+          cap.innerHTML = '<b></b><span></span>';
+          cap.querySelector('b').textContent = item.title || 'Design';
+          cap.querySelector('span').textContent = item.style || '';
+          card.appendChild(img);
+          card.appendChild(bin);
+          card.appendChild(cap);
+          $('saved').appendChild(card);
+        });
+      })
+      .catch(function () { $('savedBlock').classList.add('hidden'); });
+  }
+
+  function keepDesign(base64, button) {
+    if (!account) { openDialog(); return; }
+    var bytes = atob(base64), buffer = new Uint8Array(bytes.length);
+    for (var i = 0; i < bytes.length; i++) { buffer[i] = bytes.charCodeAt(i); }
+
+    var body = new FormData();
+    body.append('image', new Blob([buffer], { type: 'image/png' }), 'design.png');
+    body.append('title', room.name);
+    body.append('room', room.id);
+    body.append('style', style.name);
+    body.append('note', $('text').value.trim());
+
+    button.disabled = true;
+    button.textContent = 'Keeping…';
+    fetch(api('/api/designs'), { method: 'POST', body: body,
+                                 credentials: 'include' })
+      .then(function (r) {
+        if (!r.ok) throw new Error();
+        button.textContent = 'Kept';
+        return loadSaved();
+      })
+      .catch(function () {
+        button.disabled = false;
+        button.textContent = 'Keep';
+      });
+  }
 
   /* The reader works two ways: through your own server once deployed, or
      straight from the page when this is opened inside claude.ai. */
@@ -1273,11 +1464,27 @@
     var r = await fetch(api('/api/generate'), { method: 'POST', body: f, credentials: 'include' });
     var d = await r.json();
     if (!r.ok) throw new Error(d.detail || 'Could not draw');
-    $('shots').innerHTML = d.generations.map(function (g, i) {
-      return '<figure><img src="data:image/png;base64,' + g.image_base64 +
-             '" alt="Design ' + (i + 1) + '"><figcaption>Design ' + (i + 1) +
-             ' · ' + style.name + '</figcaption></figure>';
-    }).join('');
+    $('shots').innerHTML = '';
+    d.generations.forEach(function (g, i) {
+      var figure = document.createElement('figure');
+      var img = document.createElement('img');
+      img.src = 'data:image/png;base64,' + g.image_base64;
+      img.alt = 'Design ' + (i + 1);
+
+      var cap = document.createElement('figcaption');
+      cap.textContent = 'Design ' + (i + 1) + ' · ' + style.name;
+
+      var keep = document.createElement('button');
+      keep.className = 'cta ghost keep';
+      keep.type = 'button';
+      keep.textContent = account ? 'Keep' : 'Sign in to keep';
+      keep.onclick = function () { keepDesign(g.image_base64, keep); };
+
+      figure.appendChild(img);
+      figure.appendChild(cap);
+      figure.appendChild(keep);
+      $('shots').appendChild(figure);
+    });
     $('paneEmpty').classList.add('hidden');
     $('shots').classList.remove('hidden');
   }

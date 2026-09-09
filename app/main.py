@@ -10,16 +10,20 @@ Endpoints:
 
 from __future__ import annotations
 
+import hmac
 import json
 import logging
 from pathlib import Path
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, Response, UploadFile
+from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import auth
+from . import auth, google_login, store
+from urllib.parse import quote
+
 from .config import LOCK_PROFILES, Settings, get_settings, resolve_backend
 from .generation import STYLES, GenerationError
 from .models import AnalyzeResponse, GenerateResponse
@@ -82,6 +86,25 @@ async def index():
     return FileResponse(page)
 
 
+@app.on_event("startup")
+async def _open_the_books() -> None:
+    """Tables are created on boot rather than by a migration step.
+
+    There is one schema and no history to migrate, and a deploy that needs a
+    second manual command is a deploy somebody eventually forgets to finish.
+    When the schema starts changing under real users, this is the line that
+    becomes Alembic.
+    """
+    settings = get_settings()
+    store.configure(settings.database_url)
+    await store.create_tables()
+
+
+@app.on_event("shutdown")
+async def _close_the_books() -> None:
+    await store.dispose()
+
+
 @app.get("/api/health")
 async def health():
     """What this deployment can actually do, right now.
@@ -123,30 +146,208 @@ async def health():
     }
 
 
+def _land(request: Request, response: Response, settings: Settings,
+          user_id: int) -> None:
+    token, max_age = auth.issue(settings, user_id)
+    auth.set_cookie(response, token, max_age, secure=auth.over_https(request))
+
+
+def _card(user) -> dict:
+    return {"email": user.email, "name": user.name,
+            "google": bool(user.google_id)}
+
+
 @app.get("/api/session")
 async def session_state(request: Request):
-    """Whether there is a door, and whether you are through it."""
+    """Who is signed in, and what this deployment lets a stranger do."""
     settings = get_settings()
-    return {"required": auth.required(settings),
-            "signed_in": auth.signed_in(request, settings)}
+    who = auth.current_user_id(request, settings)
+    account = None
+    if who is not None:
+        async with store.session() as db:
+            user = await store.by_id(db, who)
+            account = _card(user) if user else None
+    return {
+        "required": auth.required(settings),
+        "signed_in": auth.signed_in(request, settings),
+        "account": account,
+        "google_available": google_login.configured(settings),
+    }
+
+
+@app.post("/api/signup")
+async def signup(request: Request, response: Response,
+                 email: str = Form(...), password: str = Form(...),
+                 name: str = Form("")):
+    settings = get_settings()
+    if len(password) < 8:
+        raise HTTPException(400, "Use at least 8 characters.")
+    if "@" not in email or "." not in email.split("@")[-1]:
+        raise HTTPException(400, "That does not look like an email address.")
+    async with store.session() as db:
+        try:
+            user = await store.sign_up(db, email, password, name)
+        except ValueError as exc:
+            raise HTTPException(409, str(exc)) from exc
+        card = _card(user)
+        user_id = user.id
+    _land(request, response, settings, user_id)
+    return {"signed_in": True, "account": card}
 
 
 @app.post("/api/login")
-async def login(request: Request, response: Response, code: str = Form(...)):
+async def login(request: Request, response: Response,
+                email: str = Form(""), password: str = Form(""),
+                code: str = Form("")):
+    """Two doors, one endpoint.
+
+    An email and password signs you into an account. The access code, where a
+    deployment sets one, only opens the studio — it makes you admitted but
+    nobody in particular, which is why it cannot save anything.
+    """
     settings = get_settings()
+
+    if email:
+        async with store.session() as db:
+            user = await store.sign_in(db, email, password)
+            if user is None:
+                raise HTTPException(401, "That email and password do not match.")
+            card, user_id = _card(user), user.id
+        _land(request, response, settings, user_id)
+        return {"signed_in": True, "account": card}
+
     if not auth.required(settings):
-        return {"signed_in": True, "required": False}
+        return {"signed_in": True, "account": None}
     if not auth.matches(code, settings):
         raise HTTPException(401, "That code is not right.")
     token, max_age = auth.issue(settings)
     auth.set_cookie(response, token, max_age, secure=auth.over_https(request))
-    return {"signed_in": True, "required": True}
+    return {"signed_in": True, "account": None}
 
 
 @app.post("/api/logout")
 async def logout(response: Response):
     auth.clear_cookie(response)
     return {"signed_in": False}
+
+
+# --- Continue with Google ----------------------------------------------
+
+def _redirect_uri(request: Request) -> str:
+    """Must match, character for character, what is registered with Google."""
+    scheme = "https" if auth.over_https(request) else request.url.scheme
+    return f"{scheme}://{request.url.netloc}/api/auth/google/callback"
+
+
+@app.get("/api/auth/google")
+async def google_start(request: Request):
+    settings = get_settings()
+    if not google_login.configured(settings):
+        raise HTTPException(503, "Google sign-in is not set up on this server.")
+
+    state = google_login.new_state()
+    response = RedirectResponse(
+        google_login.start_url(settings, _redirect_uri(request), state))
+    # The state travels to Google in the URL and is kept here to be compared on
+    # the way back. That is what stops somebody else's sign-in being replayed
+    # at you to land you in their account.
+    response.set_cookie(google_login.STATE_COOKIE, state, max_age=600,
+                        httponly=True, samesite="lax",
+                        secure=auth.over_https(request), path="/")
+    return response
+
+
+@app.get("/api/auth/google/callback")
+async def google_callback(request: Request, code: str = "", state: str = "",
+                          error: str = ""):
+    settings = get_settings()
+    expected = request.cookies.get(google_login.STATE_COOKIE)
+
+    def back(message: str = "") -> RedirectResponse:
+        # Always land back on the site. A person who cancelled a sign-in should
+        # see the studio again, not a JSON error page.
+        target = "/#/studio"
+        if message:
+            target = "/?auth_error=" + quote(message) + "#/studio"
+        out = RedirectResponse(target, status_code=303)
+        out.delete_cookie(google_login.STATE_COOKIE, path="/")
+        return out
+
+    if error:
+        return back("Google sign-in was cancelled.")
+    if not code or not state or not expected:
+        return back("That sign-in link had expired. Try again.")
+    if not hmac.compare_digest(state, expected):
+        return back("That sign-in link did not match. Try again.")
+
+    try:
+        profile = await google_login.exchange(settings, code,
+                                              _redirect_uri(request))
+    except google_login.GoogleLoginError as exc:
+        log.warning("Google sign-in failed: %s", exc)
+        return back(str(exc))
+
+    async with store.session() as db:
+        user = await store.from_google(db, profile["google_id"],
+                                       profile["email"], profile["name"])
+        user_id = user.id
+
+    out = back()
+    _land(request, out, settings, user_id)
+    return out
+
+
+# --- designs somebody kept ---------------------------------------------
+
+@app.get("/api/designs")
+async def list_designs(request: Request):
+    settings = get_settings()
+    who = auth.require_user(request, settings)
+    async with store.session() as db:
+        rows = await store.designs_for(db, who)
+        return {"designs": [
+            {"id": d.id, "title": d.title, "room": d.room, "style": d.style,
+             "note": d.note, "created_at": d.created_at.isoformat(),
+             "url": f"/api/designs/{d.id}/image"}
+            for d in rows
+        ]}
+
+
+@app.post("/api/designs")
+async def keep_design(request: Request, image: UploadFile = File(...),
+                      title: str = Form(""), room: str = Form(""),
+                      style: str = Form(""), note: str = Form("")):
+    settings = get_settings()
+    who = auth.require_user(request, settings)
+    data = await _read_upload(image, settings)
+    async with store.session() as db:
+        design = await store.save_design(db, who, data, title=title, room=room,
+                                         style=style, note=note)
+        design_id = design.id
+    return {"id": design_id, "url": f"/api/designs/{design_id}/image"}
+
+
+@app.get("/api/designs/{design_id}/image")
+async def design_image(request: Request, design_id: int):
+    settings = get_settings()
+    who = auth.require_user(request, settings)
+    async with store.session() as db:
+        design = await store.design_for(db, who, design_id)
+        if design is None:
+            # 404 rather than 403: somebody else's id should not be confirmed
+            # to exist merely by not being yours.
+            raise HTTPException(404, "No such design.")
+        return Response(design.image, media_type="image/png")
+
+
+@app.delete("/api/designs/{design_id}")
+async def drop_design(request: Request, design_id: int):
+    settings = get_settings()
+    who = auth.require_user(request, settings)
+    async with store.session() as db:
+        if not await store.delete_design(db, who, design_id):
+            raise HTTPException(404, "No such design.")
+    return {"deleted": design_id}
 
 
 @app.get("/api/styles")

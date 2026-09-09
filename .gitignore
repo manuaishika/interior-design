@@ -7,3 +7,7 @@ __pycache__/
 .DS_Store
 runs/
 *.egg-info/
+
+# accounts / saved designs (SQLite fallback)
+*.db
+second-draft.db

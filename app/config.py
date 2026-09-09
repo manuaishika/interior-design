@@ -101,6 +101,16 @@ class Settings(BaseSettings):
     google_vision_model: str = "gemini-2.5-flash"
     google_image_model: str = "gemini-2.5-flash-image"
 
+    # --- accounts ----------------------------------------------------------
+    # Postgres in production, a file on disk otherwise. On a free Render web
+    # service the filesystem is wiped on every deploy, so set this before
+    # anybody real signs up or their designs go with it.
+    database_url: str = ""
+    # Continue with Google. Made at console.cloud.google.com; leave blank and
+    # the button simply does not appear.
+    google_client_id: str = ""
+    google_client_secret: str = ""
+
     # --- the door ----------------------------------------------------------
     # Set a code and the studio asks for it before spending anything. Leave it
     # blank and there is no door, which is what local development wants.

@@ -20,8 +20,26 @@ services:
         sync: false
       - key: REPLICATE_API_TOKEN
         sync: false
-      # The door on the studio. Leave blank for no door.
+      # Accounts and saved designs. Without this the app falls back to a file
+      # on disk, and a free web service wipes its disk on every deploy — so
+      # everyone's designs would vanish at the next push.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: second-draft-db
+          property: connectionString
+      # Continue with Google. Made at console.cloud.google.com; leave both
+      # blank and the button simply does not appear.
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      # Optional: closes the whole studio to anyone without this phrase. It is
+      # not the login — it gates the deployment, accounts identify people.
       - key: STUDIO_ACCESS_CODE
         sync: false
       - key: SESSION_SECRET
-        generateValue: true    # so sessions survive a restart
+        generateValue: true    # so nobody is signed out by a restart
+
+databases:
+  - name: second-draft-db
+    plan: free             # free Postgres expires after 90 days; upgrade before then

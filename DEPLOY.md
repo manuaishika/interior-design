@@ -151,3 +151,62 @@ echo "GOOGLE_API_KEY=your-key-here" > .env
 ```
 
 http://localhost:8000. No access code needed locally unless you set one.
+
+---
+
+## Accounts
+
+Signing in is how somebody keeps a design. That needs identity, so it needs a
+place to put people.
+
+### The database
+
+Set `DATABASE_URL` and it uses Postgres. Leave it blank and it writes a SQLite
+file next to the code — fine on your laptop, **wrong on Render**, where the
+filesystem is wiped on every deploy and everyone's designs go with it.
+
+`render.yaml` provisions a free Postgres and wires `DATABASE_URL` in for you,
+so a Blueprint deploy gets this right without you doing anything. Render's
+free database expires after 90 days; upgrade it before real people are using it.
+
+### Continue with Google
+
+Ten minutes, free, and it means nobody has to invent a password.
+
+1. **[console.cloud.google.com](https://console.cloud.google.com)** → new project
+2. **APIs & Services → OAuth consent screen** → External → fill in the app name
+   and your email → add yourself as a test user
+3. **Credentials → Create credentials → OAuth client ID → Web application**
+4. Under **Authorised redirect URIs**, add — exactly, no trailing slash:
+
+   ```
+   https://your-app.onrender.com/api/auth/google/callback
+   http://localhost:8000/api/auth/google/callback
+   ```
+
+5. Copy the client ID and secret into Render as `GOOGLE_CLIENT_ID` and
+   `GOOGLE_CLIENT_SECRET`
+
+Leave both blank and the button simply does not appear — email and password
+still work. Get the redirect URI wrong and Google says `redirect_uri_mismatch`;
+the app catches that one and tells you the exact URI to paste.
+
+### Email and password
+
+Works with no extra setup. Passwords are hashed with scrypt and a per-account
+salt.
+
+**There is no password reset yet**, because a reset means sending email, which
+means an email provider and another key. Until that exists, someone who forgets
+their password has to be helped by hand — which is fine at ten users and not at
+a thousand. Google sign-in sidesteps it entirely.
+
+### The access code is not the login
+
+`STUDIO_ACCESS_CODE` is still there, and it is a different thing: it closes the
+whole deployment to anyone who does not have the phrase. Useful for a private
+demo, irrelevant otherwise. It admits you but makes you nobody in particular,
+so it cannot save designs — only an account can.
+
+Leave it unset and anyone can open the site and make an account, which is what
+you want once it is public.
