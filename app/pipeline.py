@@ -40,7 +40,7 @@ def _is_free(settings: Settings) -> bool:
     return resolve_backend(settings) == "free"
 
 
-async def _run_free(data, style, settings, *, extra_prompt, variants):
+async def _run_free(data, style, settings, *, extra_prompt, variants, room=""):
     """The free path: no segmentation, no mask, one image model.
 
     There is nothing to segment because there is nothing to mask — the whole
@@ -54,7 +54,7 @@ async def _run_free(data, style, settings, *, extra_prompt, variants):
                        settings.max_variants))
     image = prepare_image(data, settings)
     photo = image_to_png_bytes(image)
-    prompt = build_prompt(style, extra_prompt)
+    prompt = build_prompt(style, extra_prompt, room=room)
 
     drawn = await asyncio.gather(
         *(google_ai.redraw(photo, prompt, settings, variant=i)
@@ -279,6 +279,7 @@ async def run_pipeline(
     extra_prompt: str = "",
     seed: int | None = None,
     variants: int | None = None,
+    room: str = "",
     profile: str | None = None,
     keep_mask_ids: set[str] | None = None,
     replace_mask_ids: set[str] | None = None,
@@ -290,8 +291,8 @@ async def run_pipeline(
     the same locked-region mask anyway.
     """
     if _is_free(settings):
-        return await _run_free(data, style, settings,
-                               extra_prompt=extra_prompt, variants=variants)
+        return await _run_free(data, style, settings, extra_prompt=extra_prompt,
+                               variants=variants, room=room)
 
     count = settings.default_variants if variants is None else variants
     count = max(1, min(count, settings.max_variants))
@@ -311,6 +312,7 @@ async def run_pipeline(
         extra_prompt,
         contents=analysis.described_as,
         keep=keep_clause(analysis.contents),
+        room=room,
     )
     mask_b64 = encode_mask(inpaint_mask)
 

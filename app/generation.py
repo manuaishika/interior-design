@@ -73,19 +73,82 @@ NEGATIVE_PROMPT = (
 )
 
 
+# A look and a purpose are different axes, and conflating them is what makes
+# "Nursery" feel like a missing style. It is not one: a nursery can perfectly
+# well be Japandi. The look supplies the palette and the materials; the room
+# supplies what has to be in it and what must not be.
+#
+# Kept apart, six looks cover sixteen rooms. Merged, you would need ninety-six
+# and a client would have to choose between the aesthetic they want and the
+# room they actually have.
+ROOM_BRIEFS: dict[str, str] = {
+    "bedroom": "a bedroom, with a made bed, light to read by, and clothes put away",
+    "living": "a living room, with seating that faces itself, a surface within "
+              "reach of every seat, and lighting at more than one height",
+    "dining": "a dining room, with a table, chairs that can pull fully out, and "
+              "a light centred over the table",
+    "kitchen": "a kitchen, with an unbroken run of worktop, storage above and "
+               "below it, and light falling on the counter rather than behind you",
+    "study": "a study, with a desk at working height, a chair that supports a "
+             "back, task lighting, and shelving within arm's reach",
+    "bathroom": "a bathroom, with sanitaryware, a mirror lit on the face rather "
+                "than from above, and surfaces that tolerate water",
+    "hallway": "a hallway, kept clear enough to walk through carrying things, "
+               "with somewhere for coats and shoes and a mirror",
+    "stairway": "a stairway or landing, with the treads and handrail completely "
+                "unobstructed, light at the top and the bottom, and nothing "
+                "stored on the steps",
+    # The one that shows why this list exists. None of these requirements are
+    # aesthetic, and no decorating style implies a single one of them.
+    "nursery": "a nursery, with a cot holding nothing but a flat firm mattress, "
+               "low storage a carer can reach one-handed while holding a child, "
+               "a soft floor to kneel on, a blackout blind, and a chair to feed "
+               "in. Nothing heavy, breakable or shelved above the cot. No blind "
+               "cords, cables or anything with a loop within reach of it",
+    "utility": "a utility room, with appliances plumbed in, somewhere to dry and "
+               "fold, and hard-wearing surfaces",
+    "balcony": "a balcony or terrace, with weatherproof furniture, planting, and "
+               "the railing left intact and impossible to climb",
+    "gym": "a home gym, with clear floor to move in, flooring that absorbs "
+           "impact, a mirror, and equipment stored back against the walls",
+    "studio-flat": "a studio flat, with sleeping, sitting, eating and storage "
+                   "each given their own zone without blocking the route through",
+    "open-plan": "an open-plan living and kitchen, the cooking and sitting zones "
+                 "distinct but continuous",
+    "retail": "a shop, café or salon, with a clear route for customers, a "
+              "service point, display or seating, and commercial-grade finishes",
+}
+
+
+def room_brief(room: str) -> str:
+    """What this kind of room has to be, regardless of how it is decorated."""
+    return ROOM_BRIEFS.get((room or "").strip().lower(), "")
+
+
 def build_prompt(
-    style: str, extra: str = "", contents: str = "", keep: str = ""
+    style: str, extra: str = "", contents: str = "", keep: str = "",
+    room: str = "",
 ) -> str:
     """Compose the generation prompt.
 
     `contents` and `keep` come from the analysis — what is actually in the room
     and what there is more than one of. Without them the model draws an average
     room of that type, which is how two single beds come back as one double.
+
+    `room` says what the room is *for*. It is separate from the style on
+    purpose: a nursery is not a look, it is a set of requirements, and it needs
+    to be able to be a Japandi one.
     """
     key = style.strip().lower()
     base = STYLES.get(key, style.strip())
     verb = "photographed as" if key in ("none", "brief") else "restyled in"
     prompt = f"Interior design photograph of this room {verb} {base}."
+
+    # Before the contents, because it governs what the contents should become.
+    brief = room_brief(room)
+    if brief:
+        prompt += f" It must work as {brief}."
+
     if contents.strip():
         prompt += f" The room contains {contents.strip()}."
     if keep.strip():

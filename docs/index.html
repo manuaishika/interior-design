@@ -627,11 +627,22 @@
      reader is a vision model, not a list of six, and a stairway or a balcony
      is exactly the kind of awkward space people most want redrawn. */
   var ROOM_TYPES = [
-    'Bedroom', 'Living room', 'Dining room', 'Kitchen', 'Study or office',
-    'Bathroom', 'Hallway', 'Stairway or landing', 'Kids\' room or nursery',
-    'Utility or laundry room', 'Balcony or terrace', 'Home gym',
-    'Studio flat', 'Open-plan living and kitchen', 'Shop, café or salon',
-    'Somewhere else — say so in the comments'
+    { id: 'bedroom',     name: 'Bedroom' },
+    { id: 'living',      name: 'Living room' },
+    { id: 'dining',      name: 'Dining room' },
+    { id: 'kitchen',     name: 'Kitchen' },
+    { id: 'study',       name: 'Study or office' },
+    { id: 'bathroom',    name: 'Bathroom' },
+    { id: 'hallway',     name: 'Hallway' },
+    { id: 'stairway',    name: 'Stairway or landing' },
+    { id: 'nursery',     name: "Kids' room or nursery" },
+    { id: 'utility',     name: 'Utility or laundry room' },
+    { id: 'balcony',     name: 'Balcony or terrace' },
+    { id: 'gym',         name: 'Home gym' },
+    { id: 'studio-flat', name: 'Studio flat' },
+    { id: 'open-plan',   name: 'Open-plan living and kitchen' },
+    { id: 'retail',      name: 'Shop, café or salon' },
+    { id: 'other',       name: 'Somewhere else — say so in the comments' }
   ];
 
   /* Reference photographs, when there are any. Until then the drawing stands
@@ -943,9 +954,13 @@
      room is a list. The looks stay pills — there are eight and you want to
      see them all at once. */
   $('roomSel').innerHTML = ROOM_TYPES.map(function (r) {
-    return '<option>' + r + '</option>';
+    return '<option value="' + r.id + '">' + r.name + '</option>';
   }).join('');
-  $('roomSel').onchange = function () { room = $('roomSel').value; };
+  $('roomSel').onchange = function () {
+    room = ROOM_TYPES.filter(function (r) {
+      return r.id === $('roomSel').value;
+    })[0] || ROOM_TYPES[0];
+  };
 
   pillRow($('stylePills'), LOOKS, style, function (x) { style = x; peek(x); }, true);
   pillRow($('depthPills'), DEPTHS, depth, function (x) { depth = x; }, false);
@@ -1220,7 +1235,7 @@
     if (live) {
       var f = new FormData();
       f.append('photo', photo.files[0]);
-      f.append('room_type', room.toLowerCase());
+      f.append('room_type', room.name.toLowerCase());
       var r = await fetch(api('/api/read'), { method: 'POST', body: f, credentials: 'include' });
       var d = await r.json();
       if (!r.ok) throw new Error(d.detail || 'Could not read the room');
@@ -1228,7 +1243,7 @@
     }
     if (sampler) {
       var out = await sampler.json(
-        'Survey this ' + room.toLowerCase() + ' from the photograph. ' +
+        'Survey this ' + room.name.toLowerCase() + ' from the photograph. ' +
         'First decide whether this is the inside of a room at all — furnished, ' +
         'bare or unfinished all count; a person, an animal, a single object, ' +
         'food, a screenshot, a document, a landscape or a building exterior do ' +
@@ -1250,6 +1265,9 @@
     var f = new FormData();
     f.append('photo', photo.files[0]);
     f.append('style', style.id);
+    // What a room is *for* governs what it should become. Collecting this and
+    // then not sending it is how "nursery" used to draw a generic bedroom.
+    f.append('room_type', room.id);
     f.append('profile', depth.id);
     f.append('variants', String(count));
     f.append('extra_prompt', $('text').value);

@@ -23,6 +23,12 @@ def upload(name="room.png"):
     return {"photo": (name, photo_bytes(), "image/png")}
 
 
+def io_read():
+    """The served page, read from disk so a test can inspect its data."""
+    import pathlib
+    return pathlib.Path("static/showcase.html").read_text(encoding="utf-8")
+
+
 ANALYSIS = RoomAnalysis(
     image_width=64,
     image_height=64,
@@ -171,6 +177,70 @@ class TestMetaEndpoints:
             assert "none" not in prompt.split()      # not the bare word
             assert "More storage." in prompt
         assert "no other decorating style" in build_prompt("brief")
+
+    def test_the_room_reaches_the_generator(self, client, monkeypatch):
+        """The studio asked which room and then threw the answer away: it only
+        ever reached the reader. Picking "nursery" drew a generic bedroom."""
+        captured = {}
+
+        async def fake_pipeline(data, style, settings, **kwargs):
+            captured.update(kwargs)
+            return ANALYSIS, [GENERATION]
+
+        monkeypatch.setattr("app.main.run_pipeline", fake_pipeline)
+        client.post("/api/generate", files=upload(),
+                    data={"style": "japandi", "room_type": "nursery"})
+        assert captured["room"] == "nursery"
+
+    def test_the_page_sends_the_room_when_drawing(self, client):
+        html = client.get("/").text
+        assert "f.append('room_type', room.id)" in html
+
+    def test_purpose_and_look_are_separate_axes(self):
+        """A nursery is not a missing style — it is a set of requirements, and
+        it has to be able to be a Japandi one. Kept apart, six looks cover
+        sixteen rooms; merged, you would need ninety-six."""
+        from app.generation import build_prompt
+
+        japandi_nursery = build_prompt("japandi", room="nursery")
+        assert "Japandi" in japandi_nursery
+        assert "cot" in japandi_nursery
+
+        industrial_nursery = build_prompt("industrial", room="nursery")
+        assert "brick" in industrial_nursery      # the look still applies
+        assert "cot" in industrial_nursery        # so do the requirements
+
+    def test_a_nursery_carries_what_no_style_implies(self):
+        """None of these are aesthetic choices, which is exactly why they
+        cannot live in the look."""
+        from app.generation import build_prompt
+
+        prompt = build_prompt("japandi", room="nursery").lower()
+        for requirement in ("cot", "blackout", "cords", "above the cot"):
+            assert requirement in prompt
+
+    def test_every_offered_room_has_a_brief(self):
+        """The dropdown and the briefs are two lists that must not drift. A
+        room offered without one silently draws a generic room."""
+        import re
+        from app.generation import ROOM_BRIEFS
+
+        html = io_read()
+        block = html[html.index("var ROOM_TYPES = ["):]
+        block = block[:block.index("];")]
+        offered = set(re.findall(r"id: '([a-z-]+)'", block))
+
+        # "other" deliberately has none: the comments box carries it instead.
+        assert offered - {"other"} <= set(ROOM_BRIEFS)
+
+    def test_an_unknown_room_is_simply_quiet(self):
+        """Someone picking "somewhere else" should get a clean prompt, not the
+        word "None" wedged into a sentence."""
+        from app.generation import build_prompt
+
+        for room in ("other", "", "spaceship"):
+            prompt = build_prompt("japandi", room=room)
+            assert "It must work as" not in prompt
 
     def test_page_survives_without_the_claude_runtime(self, client):
         """Deployed on your own server there is no `claude` object at all;
