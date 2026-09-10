@@ -1,0 +1,88 @@
+{
+  "is_room": true,
+  "room": "A modern living area with dark upholstery and sleek contemporary furnishings centered around a light-filled patio door.",
+  "items": [
+    {
+      "name": "large sectional sofa",
+      "count": 1,
+      "treatment": "redraw"
+    },
+    {
+      "name": "wooden coffee table",
+      "count": 1,
+      "treatment": "redraw"
+    },
+    {
+      "name": "decorative glass bowl",
+      "count": 1,
+      "treatment": "redraw"
+    },
+    {
+      "name": "small candle jar",
+      "count": 1,
+      "treatment": "redraw"
+    },
+    {
+      "name": "area rug",
+      "count": 1,
+      "treatment": "redraw"
+    },
+    {
+      "name": "throw pillows",
+      "count": 2,
+      "treatment": "redraw"
+    },
+    {
+      "name": "full-length curtains",
+      "count": 2,
+      "treatment": "redraw"
+    },
+    {
+      "name": "patio sliding doors",
+      "count": 1,
+      "treatment": "keep"
+    },
+    {
+      "name": "dark tile flooring",
+      "count": 1,
+      "treatment": "keep"
+    },
+    {
+      "name": "sideboard cabinet",
+      "count": 1,
+      "treatment": "redraw"
+    }
+  ],
+  "directions": [
+    {
+      "title": "Warm Organic Minimalism",
+      "palette": "Terracotta, beige linen, warm oak, brushed brass",
+      "pieces": [
+        "Low-profile ivory boucle sectional sofa",
+        "Round solid oak coffee table",
+        "Woven jute area rug"
+      ],
+      "why": "Suits homeowners seeking to soften the room's dark tones with inviting natural textures and earthy warmth."
+    },
+    {
+      "title": "Sleek Industrial Luxury",
+      "palette": "Charcoal grey, matte black metal, walnut wood, cognac leather",
+      "pieces": [
+        "Cognac leather accent armchair with black iron frame",
+        "Slatted dark walnut TV console",
+        "Architectural floor lamp in matte black"
+      ],
+      "why": "Ideal for professionals wanting a refined, moody atmosphere with premium leather and architectural detail."
+    },
+    {
+      "title": "Nordic Light & Bright",
+      "palette": "Soft white, ash wood, sage green, light grey fleece",
+      "pieces": [
+        "Light grey minimalist L-shape sofa",
+        "Sheer white linen curtain drapes",
+        "Ash wood and brass wall sconces"
+      ],
+      "why": "Perfect for maximizing the natural daylight coming from the large doors to create an airy, tranquil space."
+    }
+  ]
+}

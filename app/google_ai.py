@@ -139,6 +139,13 @@ def _parts(payload: dict) -> list[dict]:
     return []
 
 
+def _truncated(payload: dict) -> bool:
+    """True when Gemini stopped because it hit the output-token ceiling."""
+    for candidate in payload.get("candidates") or []:
+        return candidate.get("finishReason") == "MAX_TOKENS"
+    return False
+
+
 def _inline(part: dict) -> dict | None:
     """Responses come back camelCase, requests go out snake_case. Accept both
     rather than depending on which side of that line this API is on today."""
@@ -163,7 +170,12 @@ async def read_room(photo: bytes, room_type: str, prompt: str,
             "generationConfig": {
                 "response_mime_type": "application/json",
                 "temperature": 0.4,
-                "maxOutputTokens": 1600,
+                # The survey answer (is_room, room, every item, three full
+                # directions) plus Gemini 3's thinking tokens overran the old
+                # 1600 cap and came back as truncated JSON. Give it room, and
+                # hold the thinking down so the budget goes on the answer.
+                "maxOutputTokens": 8192,
+                "thinkingConfig": {"thinkingLevel": "low"},
             },
         },
         settings,
@@ -175,6 +187,11 @@ async def read_room(photo: bytes, room_type: str, prompt: str,
     try:
         return json.loads(text)
     except json.JSONDecodeError as exc:
+        if _truncated(payload):
+            raise GoogleError(
+                "The reader ran out of output space before finishing. Retry, "
+                "or raise google_vision_model's maxOutputTokens."
+            ) from exc
         raise GoogleError("The reader returned something unreadable") from exc
 
 
@@ -194,7 +211,13 @@ async def discuss(system: str, turns: list[dict], settings: Settings) -> str:
         {
             "contents": contents,
             "system_instruction": {"parts": [{"text": system}]},
-            "generationConfig": {"temperature": 0.7, "maxOutputTokens": 700},
+            "generationConfig": {
+                "temperature": 0.7,
+                # Thinking tokens count against this, so 700 could leave the
+                # visible answer cut off mid-sentence.
+                "maxOutputTokens": 2048,
+                "thinkingConfig": {"thinkingLevel": "low"},
+            },
         },
         settings,
     )
