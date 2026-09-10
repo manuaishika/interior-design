@@ -144,6 +144,12 @@ async def _run_openai(data, style, settings, *, extra_prompt, variants, room="")
             log.warning("Option %d failed: %s", index, result)
             failures.append(result)
             continue
+        if index == 0 and openai_images.looks_inverted(image, result, inpaint_mask):
+            log.warning(
+                "The locked regions changed more than the editable ones. The "
+                "inpainting mask is probably the wrong way round for this "
+                "model — set INVERT_INPAINT_MASK=true and try again."
+            )
         generations.append(GenerationResult(
             image_base64=base64.b64encode(result).decode("ascii"),
             inpaint_mask_base64=mask_b64,

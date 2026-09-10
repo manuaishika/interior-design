@@ -143,7 +143,8 @@ class Settings(BaseSettings):
 
     # OpenAI's own image editor. It takes a mask, which is what lets one
     # OpenAI key hold the doors in place with no Replicate account at all.
-    openai_image_model: str = "gpt-image-1"
+    # Blank means "newest this account can see" — see openai_images.IMAGE_MODELS.
+    openai_image_model: str = ""
 
     # --- SAM2 tuning -------------------------------------------------------
     sam2_points_per_side: int = 32

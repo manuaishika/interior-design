@@ -22,6 +22,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import auth, google_login, store
+from .openai_images import image_models as openai_images_chain
 from urllib.parse import quote
 
 from .config import LOCK_PROFILES, Settings, get_settings, resolve_backend
@@ -125,7 +126,7 @@ async def health():
         can_read = can_draw = bool(settings.openai_api_key)
         models = {"reading": settings.vlm_model,
                   "structure": settings.vlm_model,
-                  "drawing": settings.openai_image_model}
+                  "drawing": openai_images_chain(settings)[0]}
     elif engine == "local":
         can_read = can_draw = True
         models = {"reading": settings.local_seg_model,
