@@ -121,6 +121,11 @@ async def health():
         can_read = can_draw = bool(settings.google_api_key)
         models = {"reading": settings.google_vision_model,
                   "drawing": settings.google_image_model}
+    elif engine == "openai":
+        can_read = can_draw = bool(settings.openai_api_key)
+        models = {"reading": settings.vlm_model,
+                  "structure": settings.vlm_model,
+                  "drawing": settings.openai_image_model}
     elif engine == "local":
         can_read = can_draw = True
         models = {"reading": settings.local_seg_model,
@@ -136,6 +141,7 @@ async def health():
         "status": "ok",
         "engine": engine,
         # The free path has no mask: the lock is asked for, not enforced.
+        # Every other engine paints the openings out before generating.
         "locks_are_enforced": engine != "free",
         "replicate_configured": bool(settings.replicate_api_token),
         "openai_configured": bool(settings.openai_api_key),

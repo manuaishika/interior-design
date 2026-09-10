@@ -210,3 +210,44 @@ so it cannot save designs — only an account can.
 
 Leave it unset and anyone can open the site and make an account, which is what
 you want once it is public.
+
+---
+
+## One OpenAI key is enough
+
+There is a third engine between free and full, and it is the one to use if you
+have an OpenAI key and nothing else.
+
+| | Free (Google) | **One key (OpenAI)** | Full (OpenAI + Replicate) |
+| --- | --- | --- | --- |
+| Reads the room | yes | yes | yes |
+| Finds the doors | — | GPT-4o, as boxes | SAM2, as outlines |
+| Holds them | **asked** | **masked** | **masked** |
+| Accounts needed | 1, free | **1** | 2 |
+
+Set `OPENAI_API_KEY` and leave `REPLICATE_API_TOKEN` blank. Health then reports:
+
+```json
+{ "engine": "openai", "can_read": true, "can_draw": true,
+  "locks_are_enforced": true }
+```
+
+**How it works.** GPT-4o is asked where the doors, windows and walkways are, in
+fractions of the frame. Those boxes are painted out, and `gpt-image-1` — whose
+edit endpoint takes a mask — repaints only what is left. The generator is not
+*able* to touch a door, which is the same guarantee the full path gives.
+
+**What it gives up.** Boxes, not outlines. SAM2 returns the actual silhouette
+of a door; this returns a rectangle around it, so a little wall near the frame
+is protected too. That protects slightly more than it needs to, which is the
+right direction to be wrong — destroying a doorway is the failure that matters,
+under-editing the wall beside it is not.
+
+Add `REPLICATE_API_TOKEN` later and it switches to outlines on its own.
+
+### Cost
+
+Two OpenAI calls per room plus one per design: a vision call to find the
+structure, and an image edit per option. Set a spend limit at
+platform.openai.com/settings/organization/limits before you point a demo at
+it — that is the protection against a retry loop, not care.

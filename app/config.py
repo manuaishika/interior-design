@@ -141,6 +141,10 @@ class Settings(BaseSettings):
     # Mask-conditioned (inpainting) image generation.
     inpaint_model: str = "stability-ai/stable-diffusion-inpainting"
 
+    # OpenAI's own image editor. It takes a mask, which is what lets one
+    # OpenAI key hold the doors in place with no Replicate account at all.
+    openai_image_model: str = "gpt-image-1"
+
     # --- SAM2 tuning -------------------------------------------------------
     sam2_points_per_side: int = 32
     sam2_pred_iou_thresh: float = 0.88
@@ -197,6 +201,11 @@ def resolve_backend(settings: Settings) -> str:
         return chosen
     if settings.openai_api_key and settings.replicate_api_token:
         return "hosted"
+    # An OpenAI key on its own is enough for the whole job: GPT-4o finds the
+    # structure, gpt-image-1 repaints around a mask made from it. Coarser than
+    # SAM2's outlines, but the lock is enforced rather than requested.
+    if settings.openai_api_key:
+        return "openai"
     if settings.google_api_key:
         return "free"
     return "hosted"

@@ -17,6 +17,7 @@ from .config import DEFAULT_PROFILE, Settings, is_locked, resolve_backend
 from .describe import count_instances, describe_room, keep_clause
 from .generation import GenerationError, build_prompt, encode_mask
 from .imaging import (
+    build_inpaint_mask,
     image_to_png_bytes,
     Mask,
     build_inpaint_mask,
@@ -38,6 +39,10 @@ def _is_local(settings: Settings) -> bool:
 
 def _is_free(settings: Settings) -> bool:
     return resolve_backend(settings) == "free"
+
+
+def _is_openai(settings: Settings) -> bool:
+    return resolve_backend(settings) == "openai"
 
 
 async def _run_free(data, style, settings, *, extra_prompt, variants, room=""):
@@ -82,6 +87,76 @@ async def _run_free(data, style, settings, *, extra_prompt, variants, room=""):
     analysis = RoomAnalysis(
         image_width=image.size[0], image_height=image.size[1],
         objects=[], masks_returned=0, masks_labeled=0,
+    )
+    return analysis, generations
+
+
+async def _run_openai(data, style, settings, *, extra_prompt, variants, room=""):
+    """One OpenAI key, and the lock still real.
+
+    GPT-4o says where the doors, windows and walkways are; those boxes become
+    the mask; gpt-image-1 repaints only what is left. No Replicate anywhere.
+
+    Unlike the free path this returns a genuine analysis, because it genuinely
+    measured something — boxes rather than outlines, but measured.
+    """
+    from . import openai_images
+
+    count = max(1, min(variants or settings.default_variants,
+                       settings.max_variants))
+    image = prepare_image(data, settings)
+
+    regions = await openai_images.find_structure(image, settings)
+    masks = openai_images.boxes_to_masks(regions, image.size)
+
+    objects: list[RoomObject] = []
+    for mask, region in zip(masks, regions):
+        box = mask_bounding_box(mask.array)
+        if box is None:
+            continue
+        kind = str(region.get("kind") or "other").strip().lower()
+        objects.append(RoomObject(
+            label=kind, mask_id=mask.mask_id, bounding_box=box,
+            locked=is_locked(kind, None), category=kind, confidence=0.0,
+        ))
+
+    inpaint_mask = build_inpaint_mask(
+        image.size, [m.array for m in masks],
+        dilation_px=settings.locked_dilation_px,
+        invert=False,
+    )
+
+    prompt = build_prompt(style, extra_prompt, room=room)
+    drawn = await asyncio.gather(
+        *(openai_images.redraw(
+            image, inpaint_mask,
+            prompt + openai_images.VARIATIONS[i % len(openai_images.VARIATIONS)],
+            settings)
+          for i in range(count)),
+        return_exceptions=True,
+    )
+
+    mask_b64 = encode_mask(inpaint_mask)
+    generations: list[GenerationResult] = []
+    failures: list[BaseException] = []
+    for index, result in enumerate(drawn):
+        if isinstance(result, BaseException):
+            log.warning("Option %d failed: %s", index, result)
+            failures.append(result)
+            continue
+        generations.append(GenerationResult(
+            image_base64=base64.b64encode(result).decode("ascii"),
+            inpaint_mask_base64=mask_b64,
+            prompt=prompt,
+            variant_index=index,
+        ))
+
+    if not generations:
+        raise failures[0] if failures else GenerationError("Nothing came back")
+
+    analysis = RoomAnalysis(
+        image_width=image.size[0], image_height=image.size[1],
+        objects=objects, masks_returned=len(masks), masks_labeled=len(objects),
     )
     return analysis, generations
 
@@ -293,6 +368,10 @@ async def run_pipeline(
     if _is_free(settings):
         return await _run_free(data, style, settings, extra_prompt=extra_prompt,
                                variants=variants, room=room)
+    if _is_openai(settings):
+        return await _run_openai(data, style, settings,
+                                 extra_prompt=extra_prompt, variants=variants,
+                                 room=room)
 
     count = settings.default_variants if variants is None else variants
     count = max(1, min(count, settings.max_variants))
