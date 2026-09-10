@@ -85,7 +85,7 @@ class Settings(BaseSettings):
     # --- credentials -------------------------------------------------------
     replicate_api_token: str = ""
     openai_api_key: str = ""
-    # One key, no card, both halves of the job. aistudio.google.com/apikey
+    # Reads a room free; drawing one needs billing. aistudio.google.com/apikey
     google_api_key: str = ""
 
     # --- backend -----------------------------------------------------------
@@ -107,8 +107,8 @@ class Settings(BaseSettings):
     # Google set `generate_content_free_tier_requests` to 0 for every image
     # model, so this half returns HTTP 429 until billing is enabled on the
     # Google Cloud project (a card, pay-as-you-go, ~$0.04/image — but no ID
-    # check, unlike gpt-image-1). gemini-2.5-flash-image is also retired for
-    # new keys; this is its current successor.
+    # check, unlike the GPT Image models). gemini-2.5-flash-image is also
+    # retired for new keys; this is its current successor.
     google_image_model: str = "gemini-3.1-flash-image"
 
     # --- accounts ----------------------------------------------------------
@@ -153,7 +153,14 @@ class Settings(BaseSettings):
 
     # OpenAI's own image editor. It takes a mask, which is what lets one
     # OpenAI key hold the doors in place with no Replicate account at all.
-    openai_image_model: str = "gpt-image-1"
+    #
+    # gpt-image-2.5-sunburst is the current edit-optimised model ("choose
+    # Sunburst for workflows where editing precision matters most"); -flare is
+    # the faster, less precise sibling. gpt-image-1 still works but is the
+    # previous generation and its -mini/-1.5 variants retire in Dec 2026.
+    # All of them sit behind the same one-time API Organization Verification
+    # (an ID check) — a funded key is not enough on its own.
+    openai_image_model: str = "gpt-image-2.5-sunburst"
 
     # --- SAM2 tuning -------------------------------------------------------
     sam2_points_per_side: int = 32
@@ -212,7 +219,7 @@ def resolve_backend(settings: Settings) -> str:
     if settings.openai_api_key and settings.replicate_api_token:
         return "hosted"
     # An OpenAI key on its own is enough for the whole job: GPT-4o finds the
-    # structure, gpt-image-1 repaints around a mask made from it. Coarser than
+    # structure, gpt-image-2.5 repaints around a mask made from it. Coarser than
     # SAM2's outlines, but the lock is enforced rather than requested.
     if settings.openai_api_key:
         return "openai"
