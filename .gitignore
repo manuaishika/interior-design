@@ -11,3 +11,11 @@ runs/
 # accounts / saved designs (SQLite fallback)
 *.db
 second-draft.db
+
+# local smoke tests + their output
+smoke_openai.py
+smoke_out.png
+smoke_mask.png
+run_free.py
+test_room.jpg
+free_out_*.png

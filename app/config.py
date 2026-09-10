@@ -98,8 +98,18 @@ class Settings(BaseSettings):
     backend: str = ""
 
     # --- the free path -----------------------------------------------------
-    google_vision_model: str = "gemini-2.5-flash"
-    google_image_model: str = "gemini-2.5-flash-image"
+    # gemini-2.5-flash was retired for new API keys in 2026 ("no longer
+    # available to new users"), so this tracks a current one. The
+    # `gemini-flash-latest` alias exists but has been seen returning 503
+    # ("high demand") while dated models answer fine, so pin a version.
+    google_vision_model: str = "gemini-3.6-flash"
+    # Image generation on the Gemini API is NOT on the free tier any more —
+    # Google set `generate_content_free_tier_requests` to 0 for every image
+    # model, so this half returns HTTP 429 until billing is enabled on the
+    # Google Cloud project (a card, pay-as-you-go, ~$0.04/image — but no ID
+    # check, unlike gpt-image-1). gemini-2.5-flash-image is also retired for
+    # new keys; this is its current successor.
+    google_image_model: str = "gemini-3.1-flash-image"
 
     # --- accounts ----------------------------------------------------------
     # Postgres in production, a file on disk otherwise. On a free Render web
