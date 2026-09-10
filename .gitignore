@@ -19,3 +19,6 @@ smoke_mask.png
 run_free.py
 test_room.jpg
 free_out_*.png
+run_openai.py
+openai_out_*.png
+openai_mask.png
