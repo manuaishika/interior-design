@@ -79,7 +79,20 @@ kind is one of: door, window, walkway.
              room or reach a door. Not the whole floor.
 
 box is [left, top, right, bottom] as fractions of the image, 0 to 1, from the
-top-left. Be generous: include the frame and architrave, not just the glass.
+top-left. It must trace the object's own visible edges — where the door frame
+or window frame actually starts and stops — plus a small margin for the
+architrave, typically 1-3% of the frame on each side. It is not a zone, a
+wall segment, or "the general area near" the object.
+
+Get this wrong and the renovation is blocked from touching wall that has
+nothing to do with the door: a floor-to-ceiling window that fills the back
+of the room is still just that window, not the whole wall either side of it.
+If in doubt, draw the box tighter, not looser — a door with 2% too little
+margin still gets protected; a box that swallows half the room protects
+nothing precisely and blocks a normal redesign.
+
+One box per object. Two windows side by side are two boxes, not one box
+spanning both.
 
 Return an empty list if there are none. Do not invent any.
 """
