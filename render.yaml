@@ -2,7 +2,7 @@ services:
   - type: web
     name: second-draft
     runtime: python
-    plan: starter          # free tier works too, but sleeps after 15 min idle
+    plan: free             # sleeps after 15 min idle; starter ($7/mo) removes that but needs a card on file
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/health
