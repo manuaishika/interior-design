@@ -85,7 +85,7 @@ class Settings(BaseSettings):
     # --- credentials -------------------------------------------------------
     replicate_api_token: str = ""
     openai_api_key: str = ""
-    # One key, no card, both halves of the job. aistudio.google.com/apikey
+    # Reads a room free; drawing one needs billing. aistudio.google.com/apikey
     google_api_key: str = ""
 
     # --- backend -----------------------------------------------------------
@@ -98,8 +98,18 @@ class Settings(BaseSettings):
     backend: str = ""
 
     # --- the free path -----------------------------------------------------
-    google_vision_model: str = "gemini-2.5-flash"
-    google_image_model: str = "gemini-2.5-flash-image"
+    # gemini-2.5-flash was retired for new API keys in 2026 ("no longer
+    # available to new users"), so this tracks a current one. The
+    # `gemini-flash-latest` alias exists but has been seen returning 503
+    # ("high demand") while dated models answer fine, so pin a version.
+    google_vision_model: str = "gemini-3.6-flash"
+    # Image generation on the Gemini API is NOT on the free tier any more —
+    # Google set `generate_content_free_tier_requests` to 0 for every image
+    # model, so this half returns HTTP 429 until billing is enabled on the
+    # Google Cloud project (a card, pay-as-you-go, ~$0.04/image — but no ID
+    # check, unlike the GPT Image models). gemini-2.5-flash-image is also
+    # retired for new keys; this is its current successor.
+    google_image_model: str = "gemini-3.1-flash-image"
 
     # --- accounts ----------------------------------------------------------
     # Postgres in production, a file on disk otherwise. On a free Render web
@@ -143,7 +153,14 @@ class Settings(BaseSettings):
 
     # OpenAI's own image editor. It takes a mask, which is what lets one
     # OpenAI key hold the doors in place with no Replicate account at all.
-    # Blank means "newest this account can see" — see openai_images.IMAGE_MODELS.
+    #
+    # Blank means "newest this account can see" — see openai_images.IMAGE_MODELS,
+    # which tries gpt-image-2.5-sunburst first (the edit-optimised model: "choose
+    # Sunburst for workflows where editing precision matters most") and falls
+    # back toward gpt-image-1 if an account cannot see the newer ones. Set this
+    # to pin one model instead of the chain. All of them sit behind the same
+    # one-time API Organization Verification (an ID check) — a funded key is
+    # not enough on its own; verified, we confirmed end-to-end on a live key.
     openai_image_model: str = ""
 
     # --- SAM2 tuning -------------------------------------------------------
@@ -203,7 +220,7 @@ def resolve_backend(settings: Settings) -> str:
     if settings.openai_api_key and settings.replicate_api_token:
         return "hosted"
     # An OpenAI key on its own is enough for the whole job: GPT-4o finds the
-    # structure, gpt-image-1 repaints around a mask made from it. Coarser than
+    # structure, gpt-image-2.5 repaints around a mask made from it. Coarser than
     # SAM2's outlines, but the lock is enforced rather than requested.
     if settings.openai_api_key:
         return "openai"

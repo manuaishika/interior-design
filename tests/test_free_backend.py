@@ -46,6 +46,11 @@ def text_part(text):
     return {"candidates": [{"content": {"parts": [{"text": text}]}}]}
 
 
+async def _no_wait(_seconds):
+    """Drop-in for the backoff sleep so retry tests do not actually wait."""
+    return None
+
+
 class TestReading:
     @pytest.mark.asyncio
     async def test_reads_a_room(self, monkeypatch):
@@ -200,9 +205,56 @@ class TestErrors:
 
         post, _ = reply({"error": {"message": "quota"}}, status=429)
         monkeypatch.setattr(httpx.AsyncClient, "post", post)
+        monkeypatch.setattr(google_ai, "_sleep", _no_wait)
 
         with pytest.raises(GoogleError, match="rate limit"):
             await google_ai.redraw(png(), "Japandi", settings())
+
+    @pytest.mark.asyncio
+    async def test_a_transient_503_is_retried_then_succeeds(self, monkeypatch):
+        """gemini-*-flash returns 503 'high demand' under load and the same
+        request works seconds later, so a one-shot failure must not surface."""
+        from app import google_ai
+
+        drawn = png((16, 16))
+        calls = []
+
+        async def flaky(self, url, **kw):
+            calls.append(1)
+            if len(calls) < 3:
+                return httpx.Response(503, json={"error": {"message": "high demand"}},
+                                      request=httpx.Request("POST", "https://x.test"))
+            return httpx.Response(200, json={"candidates": [{"content": {"parts": [
+                {"inlineData": {"data": base64.b64encode(drawn).decode()}}]}}]},
+                request=httpx.Request("POST", "https://x.test"))
+
+        monkeypatch.setattr(httpx.AsyncClient, "post", flaky)
+        monkeypatch.setattr(google_ai, "_sleep", _no_wait)
+
+        assert await google_ai.redraw(png(), "Japandi", settings()) == drawn
+        assert len(calls) == 3
+
+    @pytest.mark.asyncio
+    async def test_a_zero_free_tier_quota_is_not_retried(self, monkeypatch):
+        """Image generation has a free-tier limit of 0 — it returns 429 every
+        time, so it must fail fast with the billing explanation, not stall
+        through four backoffs first."""
+        from app import google_ai
+
+        calls = []
+
+        async def hard(self, url, **kw):
+            calls.append(1)
+            return httpx.Response(429, json={"error": {"message":
+                "Quota exceeded ... limit: 0, model: gemini-3.1-flash-image"}},
+                request=httpx.Request("POST", "https://x.test"))
+
+        monkeypatch.setattr(httpx.AsyncClient, "post", hard)
+        monkeypatch.setattr(google_ai, "_sleep", _no_wait)
+
+        with pytest.raises(GoogleError, match="billing"):
+            await google_ai.redraw(png(), "Japandi", settings())
+        assert len(calls) == 1
 
     @pytest.mark.asyncio
     async def test_a_bad_key_says_so_plainly(self, monkeypatch):

@@ -15,7 +15,7 @@ can be real without Replicate existing at all:
 
     GPT-4o          -> where the doors, windows and walkways are
     a rasterised mask -> those regions, painted out
-    gpt-image-1     -> repaints only what is left
+    gpt-image-2.5   -> repaints only what is left
 
 What it gives up against SAM2
 -----------------------------
@@ -142,7 +142,20 @@ kind is one of: door, window, walkway.
              room or reach a door. Not the whole floor.
 
 box is [left, top, right, bottom] as fractions of the image, 0 to 1, from the
-top-left. Be generous: include the frame and architrave, not just the glass.
+top-left. It must trace the object's own visible edges — where the door frame
+or window frame actually starts and stops — plus a small margin for the
+architrave, typically 1-3% of the frame on each side. It is not a zone, a
+wall segment, or "the general area near" the object.
+
+Get this wrong and the renovation is blocked from touching wall that has
+nothing to do with the door: a floor-to-ceiling window that fills the back
+of the room is still just that window, not the whole wall either side of it.
+If in doubt, draw the box tighter, not looser — a door with 2% too little
+margin still gets protected; a box that swallows half the room protects
+nothing precisely and blocks a normal redesign.
+
+One box per object. Two windows side by side are two boxes, not one box
+spanning both.
 
 Return an empty list if there are none. Do not invent any.
 """
@@ -238,18 +251,38 @@ def to_openai_mask(inpaint_mask: Image.Image, *, inverted: bool = False) -> byte
     return buffer.getvalue()
 
 
-def _closest_size(size: tuple[int, int]) -> str:
-    """gpt-image-1 takes three shapes. Pick the one nearest the room's own."""
+def _edit_size(size: tuple[int, int]) -> str:
+    """The output size to ask gpt-image-2.5 for, given the room's own.
+
+    gpt-image-2.5 takes an arbitrary WIDTHxHEIGHT as long as each side is a
+    multiple of 16, the aspect ratio is between 1:3 and 3:1, no edge is over
+    3840, and the total is 0.66-8.3 MP. Matching the room's real proportions
+    (instead of snapping to one of three fixed shapes, as gpt-image-1 did)
+    keeps the returned image aligned with the mask that was built from it.
+    """
     width, height = size
-    ratio = width / height if height else 1.0
-    if ratio > 1.2:
-        return "1536x1024"
-    if ratio < 0.83:
-        return "1024x1536"
-    return "1024x1024"
+    ratio = width / max(height, 1)
+
+    # Pull the aspect ratio back inside 1:3..3:1 if the photo is extreme.
+    if ratio > 3.0:
+        width = height * 3
+    elif ratio < 1 / 3:
+        height = width * 3
+
+    # Scale so the longest edge is 1536 — plenty of detail, comfortably inside
+    # every ceiling and cheaper than going larger.
+    longest = max(width, height)
+    if longest != 1536:
+        scale = 1536 / longest
+        width, height = width * scale, height * scale
+
+    def snap16(value: float) -> int:
+        return max(16, int(round(value / 16)) * 16)
+
+    return f"{snap16(width)}x{snap16(height)}"
 
 
-# gpt-image-1 takes no seed, so options have to differ by instruction.
+# gpt-image-2.5 takes no seed, so options have to differ by instruction.
 VARIATIONS = (
     "",
     " Take a warmer, softer reading of this, with more textile and more "
@@ -319,7 +352,7 @@ async def redraw(image: Image.Image, inpaint_mask: Image.Image, prompt: str,
                 image=("room.png", photo, "image/png"),
                 mask=("mask.png", mask, "image/png"),
                 prompt=prompt[:4000],
-                size=_closest_size(image.size),
+                size=_edit_size(image.size),
                 n=1,
             )
         except Exception as exc:

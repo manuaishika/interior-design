@@ -26,17 +26,30 @@ one URL.
 
 ---
 
-## The free path — no card, about ten minutes
+## The Google path — cheapest, about ten minutes
 
-This is the one to use before anybody has paid for anything.
+This is the one to use before anybody has committed to OpenAI + Replicate.
 
 ### 1. Get a key
 
 Go to **[aistudio.google.com/apikey](https://aistudio.google.com/apikey)**,
-sign in with any Google account, click **Create API key**. No card, no
-billing setup. Copy it.
+sign in with any Google account, click **Create API key**. Copy it.
 
 One key does both halves: reading the room and drawing it.
+
+> **Reading a room is free. Drawing one is not — any more.**
+>
+> Google removed the free tier for image generation in 2026: every Gemini
+> image model now returns HTTP 429 with `limit: 0` on a keyless project. To
+> draw, open **[console.cloud.google.com](https://console.cloud.google.com)**
+> → **Billing** → link a card to the project behind your key. It is
+> pay-as-you-go, roughly **4 cents per generated image**, and — unlike
+> the GPT Image models — there is **no ID / Persona check**, just the card. Set a
+> budget alert at Billing → Budgets & alerts.
+>
+> Health will still say `can_draw: true` with an unbilled key, because the key
+> is valid; the failure only shows on the first generate. `/api/generate` then
+> returns a 502 whose message names billing.
 
 ### 2. Put the engine on Render
 
@@ -73,22 +86,23 @@ it. The $7/month plan removes this, and it is worth it for a real meeting.
 
 ---
 
-## What free actually gets you
+## What the Google path actually gets you
 
 Be straight with the client about this, because it is also the argument for
 paying later.
 
-| | Free (Google) | Paid (OpenAI + Replicate) |
+| | Google | Paid (OpenAI + Replicate) |
 | --- | --- | --- |
-| Reads the room | yes | yes |
-| Counts what is there | yes | yes |
-| Three directions | yes | yes |
-| Talks it through | yes | yes |
-| Redraws the room | yes | yes |
+| Reads the room | yes, free | yes |
+| Counts what is there | yes, free | yes |
+| Three directions | yes, free | yes |
+| Talks it through | yes, free | yes |
+| Redraws the room | yes, **needs billing** (~4¢/image) | yes |
 | **Holds doors and windows** | **asked for** | **enforced** |
-| Cost | £0 | ~₹1–3 to read, ₹3–8 to draw |
+| Card needed | yes, to draw | yes |
+| ID check | **no** | yes, for the GPT Image models |
 
-That row in bold is the whole difference, and it is worth explaining plainly:
+That bold row is the whole quality difference, and it is worth explaining plainly:
 
 - **Free** tells the model, in detail, not to move the door. It usually
   listens. Sometimes it does not.
@@ -213,17 +227,19 @@ you want once it is public.
 
 ---
 
-## One OpenAI key is enough
+## One OpenAI key is enough — and it is the best picture
 
-There is a third engine between free and full, and it is the one to use if you
-have an OpenAI key and nothing else.
+This is the engine to use once you have an OpenAI key. It draws with
+`gpt-image-2.5-sunburst`, currently the strongest mask-editing model there is,
+and it still holds the doors with a real mask.
 
-| | Free (Google) | **One key (OpenAI)** | Full (OpenAI + Replicate) |
+| | Google | **One key (OpenAI)** | Full (OpenAI + Replicate) |
 | --- | --- | --- | --- |
-| Reads the room | yes | yes | yes |
+| Reads the room | yes, free | yes | yes |
 | Finds the doors | — | GPT-4o, as boxes | SAM2, as outlines |
 | Holds them | **asked** | **masked** | **masked** |
-| Accounts needed | 1, free | **1** | 2 |
+| Picture quality | good | **best (gpt-image-2.5)** | dated (SD inpainting) |
+| Accounts needed | 1 (+ billing to draw) | **1** | 2 |
 
 Set `OPENAI_API_KEY` and leave `REPLICATE_API_TOKEN` blank. Health then reports:
 
@@ -232,22 +248,29 @@ Set `OPENAI_API_KEY` and leave `REPLICATE_API_TOKEN` blank. Health then reports:
   "locks_are_enforced": true }
 ```
 
+**One thing to do first: verify the organisation.** Every GPT Image model is
+behind a one-time **API Organization Verification** — an ID check at
+platform.openai.com/settings/organization/general. A key with credit on it is
+*not* enough; an unverified org gets a 403 on the first generate while reading
+the room keeps working, so it looks like the app is broken. It is the client's
+org and the client's ID — send them the link.
+
 **How it works.** GPT-4o is asked where the doors, windows and walkways are, in
-fractions of the frame. Those boxes are painted out, and `gpt-image-1` — whose
-edit endpoint takes a mask — repaints only what is left. The generator is not
-*able* to touch a door, which is the same guarantee the full path gives.
+fractions of the frame. Those boxes are painted out, and `gpt-image-2.5-sunburst`
+— whose edit endpoint takes a mask — repaints only what is left, at the room's
+own proportions. The generator is not *able* to touch a door.
 
 **What it gives up.** Boxes, not outlines. SAM2 returns the actual silhouette
 of a door; this returns a rectangle around it, so a little wall near the frame
 is protected too. That protects slightly more than it needs to, which is the
-right direction to be wrong — destroying a doorway is the failure that matters,
-under-editing the wall beside it is not.
-
-Add `REPLICATE_API_TOKEN` later and it switches to outlines on its own.
+right direction to be wrong. Add `REPLICATE_API_TOKEN` later and it switches to
+outlines on its own — but keeps drawing with gpt-image-2.5.
 
 ### Cost
 
-Two OpenAI calls per room plus one per design: a vision call to find the
-structure, and an image edit per option. Set a spend limit at
+Two OpenAI calls per room plus one per design option: a GPT-4o vision call to
+find the structure, then a `gpt-image-2.5-sunburst` edit per option (a few
+cents each at 1536px). Set a spend limit at
 platform.openai.com/settings/organization/limits before you point a demo at
-it — that is the protection against a retry loop, not care.
+it — that is the protection against a retry loop, not care. $10 is hundreds of
+rooms.

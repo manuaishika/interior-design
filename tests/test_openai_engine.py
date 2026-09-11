@@ -124,17 +124,29 @@ class TestMaskConversion:
 
 class TestShape:
     @pytest.mark.parametrize("size,expected", [
-        ((1600, 900), "1536x1024"),      # landscape room
-        ((900, 1600), "1024x1536"),      # portrait
-        ((1000, 1000), "1024x1024"),
-        ((1100, 1000), "1024x1024"),     # near enough square
+        ((1600, 900), "1536x864"),       # landscape room, kept landscape
+        ((900, 1600), "864x1536"),       # portrait, kept portrait
+        ((1000, 1000), "1536x1536"),     # square stays square
+        ((1024, 768), "1536x1152"),      # 4:3 preserved
     ])
-    def test_the_nearest_shape_is_chosen(self, size, expected):
-        """A landscape room squeezed into a square loses a quarter of its
-        width, which is how two beds became one."""
-        from app.openai_images import _closest_size
+    def test_the_room_proportions_are_kept(self, size, expected):
+        """gpt-image-2.5 takes an arbitrary WxH, so the output should match the
+        room's real proportions rather than snapping to a square and losing a
+        quarter of the width — which is how two beds became one."""
+        from app.openai_images import _edit_size
 
-        assert _closest_size(size) == expected
+        assert _edit_size(size) == expected
+
+    @pytest.mark.parametrize("size", [(4000, 900), (300, 1400)])
+    def test_extreme_panoramas_are_pulled_inside_the_limits(self, size):
+        """The edit endpoint refuses an aspect ratio past 3:1. Whatever the
+        photo, the requested size has to be accepted."""
+        from app.openai_images import _edit_size
+
+        w, h = (int(n) for n in _edit_size(size).split("x"))
+        assert w % 16 == 0 and h % 16 == 0
+        assert 1 / 3 - 1e-6 <= w / h <= 3 + 1e-6
+        assert max(w, h) <= 3840
 
 
 class TestErrors:

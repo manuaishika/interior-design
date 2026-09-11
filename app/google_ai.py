@@ -29,6 +29,7 @@ one less dependency to install on a free dyno.
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import json
 import logging
@@ -49,8 +50,9 @@ class GoogleError(RuntimeError):
 def _key(settings: Settings) -> str:
     if not settings.google_api_key:
         raise GoogleError(
-            "No GOOGLE_API_KEY set. Make one free at aistudio.google.com/apikey "
-            "— no card needed — and add it to your environment."
+            "No GOOGLE_API_KEY set. Make one at aistudio.google.com/apikey and "
+            "add it to your environment. Reading the room is free; image "
+            "generation now needs billing enabled on the Cloud project."
         )
     return settings.google_api_key
 
@@ -60,21 +62,62 @@ def _part_image(data: bytes, mime: str = "image/jpeg") -> dict:
                             "data": base64.b64encode(data).decode("ascii")}}
 
 
+# 503 ("high demand") and a bare 429 rate-limit are both transient on the free
+# tier — the same request succeeds a few seconds later. A free-tier *image*
+# quota of 0, though, comes back 429 every time and must not be retried into a
+# long stall, so that one is told apart by its quota metric and raised at once.
+_RETRY_STATUSES = {503, 429}
+_MAX_TRIES = 4
+# Indirected so tests can neutralise the backoff without waiting on it.
+_sleep = asyncio.sleep
+
+
+def _is_hard_quota(response: httpx.Response) -> bool:
+    """A 429 that says the per-model limit is 0 — retrying will never clear it."""
+    try:
+        message = response.json()["error"]["message"]
+    except Exception:
+        return False
+    return "limit: 0" in message or "free_tier" in message
+
+
 async def _call(model: str, body: dict, settings: Settings) -> dict:
     url = f"{BASE}/{model}:generateContent"
-    async with httpx.AsyncClient(timeout=settings.request_timeout_s) as http:
-        response = await http.post(
-            url, params={"key": _key(settings)}, json=body,
-            headers={"Content-Type": "application/json"},
-        )
-    if response.status_code == 429:
+    last: httpx.Response | None = None
+    for attempt in range(_MAX_TRIES):
+        async with httpx.AsyncClient(timeout=settings.request_timeout_s) as http:
+            response = await http.post(
+                url, params={"key": _key(settings)}, json=body,
+                headers={"Content-Type": "application/json"},
+            )
+        if response.status_code < 400:
+            return response.json()
+
+        last = response
+        retryable = response.status_code in _RETRY_STATUSES
+        if response.status_code == 429 and _is_hard_quota(response):
+            retryable = False
+        if not retryable or attempt == _MAX_TRIES - 1:
+            break
+        wait = min(2.0 * (2 ** attempt), 8.0)
+        log.warning("Google %s on %s; retrying in %.0fs (%d/%d)",
+                    response.status_code, model, wait, attempt + 1, _MAX_TRIES)
+        await _sleep(wait)
+
+    assert last is not None
+    if last.status_code == 429 and _is_hard_quota(last):
         raise GoogleError(
-            "The free tier's rate limit was hit. Wait a minute and try again, "
-            "or move to the paid path for room-after-room use."
+            "This Google model has no free-tier quota. Image generation on the "
+            "Gemini API needs billing enabled on the Cloud project (a card, "
+            "pay-as-you-go, about 4 cents an image; no ID check). Reading the "
+            "room stays free."
         )
-    if response.status_code >= 400:
-        raise GoogleError(_explain(response))
-    return response.json()
+    if last.status_code == 429:
+        raise GoogleError(
+            "The free tier's rate limit was hit and did not clear after several "
+            "retries. Wait a minute, or enable billing for room-after-room use."
+        )
+    raise GoogleError(_explain(last))
 
 
 def _explain(response: httpx.Response) -> str:
@@ -94,6 +137,13 @@ def _parts(payload: dict) -> list[dict]:
         content = candidate.get("content") or {}
         return content.get("parts") or []
     return []
+
+
+def _truncated(payload: dict) -> bool:
+    """True when Gemini stopped because it hit the output-token ceiling."""
+    for candidate in payload.get("candidates") or []:
+        return candidate.get("finishReason") == "MAX_TOKENS"
+    return False
 
 
 def _inline(part: dict) -> dict | None:
@@ -120,7 +170,12 @@ async def read_room(photo: bytes, room_type: str, prompt: str,
             "generationConfig": {
                 "response_mime_type": "application/json",
                 "temperature": 0.4,
-                "maxOutputTokens": 1600,
+                # The survey answer (is_room, room, every item, three full
+                # directions) plus Gemini 3's thinking tokens overran the old
+                # 1600 cap and came back as truncated JSON. Give it room, and
+                # hold the thinking down so the budget goes on the answer.
+                "maxOutputTokens": 8192,
+                "thinkingConfig": {"thinkingLevel": "low"},
             },
         },
         settings,
@@ -132,6 +187,11 @@ async def read_room(photo: bytes, room_type: str, prompt: str,
     try:
         return json.loads(text)
     except json.JSONDecodeError as exc:
+        if _truncated(payload):
+            raise GoogleError(
+                "The reader ran out of output space before finishing. Retry, "
+                "or raise google_vision_model's maxOutputTokens."
+            ) from exc
         raise GoogleError("The reader returned something unreadable") from exc
 
 
@@ -151,7 +211,13 @@ async def discuss(system: str, turns: list[dict], settings: Settings) -> str:
         {
             "contents": contents,
             "system_instruction": {"parts": [{"text": system}]},
-            "generationConfig": {"temperature": 0.7, "maxOutputTokens": 700},
+            "generationConfig": {
+                "temperature": 0.7,
+                # Thinking tokens count against this, so 700 could leave the
+                # visible answer cut off mid-sentence.
+                "maxOutputTokens": 2048,
+                "thinkingConfig": {"thinkingLevel": "low"},
+            },
         },
         settings,
     )
