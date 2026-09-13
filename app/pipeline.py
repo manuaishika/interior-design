@@ -95,10 +95,13 @@ async def _run_free(data, style, settings, *, extra_prompt, variants, room="",
 
 async def _run_openai(data, style, settings, *, extra_prompt, variants, room="",
                       contents="", keep=""):
-    """One OpenAI key, and the lock still real.
+    """One OpenAI key. No Replicate anywhere.
 
     GPT-4o says where the doors, windows and walkways are; those boxes become
-    the mask; gpt-image-2.5 repaints only what is left. No Replicate anywhere.
+    a mask. By default the mask is built and returned but not sent — see
+    openai_images' module docstring for why — so the protection is the same
+    kind the free path uses: named in the prompt, not painted out in pixels.
+    Set USE_INPAINT_MASK=true to send it and get the geometric guarantee back.
 
     Unlike the free path this returns a genuine analysis, because it genuinely
     measured something — boxes rather than outlines, but measured.

@@ -243,7 +243,10 @@ class TestThePipeline:
 
 
 class TestHealth:
-    def test_it_reports_an_enforced_lock(self, monkeypatch):
+    def test_it_reports_the_mask_is_off_by_default(self, monkeypatch):
+        """A mask on gpt-image-2.5 erased the furniture it was not told to
+        touch, so it stopped being sent by default — health must say so
+        rather than keep claiming a guarantee that no longer holds."""
         from fastapi.testclient import TestClient
         import app.main as main
         from app.main import app
@@ -253,4 +256,19 @@ class TestHealth:
             body = c.get("/api/health").json()
         assert body["engine"] == "openai"
         assert body["can_read"] is True and body["can_draw"] is True
+        assert body["locks_are_enforced"] is False
+
+    def test_it_reports_an_enforced_lock_when_the_mask_is_switched_back_on(
+        self, monkeypatch,
+    ):
+        from fastapi.testclient import TestClient
+        import app.main as main
+        from app.main import app
+
+        monkeypatch.setattr(
+            main, "get_settings",
+            lambda: settings(use_inpaint_mask=True))
+        with TestClient(app) as c:
+            body = c.get("/api/health").json()
+        assert body["engine"] == "openai"
         assert body["locks_are_enforced"] is True

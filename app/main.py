@@ -138,12 +138,24 @@ async def health():
                   "labeling": settings.vlm_model,
                   "generation": settings.inpaint_model}
 
+    # The free path has never had a mask: the lock is asked for, not enforced.
+    # The openai path used to always mask, but a mask on a strong editing
+    # model turned out to be a demolition order for everything that was not a
+    # door or window — the desk, the television, the wardrobe — so it is only
+    # sent when USE_INPAINT_MASK asks for it. hosted and local always mask;
+    # their generators are weak inpainting models that need to be told where
+    # to look, so a mask is the right tool there rather than the wrong one.
+    locks_are_enforced = {
+        "free": False,
+        "openai": settings.use_inpaint_mask,
+        "hosted": True,
+        "local": True,
+    }.get(engine, True)
+
     return {
         "status": "ok",
         "engine": engine,
-        # The free path has no mask: the lock is asked for, not enforced.
-        # Every other engine paints the openings out before generating.
-        "locks_are_enforced": engine != "free",
+        "locks_are_enforced": locks_are_enforced,
         "replicate_configured": bool(settings.replicate_api_token),
         "openai_configured": bool(settings.openai_api_key),
         "google_configured": bool(settings.google_api_key),

@@ -367,6 +367,32 @@ class TestHealthAndPipeline:
         assert body["engine"] == "hosted"
         assert body["locks_are_enforced"] is True
 
+    def test_openai_health_admits_the_mask_is_off_by_default(self, monkeypatch):
+        """A mask on gpt-image-2.5 turned out to erase the furniture, so it is
+        no longer sent by default — health must not go on claiming it is,
+        or the site keeps telling people something that stopped being true."""
+        from fastapi.testclient import TestClient
+        import app.main as main
+        from app.main import app
+
+        monkeypatch.setattr(main, "get_settings",
+                            lambda: Settings(openai_api_key="o"))
+        body = TestClient(app).get("/api/health").json()
+        assert body["engine"] == "openai"
+        assert body["locks_are_enforced"] is False
+
+    def test_openai_health_reports_the_mask_when_switched_back_on(self, monkeypatch):
+        from fastapi.testclient import TestClient
+        import app.main as main
+        from app.main import app
+
+        monkeypatch.setattr(main, "get_settings",
+                            lambda: Settings(openai_api_key="o",
+                                             use_inpaint_mask=True))
+        body = TestClient(app).get("/api/health").json()
+        assert body["engine"] == "openai"
+        assert body["locks_are_enforced"] is True
+
     @pytest.mark.asyncio
     async def test_generate_skips_segmentation_entirely(self, monkeypatch):
         """Nothing is segmented because nothing is masked, so the analysis

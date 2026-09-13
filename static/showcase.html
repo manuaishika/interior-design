@@ -1134,15 +1134,24 @@
 
   var canDraw = false;
 
-  /* The status line says which engine is actually answering, because "free"
-     and "paid" behave differently in a way worth knowing before you judge the
-     output: only one of them can truly hold a door in place. */
+  /* The status line says which engine is actually answering, and whether it
+     can truly hold a door in place or is only asking nicely — worth knowing
+     before you judge the output. openai varies at runtime (USE_INPAINT_MASK),
+     so its line is read from locks_are_enforced rather than fixed per engine. */
   var ENGINES = {
     free:   'Free engine — structure is asked for, not locked',
-    openai: 'Doors and windows are masked off',
     hosted: 'Full engine — doors and windows masked, outline-accurate',
-    local:  'Local engine'
+    local:  'Local engine — doors and windows masked off'
   };
+
+  function engineLine(h) {
+    if (h.engine === 'openai') {
+      return h.locks_are_enforced
+        ? 'Doors and windows are masked off'
+        : 'What must stay is named in the instructions, not masked off';
+    }
+    return ENGINES[h.engine] || 'Ready';
+  }
 
   function check() {
     fetch(api('/api/health'))
@@ -1151,7 +1160,7 @@
         live = true;
         canDraw = Boolean(h.can_draw);
         $('state').textContent = canDraw
-          ? (ENGINES[h.engine] || 'Ready')
+          ? engineLine(h)
           : 'Reading only — pictures are not switched on yet';
         refresh();
       })
