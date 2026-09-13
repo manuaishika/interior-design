@@ -195,8 +195,17 @@ async def read_room(photo: bytes, room_type: str, prompt: str,
         raise GoogleError("The reader returned something unreadable") from exc
 
 
-async def discuss(system: str, turns: list[dict], settings: Settings) -> str:
-    """Keep talking about a room that has already been read."""
+async def discuss(system: str, turns: list[dict], settings: Settings,
+                  design: bytes | None = None) -> str:
+    """Keep talking about a room that has already been read.
+
+    `design` is the generated render, when one exists. Without it this model
+    is in the same position the OpenAI path used to be in: told only what the
+    *original* photograph contained, so it argues with the client about a
+    picture it has never seen. Attached to the newest turn, the same way the
+    reader attaches the room photo, so it reads as "this is what I am being
+    asked about" rather than background.
+    """
     contents = []
     for turn in turns[-12:]:
         role = "model" if turn.get("role") == "assistant" else "user"
@@ -205,6 +214,9 @@ async def discuss(system: str, turns: list[dict], settings: Settings) -> str:
             contents.append({"role": role, "parts": [{"text": text}]})
     if not contents:
         raise GoogleError("Nothing was asked")
+
+    if design and contents[-1]["role"] == "user":
+        contents[-1]["parts"].append(_part_image(design, mime="image/png"))
 
     payload = await _call(
         settings.google_vision_model,

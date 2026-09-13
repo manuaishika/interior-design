@@ -190,6 +190,68 @@ class TestDrawing:
             await google_ai.redraw(png(), "Japandi", settings())
 
 
+class TestDiscuss:
+    """The free engine's chat had the same blindness the OpenAI one did: told
+    only what the *original* room contained, it would insist nothing had been
+    removed while the client sat looking at a render with the desk missing."""
+
+    @pytest.mark.asyncio
+    async def test_the_design_rides_with_the_question(self, monkeypatch):
+        from app import google_ai
+
+        post, seen = reply(text_part("ok"))
+        monkeypatch.setattr(httpx.AsyncClient, "post", post)
+
+        design = png((16, 16))
+        await google_ai.discuss(
+            "system prompt", [{"role": "user", "content": "why is the desk gone"}],
+            settings(), design=design,
+        )
+
+        last_parts = seen["json"]["contents"][-1]["parts"]
+        assert len(last_parts) == 2
+        assert last_parts[0]["text"] == "why is the desk gone"
+        assert base64.b64decode(
+            last_parts[1]["inline_data"]["data"]) == design
+
+    @pytest.mark.asyncio
+    async def test_no_design_means_no_extra_part(self, monkeypatch):
+        """Nothing has been drawn yet, so nothing is attached."""
+        from app import google_ai
+
+        post, seen = reply(text_part("ok"))
+        monkeypatch.setattr(httpx.AsyncClient, "post", post)
+
+        await google_ai.discuss(
+            "system prompt", [{"role": "user", "content": "hello"}], settings())
+
+        assert len(seen["json"]["contents"][-1]["parts"]) == 1
+
+    @pytest.mark.asyncio
+    async def test_free_engine_chat_forwards_the_design_too(self, monkeypatch):
+        """app.reading.discuss dispatches to google_ai on the free engine — the
+        design must not get dropped on that branch the way it originally did."""
+        from app import google_ai as google_ai_module
+        from app import reading
+
+        seen = {}
+
+        async def fake_google_discuss(system, turns, s, design=None):
+            seen["design"] = design
+            return "ok"
+
+        # reading.py imports google_ai lazily inside the function, so the
+        # module itself is what needs patching, not an attribute of reading.
+        monkeypatch.setattr(google_ai_module, "discuss", fake_google_discuss)
+
+        design = png((8, 8))
+        await reading.discuss(
+            "a bedroom", [{"role": "user", "content": "why"}], settings(),
+            design=design,
+        )
+        assert seen["design"] == design
+
+
 class TestErrors:
     @pytest.mark.asyncio
     async def test_a_missing_key_says_where_to_get_one(self):

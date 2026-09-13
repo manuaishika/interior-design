@@ -203,7 +203,8 @@ async def discuss(
         from . import google_ai
 
         try:
-            return await google_ai.discuss(system, turns, settings)
+            return await google_ai.discuss(system, turns, settings,
+                                           design=design)
         except google_ai.GoogleError as exc:
             raise ReadingError(str(exc)) from exc
 
