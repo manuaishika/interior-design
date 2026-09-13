@@ -1,0 +1,7 @@
+sku,name,category,price,currency,width_mm,depth_mm,height_mm,colour,material,style_tags,room_tags,image_url,product_url,in_stock,lead_time_days,notes
+EL-BED-001,Marlow Upholstered Bed 180,bed,48000,INR,1900,2150,1100,oatmeal,linen-weave upholstery,"modern-luxury,japandi","bedroom",https://example.com/img/marlow-bed.jpg,https://example.com/p/marlow-bed,yes,21,King size
+EL-WRD-014,Hale Sliding Wardrobe 2400,wardrobe,96000,INR,2400,650,2400,walnut,laminate on ply,"mid-century-modern,modern-luxury","bedroom",https://example.com/img/hale-wardrobe.jpg,https://example.com/p/hale-wardrobe,yes,28,Two-door sliding
+EL-DSK-007,Fenn Writing Desk 1200,desk,22500,INR,1200,600,750,walnut,solid oak legs,"mid-century-modern,scandinavian","study or office;bedroom",https://example.com/img/fenn-desk.jpg,https://example.com/p/fenn-desk,yes,14,
+EL-CHR-021,Orsa Task Chair,chair,17800,INR,620,620,1150,charcoal,mesh and aluminium,"industrial,modern-luxury","study or office","https://example.com/img/orsa-chair.jpg",https://example.com/p/orsa-chair,yes,7,Adjustable lumbar
+EL-LGT-033,Kiln Pendant Light,lighting,9400,INR,320,320,400,brass,spun brass,"mid-century-modern,modern-luxury","bedroom;dining room",https://example.com/img/kiln-pendant.jpg,https://example.com/p/kiln-pendant,no,35,Bulb not included
+EL-RUG-009,Sona Wool Rug 2400x1700,rug,31000,INR,2400,1700,20,sand,hand-loomed wool,"japandi,bohemian","bedroom;living room",https://example.com/img/sona-rug.jpg,https://example.com/p/sona-rug,yes,10,
