@@ -335,15 +335,115 @@ async def list_designs(request: Request):
 @app.post("/api/designs")
 async def keep_design(request: Request, image: UploadFile = File(...),
                       title: str = Form(""), room: str = Form(""),
-                      style: str = Form(""), note: str = Form("")):
+                      style: str = Form(""), note: str = Form(""),
+                      conversation_id: int | None = Form(None)):
     settings = get_settings()
     who = auth.require_user(request, settings)
     data = await _read_upload(image, settings)
     async with store.session() as db:
+        # Only hang this off a thread that is actually the caller's — an id
+        # for somebody else's conversation is ignored rather than trusted,
+        # the same way a design_id from someone else's collection is.
+        conv_id = None
+        if conversation_id is not None:
+            conv = await store.conversation_for(db, who, conversation_id)
+            conv_id = conv.id if conv else None
         design = await store.save_design(db, who, data, title=title, room=room,
-                                         style=style, note=note)
+                                         style=style, note=note,
+                                         conversation_id=conv_id)
         design_id = design.id
     return {"id": design_id, "url": f"/api/designs/{design_id}/image"}
+
+
+# --- conversations, so a thread survives closing the tab ----------------
+
+def _conversation_card(c: "store.Conversation") -> dict:
+    return {"id": c.id, "title": c.title, "room": c.room, "style": c.style,
+            "created_at": c.created_at.isoformat(),
+            "updated_at": c.updated_at.isoformat()}
+
+
+@app.get("/api/conversations")
+async def list_conversations(request: Request):
+    settings = get_settings()
+    who = auth.require_user(request, settings)
+    async with store.session() as db:
+        rows = await store.conversations_for(db, who)
+        return {"conversations": [_conversation_card(c) for c in rows]}
+
+
+@app.post("/api/conversations")
+async def start_conversation(request: Request, photo: UploadFile = File(...),
+                             room: str = Form(""), style: str = Form(""),
+                             first_message: str = Form("")):
+    settings = get_settings()
+    who = auth.require_user(request, settings)
+    data = await _read_upload(photo, settings)
+    async with store.session() as db:
+        conv = await store.start_conversation(
+            db, who, data, room=room, style=style, first_message=first_message)
+        return {"id": conv.id, "title": conv.title}
+
+
+@app.get("/api/conversations/{conversation_id}")
+async def get_conversation(request: Request, conversation_id: int):
+    settings = get_settings()
+    who = auth.require_user(request, settings)
+    async with store.session() as db:
+        conv = await store.conversation_for(db, who, conversation_id)
+        if conv is None:
+            raise HTTPException(404, "No such conversation.")
+        messages = await store.messages_for(db, conversation_id)
+        designs = await store.designs_for_conversation(db, conversation_id)
+        return {
+            **_conversation_card(conv),
+            "photo_url": f"/api/conversations/{conversation_id}/photo",
+            "messages": [
+                {"role": m.role, "content": m.content,
+                 "created_at": m.created_at.isoformat()}
+                for m in messages
+            ],
+            "designs": [
+                {"id": d.id, "title": d.title, "room": d.room,
+                 "style": d.style, "note": d.note,
+                 "created_at": d.created_at.isoformat(),
+                 "url": f"/api/designs/{d.id}/image"}
+                for d in designs
+            ],
+        }
+
+
+@app.get("/api/conversations/{conversation_id}/photo")
+async def conversation_photo(request: Request, conversation_id: int):
+    settings = get_settings()
+    who = auth.require_user(request, settings)
+    async with store.session() as db:
+        conv = await store.conversation_for(db, who, conversation_id)
+        if conv is None:
+            raise HTTPException(404, "No such conversation.")
+        return Response(conv.photo, media_type="image/png")
+
+
+@app.patch("/api/conversations/{conversation_id}")
+async def rename_conversation_endpoint(request: Request, conversation_id: int,
+                                       title: str = Form(...)):
+    settings = get_settings()
+    who = auth.require_user(request, settings)
+    async with store.session() as db:
+        conv = await store.rename_conversation(db, who, conversation_id, title)
+        if conv is None:
+            raise HTTPException(404, "No such conversation.")
+        return _conversation_card(conv)
+
+
+@app.delete("/api/conversations/{conversation_id}")
+async def drop_conversation(request: Request, conversation_id: int):
+    settings = get_settings()
+    who = auth.require_user(request, settings)
+    async with store.session() as db:
+        if not await store.delete_conversation(db, who, conversation_id):
+            raise HTTPException(404, "No such conversation.")
+    return {"deleted": conversation_id}
 
 
 @app.get("/api/designs/{design_id}/image")
@@ -434,8 +534,17 @@ async def chat_endpoint(
     room_summary: str = Form(...),
     turns: str = Form(...),
     design: UploadFile | None = File(None),
+    conversation_id: int | None = Form(None),
 ):
-    """Continue the conversation about a room already read."""
+    """Continue the conversation about a room already read.
+
+    `conversation_id` is optional — chat works the same without it, for an
+    anonymous or code-only session. Given one, the newest turn and the reply
+    are appended to that thread, which is what makes it still there on
+    reload. It is looked up scoped to whoever is actually signed in, so a
+    code-only session (signed in, but nobody's account) or somebody else's id
+    finds nothing and gets a plain 404 — the same non-answer either way.
+    """
     settings = get_settings()
     auth.guard(request, settings)
     try:
@@ -447,11 +556,30 @@ async def chat_endpoint(
 
     drawn = await _read_upload(design, settings) if design is not None else None
 
+    conv = None
+    if conversation_id is not None:
+        who = auth.current_user_id(request, settings)
+        if who is None:
+            raise HTTPException(404, "No such conversation.")
+        async with store.session() as db:
+            conv = await store.conversation_for(db, who, conversation_id)
+            if conv is None:
+                raise HTTPException(404, "No such conversation.")
+
     try:
-        return {"reply": await discuss(room_summary, parsed, settings,
-                                       design=drawn)}
+        reply = await discuss(room_summary, parsed, settings, design=drawn)
     except ReadingError as exc:
         raise HTTPException(502, str(exc)) from exc
+
+    if conv is not None and parsed and parsed[-1].get("role") != "assistant":
+        asked = str(parsed[-1].get("content", ""))
+        async with store.session() as db:
+            conv = await store.conversation_for(db, conv.user_id, conv.id)
+            if asked:
+                await store.add_message(db, conv, "user", asked)
+            await store.add_message(db, conv, "assistant", reply)
+
+    return {"reply": reply}
 
 
 @app.post("/api/generate", response_model=GenerateResponse)

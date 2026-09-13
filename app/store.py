@@ -92,6 +92,12 @@ class Design(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    # Null for a design kept outside any conversation — the common case today.
+    # Set when it was kept from inside a thread, so reopening the thread shows
+    # what was actually drawn while talking about it.
+    conversation_id: Mapped[int | None] = mapped_column(
+        ForeignKey("conversations.id", ondelete="CASCADE"), index=True,
+        default=None)
     title: Mapped[str] = mapped_column(String(160), default="")
     room: Mapped[str] = mapped_column(String(60), default="")
     style: Mapped[str] = mapped_column(String(60), default="")
@@ -101,6 +107,40 @@ class Design(Base):
     height: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True),
                                                     default=now, index=True)
+
+
+class Conversation(Base):
+    """A thread about one room: the photo it started from, and everything
+    said about it since. Designs kept while the thread is open hang off it
+    (see Design.conversation_id), so reopening one shows what was drawn too.
+    """
+    __tablename__ = "conversations"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    title: Mapped[str] = mapped_column(String(160), default="")
+    room: Mapped[str] = mapped_column(String(60), default="")
+    style: Mapped[str] = mapped_column(String(60), default="")
+    # The original room photo, so a thread can be reopened and talked about
+    # again without asking the person to upload it a second time.
+    photo: Mapped[bytes] = mapped_column(LargeBinary)
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True),
+                                                    default=now, index=True)
+    updated_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True),
+                                                     default=now, index=True)
+
+
+class Message(Base):
+    __tablename__ = "messages"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    conversation_id: Mapped[int] = mapped_column(
+        ForeignKey("conversations.id", ondelete="CASCADE"), index=True)
+    role: Mapped[str] = mapped_column(String(16))          # "user" | "assistant"
+    content: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True),
+                                                    default=now)
 
 
 # ---------------------------------------------------------------------------
@@ -221,10 +261,14 @@ async def from_google(db: AsyncSession, google_id: str, email: str,
 
 async def save_design(db: AsyncSession, user_id: int, image: bytes, *,
                       title: str = "", room: str = "", style: str = "",
-                      note: str = "", width: int = 0, height: int = 0) -> Design:
+                      note: str = "", width: int = 0, height: int = 0,
+                      conversation_id: int | None = None) -> Design:
+    # conversation_id is trusted here — the caller must already have checked
+    # it belongs to user_id (conversation_for does that), the same way every
+    # other write in this module leaves ownership to its caller's lookup.
     design = Design(user_id=user_id, image=image, title=title[:160],
                     room=room[:60], style=style[:60], note=note,
-                    width=width, height=height)
+                    width=width, height=height, conversation_id=conversation_id)
     db.add(design)
     await db.commit()
     return design
@@ -251,5 +295,119 @@ async def delete_design(db: AsyncSession, user_id: int, design_id: int) -> bool:
     if design is None:
         return False
     await db.delete(design)
+    await db.commit()
+    return True
+
+
+# ---------------------------------------------------------------------------
+# Conversations
+# ---------------------------------------------------------------------------
+
+def _title_for(first_message: str, room: str, style: str) -> str:
+    """Never blank — a list of "Untitled" is not a history.
+
+    The person's own words, if there are any yet, because that is what they
+    will recognise the thread by later. Otherwise what the thread is *of*,
+    which is still more useful than a number.
+    """
+    first_message = (first_message or "").strip()
+    if first_message:
+        return first_message[:60]
+    room = (room or "a room").strip().replace("-", " ").title() or "A room"
+    style = (style or "").strip().replace("-", " ").title()
+    stamp = now().strftime("%d %b")
+    return f"{room} · {style} · {stamp}" if style else f"{room} · {stamp}"
+
+
+async def start_conversation(db: AsyncSession, user_id: int, photo: bytes, *,
+                             room: str = "", style: str = "",
+                             first_message: str = "") -> Conversation:
+    conv = Conversation(
+        user_id=user_id, photo=photo, room=room[:60], style=style[:60],
+        title=_title_for(first_message, room, style),
+    )
+    db.add(conv)
+    await db.commit()
+    return conv
+
+
+async def conversations_for(db: AsyncSession, user_id: int,
+                            limit: int = 60) -> list[Conversation]:
+    rows = await db.scalars(
+        select(Conversation).where(Conversation.user_id == user_id)
+        .order_by(Conversation.updated_at.desc()).limit(limit)
+    )
+    return list(rows)
+
+
+async def conversation_for(db: AsyncSession, user_id: int,
+                           conversation_id: int) -> Conversation | None:
+    """Always scoped to the owner, so an id from someone else's thread
+    returns nothing rather than their photo and messages."""
+    return await db.scalar(
+        select(Conversation).where(Conversation.id == conversation_id,
+                                   Conversation.user_id == user_id))
+
+
+async def messages_for(db: AsyncSession, conversation_id: int) -> list[Message]:
+    rows = await db.scalars(
+        select(Message).where(Message.conversation_id == conversation_id)
+        .order_by(Message.created_at.asc())
+    )
+    return list(rows)
+
+
+async def designs_for_conversation(db: AsyncSession,
+                                   conversation_id: int) -> list[Design]:
+    rows = await db.scalars(
+        select(Design).where(Design.conversation_id == conversation_id)
+        .order_by(Design.created_at.desc())
+    )
+    return list(rows)
+
+
+async def add_message(db: AsyncSession, conversation: Conversation, role: str,
+                      content: str) -> Message:
+    """Appends one turn and bumps updated_at, so the thread list stays sorted
+    by when it was last actually talked in rather than when it was made."""
+    message = Message(conversation_id=conversation.id, role=role,
+                      content=content)
+    db.add(message)
+    conversation.updated_at = now()
+    await db.commit()
+    return message
+
+
+async def rename_conversation(db: AsyncSession, user_id: int,
+                              conversation_id: int, title: str) -> Conversation | None:
+    conv = await conversation_for(db, user_id, conversation_id)
+    if conv is None:
+        return None
+    title = title.strip()[:160]
+    if title:
+        conv.title = title
+    await db.commit()
+    return conv
+
+
+async def delete_conversation(db: AsyncSession, user_id: int,
+                              conversation_id: int) -> bool:
+    """Deletes the thread and everything hung off it.
+
+    `ondelete="CASCADE"` is real on Postgres but SQLite only honours it with
+    `PRAGMA foreign_keys=ON`, which nothing here turns on — and this project
+    runs on both. Rather than make the app's correctness depend on a pragma
+    the async SQLite driver may or may not have applied, the messages and any
+    designs kept from this thread are deleted explicitly, so this behaves the
+    same on a laptop's SQLite file as it does in production.
+    """
+    conv = await conversation_for(db, user_id, conversation_id)
+    if conv is None:
+        return False
+    for message in await messages_for(db, conversation_id):
+        await db.delete(message)
+    for design in await designs_for_conversation(db, conversation_id):
+        await db.delete(design)
+    await db.delete(conv)
     await db.commit()
     return True

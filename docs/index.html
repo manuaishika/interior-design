@@ -276,6 +276,20 @@
     font-size: .76rem; text-align: center; text-decoration: none;
     line-height: 1.6; }
 
+  .thread-list { display: grid; gap: .1rem; margin-top: 1.4rem; }
+  .thread-card { display: flex; align-items: center; gap: .8rem;
+    border-top: 1px solid var(--line); padding: .8rem 0; cursor: pointer; }
+  .thread-card:first-child { border-top: 0; }
+  .thread-card img { width: 3.4rem; height: 3.4rem; object-fit: cover;
+    border-radius: 2px; flex: none; background: var(--card); }
+  .thread-card .meta { flex: 1; min-width: 0; }
+  .thread-card .meta b { display: block; font-size: .9rem;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .thread-card .meta span { font-size: .74rem; color: var(--muted); }
+  .thread-card .bin { border: 0; background: none; color: var(--muted);
+    font-size: .74rem; cursor: pointer; padding: .3rem .5rem; }
+  .thread-card .bin:hover { color: var(--clay); }
+
   .peek-note { grid-column: 1 / -1; display: grid; place-items: center;
     aspect-ratio: 3/1; background: var(--card); font-size: .74rem;
     color: var(--muted); padding: .6rem; text-align: center; }
@@ -321,6 +335,7 @@
       <button type="button" data-go="how">How it works</button>
       <button type="button" data-go="pricing">Pricing</button>
       <button type="button" id="navSaved" class="hidden">Your designs</button>
+      <button type="button" id="navHistory" class="hidden">Your chats</button>
     </nav>
     <button class="cta ghost" id="login" type="button">Log in</button>
   </div>
@@ -481,6 +496,14 @@
       </div>
       <table class="cost" id="cost"></table>
       <p class="hint" id="costAssumes"></p>
+    </section>
+
+    <section class="sect hidden" id="historyBlock">
+      <div class="sec-head">
+        <h2 class="sec">Your chats</h2>
+        <span class="gal-note" id="historyNote"></span>
+      </div>
+      <div class="thread-list" id="history"></div>
     </section>
 
     <section class="sect hidden" id="savedBlock">
@@ -1025,6 +1048,13 @@
   var LOOKS = STYLES.concat(NON_STYLES);
   var style = STYLES[0], room = ROOM_TYPES[0], depth = DEPTHS[0], count = 3;
   var live = false, sampler = null, turns = [], roomBrief = '', reading = null;
+  // Set when a thread was created for this room (signed-in) or restored from
+  // history, so chat and kept designs can hang off it. currentPhotoBlob holds
+  // a reopened thread's photo — a native file input cannot be filled by
+  // script, so a fetched blob stands in for photo.files[0] everywhere that
+  // matters, and currentPhoto() is the one place that decides which wins.
+  var convId = null, currentPhotoBlob = null;
+  function currentPhoto() { return photo.files[0] || currentPhotoBlob; }
 
   function pillRow(el, items, current, onPick, clay) {
     el.innerHTML = items.map(function (it) {
@@ -1226,6 +1256,7 @@
         googleReady = Boolean(s.google_available);
         showDoor();
         loadSaved();
+        loadHistory();
       })
       .catch(function () {
         needsCode = false; signedIn = true; account = null;
@@ -1244,12 +1275,22 @@
       }
     }, 60);
   };
+  $('navHistory').onclick = function () {
+    show('studio');
+    setTimeout(function () {
+      var block = $('historyBlock');
+      if (!block.classList.contains('hidden')) {
+        block.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 60);
+  };
 
   function showDoor() {
     $('login').textContent = account
       ? (account.name || account.email).split('@')[0] + ' · Sign out'
       : (needsCode && signedIn ? 'Sign out' : 'Sign in');
     $('navSaved').classList.toggle('hidden', !account);
+    $('navHistory').classList.toggle('hidden', !account);
     refresh();
   }
 
@@ -1401,6 +1442,128 @@
       .catch(function () { $('savedBlock').classList.add('hidden'); });
   }
 
+  /* ---- chats somebody had ------------------------------------------- */
+  function threadDate(iso) {
+    try {
+      return new Date(iso).toLocaleDateString(undefined,
+        { day: 'numeric', month: 'short' });
+    } catch (e) { return ''; }
+  }
+
+  function loadHistory() {
+    if (!account) {
+      $('historyBlock').classList.add('hidden');
+      return;
+    }
+    fetch(api('/api/conversations'), { credentials: 'include' })
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+      .then(function (d) {
+        var list = d.conversations || [];
+        $('historyBlock').classList.toggle('hidden', list.length === 0);
+        $('historyNote').textContent = list.length
+          ? list.length + (list.length === 1 ? ' chat' : ' chats') : '';
+        $('history').innerHTML = '';
+        list.forEach(function (item) {
+          var card = document.createElement('div');
+          card.className = 'thread-card';
+
+          var img = document.createElement('img');
+          img.src = api('/api/conversations/' + item.id + '/photo');
+          img.alt = '';
+
+          var meta = document.createElement('div');
+          meta.className = 'meta';
+          meta.innerHTML = '<b></b><span></span>';
+          meta.querySelector('b').textContent = item.title || 'Untitled';
+          meta.querySelector('span').textContent =
+            [item.room, item.style].filter(Boolean).join(' · ') +
+            (item.updated_at ? ' · ' + threadDate(item.updated_at) : '');
+
+          var bin = document.createElement('button');
+          bin.type = 'button';
+          bin.className = 'bin';
+          bin.textContent = 'Remove';
+          bin.onclick = function (e) {
+            e.stopPropagation();
+            fetch(api('/api/conversations/' + item.id),
+                  { method: 'DELETE', credentials: 'include' })
+              .then(loadHistory);
+          };
+
+          card.appendChild(img);
+          card.appendChild(meta);
+          card.appendChild(bin);
+          card.onclick = function () { openConversation(item.id); };
+          $('history').appendChild(card);
+        });
+      })
+      .catch(function () { $('historyBlock').classList.add('hidden'); });
+  }
+
+  /* Reopening a thread. A native file input cannot be filled by script, so
+     the photo comes back as a blob (currentPhoto() prefers it over an empty
+     file input) rather than as a re-selected file. What was said replays
+     into the thread and can be added to; the room-analysis chips and cost
+     table are not persisted, so those start empty again until "Reimagine
+     this room" reads the photo once more. */
+  async function openConversation(id) {
+    var r = await fetch(api('/api/conversations/' + id), { credentials: 'include' });
+    if (!r.ok) { return; }
+    var d = await r.json();
+
+    var photoRes = await fetch(api(d.photo_url), { credentials: 'include' });
+    currentPhotoBlob = await photoRes.blob();
+    var url = URL.createObjectURL(currentPhotoBlob);
+    $('thumb').src = url;
+    $('thumb').classList.remove('hidden');
+    $('dropTitle').textContent = 'Photo added';
+    $('dropNote').textContent = 'Click to choose a different one';
+
+    var foundRoom = ROOM_TYPES.filter(function (x) { return x.id === d.room; })[0];
+    if (foundRoom) { room = foundRoom; $('roomSel').value = room.id; }
+    var foundStyle = LOOKS.filter(function (x) { return x.id === d.style; })[0];
+    if (foundStyle) {
+      style = foundStyle;
+      pillRow($('stylePills'), LOOKS, style, function (x) { style = x; peek(x); }, true);
+    }
+
+    convId = d.id;
+    reading = null;
+    lastDesign = null;
+    roomBrief = [d.room, d.style].filter(Boolean).join(' · ');
+    turns = (d.messages || []).map(function (m) {
+      return { role: m.role, content: m.content };
+    });
+    $('thread').innerHTML = '';
+    (d.messages || []).forEach(function (m) { addTurn(m.role, m.content); });
+    $('roomLine').textContent = d.title || roomBrief;
+    $('chips').innerHTML = '';
+    $('dirs').innerHTML = '';
+    drawQuick();
+
+    $('shots').innerHTML = '';
+    (d.designs || []).forEach(function (item, i) {
+      var figure = document.createElement('figure');
+      var img = document.createElement('img');
+      img.src = api(item.url);
+      img.alt = item.title || 'Design';
+      var cap = document.createElement('figcaption');
+      cap.textContent = item.title || ('Design ' + (i + 1));
+      figure.appendChild(img);
+      figure.appendChild(cap);
+      $('shots').appendChild(figure);
+    });
+    $('paneEmpty').classList.toggle('hidden', (d.designs || []).length > 0);
+    $('shots').classList.toggle('hidden', (d.designs || []).length === 0);
+
+    $('readout').classList.remove('hidden');
+    show('studio');
+    refresh();
+    setTimeout(function () {
+      $('readout').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 60);
+  }
+
   function fileName(index) {
     var bits = ['second-draft', room.id, style.id, String(index + 1)];
     return bits.join('-').replace(/[^a-z0-9-]/gi, '') + '.png';
@@ -1417,6 +1580,8 @@
     body.append('room', room.id);
     body.append('style', style.name);
     body.append('note', $('text').value.trim());
+    // Kept from inside a thread, so reopening it later shows what was drawn.
+    if (convId) { body.append('conversation_id', String(convId)); }
 
     button.disabled = true;
     button.textContent = 'Keeping…';
@@ -1449,6 +1614,15 @@
   $('plus').onclick = function () { photo.click(); };
   photo.onchange = function () {
     if (!photo.files[0]) return;
+    // A deliberate new upload always means a new room, even if a history
+    // thread was open a moment ago — carrying its id forward would file the
+    // next chat and any kept design under the wrong photo.
+    currentPhotoBlob = null;
+    convId = null;
+    reading = null;
+    turns = [];
+    $('thread').innerHTML = '';
+    $('readout').classList.add('hidden');
     var url = URL.createObjectURL(photo.files[0]);
     $('thumb').src = url;
     $('thumb').classList.remove('hidden');
@@ -1458,7 +1632,7 @@
   };
 
   function refresh() {
-    var has = Boolean(photo.files[0]);
+    var has = Boolean(currentPhoto());
     var barred = needsCode && !signedIn;
     $('go').disabled = barred || !has || (!live && !sampler);
     if (barred) { say('Sign in to use the studio.'); }
@@ -1605,12 +1779,13 @@
     $('readout').classList.remove('hidden');
     drawCost(d.budget);
     drawQuick();
+    ensureConversation();
   }
 
   async function readRoom() {
     if (live) {
       var f = new FormData();
-      f.append('photo', photo.files[0]);
+      f.append('photo', currentPhoto());
       f.append('room_type', room.name.toLowerCase());
       var r = await fetch(api('/api/read'), { method: 'POST', body: f, credentials: 'include' });
       var d = await r.json();
@@ -1630,16 +1805,33 @@
         '"directions":[{"title":"","palette":"","pieces":["",""],"why":""}]}. ' +
         'Count carefully — two single beds are two, not one double. treatment is "keep" ' +
         'for doors, windows and the floor people walk on. Exactly three directions.',
-        { images: [photo.files[0]] });
+        { images: [currentPhoto()] });
       if (out && out.is_room === false) throw new NotARoom(out.subject);
       return out;
     }
     throw new Error('The room reader is not available right now.');
   }
 
+  /* One thread per room. Created once signed in has something to read, and
+     left alone on every later draw or chat in the same room — only a fresh
+     upload (photo.onchange) or opening a different thread from history
+     starts another one. */
+  function ensureConversation() {
+    if (!account || convId) return;
+    var cf = new FormData();
+    cf.append('photo', currentPhoto());
+    cf.append('room', room.id);
+    cf.append('style', style.id);
+    fetch(api('/api/conversations'), { method: 'POST', body: cf,
+                                       credentials: 'include' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (c) { if (c) { convId = c.id; loadHistory(); } })
+      .catch(function () {});
+  }
+
   async function draw() {
     var f = new FormData();
-    f.append('photo', photo.files[0]);
+    f.append('photo', currentPhoto());
     f.append('style', style.id);
     // What a room is *for* governs what it should become. Collecting this and
     // then not sending it is how "nursery" used to draw a generic bedroom.
@@ -1727,6 +1919,8 @@
           for (var b = 0; b < raw.length; b++) { buf[b] = raw.charCodeAt(b); }
           f.append('design', new Blob([buf], { type: 'image/png' }), 'design.png');
         }
+        // So this exchange is still there on reload, not only in this tab.
+        if (convId) { f.append('conversation_id', String(convId)); }
         var r = await fetch(api('/api/chat'), { method: 'POST', body: f, credentials: 'include' });
         var d = await r.json();
         if (!r.ok) throw new Error(d.detail || 'Could not answer');
