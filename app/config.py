@@ -185,6 +185,19 @@ class Settings(BaseSettings):
     # models bleed across mask boundaries, so a small cushion keeps door frames
     # and window reveals genuinely intact.
     locked_dilation_px: int = 12
+    # Hand the generator a mask, or let it edit the whole photograph.
+    #
+    # A mask says "replace everything I have left open", and everything except
+    # the doors and windows is left open — so the desk, the television and the
+    # wardrobe were erased and reinvented, a cupboard came back as a doorway,
+    # and a one-bed room came back with two beds. A strong editing model does
+    # better with the whole picture plus words describing what must survive,
+    # which is what ChatGPT does with the same photograph and the same account.
+    #
+    # Kept as a switch because a mask is the right tool for weaker inpainting
+    # models, which is what the Replicate path still uses.
+    use_inpaint_mask: bool = False
+
     # Most Stable-Diffusion inpainting endpoints treat WHITE as "repaint this".
     # Set to True for endpoints using the opposite convention.
     invert_inpaint_mask: bool = False

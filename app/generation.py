@@ -125,6 +125,40 @@ def room_brief(room: str) -> str:
     return ROOM_BRIEFS.get((room or "").strip().lower(), "")
 
 
+# Everything that stops this being a picture of a different room.
+#
+# This used to be a mask's job: the doors and windows were painted out and the
+# rest of the frame was handed to the generator to repaint. That is exactly
+# what it did — the desk, the television, the wardrobe and the air conditioner
+# were all inside the repaint zone, so they were erased and something new was
+# invented in their place. A cupboard came back as a door. A one-bed room came
+# back with two beds.
+#
+# ChatGPT, given the same photograph and the same account, keeps all of it,
+# because it is not handed a mask instructing it to replace everything. So the
+# protection moved here, into words, where it can name the things a rectangle
+# cannot: that a wardrobe stays a wardrobe, that the air conditioner cannot
+# move to another wall, that one bed stays one bed.
+PRESERVE = (
+    "This is a photograph of a real room and the result must be recognisably "
+    "the same room, from the same spot.\n\n"
+    "Keep exactly as they are, in the same places and at the same sizes:\n"
+    "- the camera position, angle, height and field of view. Do not crop, "
+    "zoom, straighten or change the proportions of the room\n"
+    "- the walls, the ceiling and the floor plan, including ceiling height\n"
+    "- every door and every window, each at its own position and size\n"
+    "- built-in storage. A wardrobe stays a wardrobe in the same place with "
+    "the same doors. It must never become a doorway, a wall or a window\n"
+    "- fixed services exactly where they are mounted: the air conditioner, "
+    "the ceiling fan, lights, switches and sockets. An air conditioner "
+    "cannot move to a different wall, and there is only ever one of it\n\n"
+    "Do not add furniture this room does not already have. If the "
+    "photograph shows one bed, the result shows one bed — never invent a "
+    "second bed, a second door or a second window. Do not turn a private "
+    "room into a hotel room."
+)
+
+
 def build_prompt(
     style: str, extra: str = "", contents: str = "", keep: str = "",
     room: str = "",
@@ -142,7 +176,7 @@ def build_prompt(
     key = style.strip().lower()
     base = STYLES.get(key, style.strip())
     verb = "photographed as" if key in ("none", "brief") else "restyled in"
-    prompt = f"Interior design photograph of this room {verb} {base}."
+    prompt = f"Redesign this room as {base}.\n\n{PRESERVE}\n"
 
     # Before the contents, because it governs what the contents should become.
     brief = room_brief(room)
@@ -150,7 +184,12 @@ def build_prompt(
         prompt += f" It must work as {brief}."
 
     if contents.strip():
-        prompt += f" The room contains {contents.strip()}."
+        prompt += (
+            f"\nWhat is in the room now: {contents.strip()}. Every one of these "
+            "stays. You may restyle them, re-upholster them, change their "
+            "finish or swap one for a better version of the same thing in the "
+            "same place — but none of them may be removed from the room."
+        )
     if keep.strip():
         # "Keep" means the thing is still there and still works, not that it
         # is untouched. A desk may become a better desk. It may not become a

@@ -1,29 +1,29 @@
-"""The whole job on one OpenAI key, with the mask still enforced.
+"""The whole job on one OpenAI key.
 
-Why this exists
----------------
-There were two engines and each wanted something the other did not.
+    GPT-4o        -> where the doors and windows are, as boxes
+    gpt-image-2.5 -> redraws the room
 
-The free one needs no card and holds nothing: it *asks* the model to leave the
-door alone. The full one holds everything but needs two paid accounts — OpenAI
-to read the room, Replicate to segment and repaint it. So somebody with one
-OpenAI key could read a room and then not get a picture, which is the worst
-place to be after paying for something.
+Why the mask is off by default
+------------------------------
+It used to send an inpainting mask: the doors and windows painted out, the
+rest of the frame handed over to be repainted. That is exactly what happened.
+Everything except the openings was inside the repaint zone, so the desk, the
+television, the office chair and the wardrobe were erased and something new
+was invented in their place. A cupboard came back as a doorway. A one-bed
+room came back with two beds, and an air conditioner appeared on a wall it
+could not physically be on.
 
-This closes that gap. OpenAI's image edit endpoint takes a mask, so the lock
-can be real without Replicate existing at all:
+A mask is the right tool for a weak inpainting model that needs to be told
+where to look. On a strong editing model it is a demolition order. Given the
+same photograph and the same account, ChatGPT keeps all of that furniture —
+because nobody hands it a mask saying "replace this".
 
-    GPT-4o          -> where the doors, windows and walkways are
-    a rasterised mask -> those regions, painted out
-    gpt-image-2.5   -> repaints only what is left
+So the protection moved into words (`generation.PRESERVE`), where it can name
+what a rectangle cannot: that a wardrobe stays a wardrobe, that the air
+conditioner cannot move to another wall, that one bed stays one bed.
 
-What it gives up against SAM2
------------------------------
-Boxes, not outlines. SAM2 returns the actual silhouette of a door; this returns
-a rectangle around it, so a little wall near the frame is protected too. That
-costs some editable area around openings and protects slightly more than it
-needs to — which is the right direction to be wrong. Destroying a doorway is
-the failure that matters; under-editing the wall beside it is not.
+The mask is still computed and still returned, so the openings it found can be
+inspected. `USE_INPAINT_MASK=true` sends it again.
 
 Mask convention
 ---------------
@@ -329,32 +329,42 @@ def looks_inverted(original: Image.Image, drawn: bytes,
     return locked_moved > 12.0 and locked_moved > editable_moved * 2.0
 
 
-async def redraw(image: Image.Image, inpaint_mask: Image.Image, prompt: str,
-                 settings: Settings) -> bytes:
-    """Repaint only the unmasked part of the room."""
+async def redraw(image: Image.Image, inpaint_mask: Image.Image | None,
+                 prompt: str, settings: Settings) -> bytes:
+    """Redraw the room.
+
+    With no mask — the default, and what ChatGPT does — the model edits the
+    whole photograph with the original in front of it, and keeps what is in it.
+    With a mask it repaints everything the mask leaves open, which on a strong
+    editing model means erasing the furniture and inventing new furniture in
+    its place. That is not what anybody wanted.
+    """
     photo = io.BytesIO()
     image.convert("RGB").save(photo, format="PNG")
     photo.seek(0)
 
-    mask = io.BytesIO(to_openai_mask(inpaint_mask,
-                                     inverted=settings.invert_inpaint_mask))
-    mask.seek(0)
+    mask = None
+    if inpaint_mask is not None:
+        mask = io.BytesIO(to_openai_mask(inpaint_mask,
+                                         inverted=settings.invert_inpaint_mask))
 
     client = _client(settings)
     last: Exception | None = None
 
     for model in image_models(settings):
         photo.seek(0)
-        mask.seek(0)
+        call = {
+            "model": model,
+            "image": ("room.png", photo, "image/png"),
+            "prompt": prompt[:4000],
+            "size": _edit_size(image.size),
+            "n": 1,
+        }
+        if mask is not None:
+            mask.seek(0)
+            call["mask"] = ("mask.png", mask, "image/png")
         try:
-            response = await client.images.edit(
-                model=model,
-                image=("room.png", photo, "image/png"),
-                mask=("mask.png", mask, "image/png"),
-                prompt=prompt[:4000],
-                size=_edit_size(image.size),
-                n=1,
-            )
+            response = await client.images.edit(**call)
         except Exception as exc:
             last = exc
             if _no_such_model(exc):

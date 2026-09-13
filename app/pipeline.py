@@ -123,11 +123,15 @@ async def _run_openai(data, style, settings, *, extra_prompt, variants, room="",
             locked=is_locked(kind, None), category=kind, confidence=0.0,
         ))
 
+    # The mask is still built, and still returned, so the openings it found can
+    # be checked. It is only *sent* if asked for — sending it is what erased the
+    # furniture.
     inpaint_mask = build_inpaint_mask(
         image.size, [m.array for m in masks],
         dilation_px=settings.locked_dilation_px,
         invert=False,
     )
+    sent_mask = inpaint_mask if settings.use_inpaint_mask else None
 
     # Without this the model is told to draw "a bedroom" and draws the average
     # one: the desk and the television it was never told about simply are not
@@ -136,7 +140,7 @@ async def _run_openai(data, style, settings, *, extra_prompt, variants, room="",
                           keep=keep)
     drawn = await asyncio.gather(
         *(openai_images.redraw(
-            image, inpaint_mask,
+            image, sent_mask,
             prompt + openai_images.VARIATIONS[i % len(openai_images.VARIATIONS)],
             settings)
           for i in range(count)),
