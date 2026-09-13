@@ -29,7 +29,8 @@ import logging
 import secrets
 
 from sqlalchemy import (
-    DateTime, ForeignKey, Integer, LargeBinary, String, Text, select,
+    DateTime, ForeignKey, Integer, LargeBinary, String, Text, inspect, select,
+    text,
 )
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -175,11 +176,38 @@ def configure(database_url: str = "") -> None:
     _sessions = async_sessionmaker(_engine, expire_on_commit=False)
 
 
+def _add_missing_columns(sync_conn) -> None:
+    """create_all only creates tables that do not exist yet — it never alters
+    one that does. `designs` already existed, with real people's designs in
+    it, by the time conversation_id was added to the model. This is the
+    one-line version of a migration for a project with one schema and, until
+    now, no history to migrate (see HANDOFF.md); if more of these
+    accumulate, that line is where this becomes Alembic.
+    """
+    inspector = inspect(sync_conn)
+    if "designs" not in inspector.get_table_names():
+        return   # create_all just made it fresh, already with the column
+    existing = {c["name"] for c in inspector.get_columns("designs")}
+    if "conversation_id" in existing:
+        return
+    # No FK clause on SQLite: it does not enforce one without a pragma
+    # nothing here turns on, and ALTER TABLE ... ADD CONSTRAINT is not
+    # supported there anyway. Postgres gets the real constraint.
+    if sync_conn.dialect.name == "postgresql":
+        sync_conn.execute(text(
+            "ALTER TABLE designs ADD COLUMN conversation_id INTEGER "
+            "REFERENCES conversations(id) ON DELETE CASCADE"))
+    else:
+        sync_conn.execute(text(
+            "ALTER TABLE designs ADD COLUMN conversation_id INTEGER"))
+
+
 async def create_tables() -> None:
     if _engine is None:
         raise RuntimeError("store.configure() was never called")
     async with _engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(_add_missing_columns)
 
 
 def session() -> AsyncSession:

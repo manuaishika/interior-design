@@ -237,6 +237,54 @@ class TestRenamingAndDeleting:
         assert client.get("/api/conversations").status_code == 401
 
 
+class TestTheMigrationOntoAnExistingDatabase:
+    """create_all only creates tables that do not exist yet — it never alters
+    one that does. designs already existed, with real people's designs in
+    it, the moment conversation_id was added to the model. This pins that
+    store.create_tables() notices and adds the column rather than leaving a
+    production database one column behind its own code."""
+
+    @pytest.mark.asyncio
+    async def test_an_existing_designs_table_gets_the_new_column(self, tmp_path):
+        from sqlalchemy import Column, DateTime, Integer, LargeBinary, MetaData, String, Table
+
+        settings = Settings(
+            database_url=f"sqlite+aiosqlite:///{tmp_path}/old.db")
+        store.configure(settings.database_url)
+        try:
+            async with store._engine.begin() as conn:
+                def make_old_shape(sync_conn):
+                    # The real users table, but designs as it looked before
+                    # conversation_id existed — no such column at all.
+                    store.Base.metadata.tables["users"].create(sync_conn)
+                    meta = MetaData()
+                    Table(
+                        "designs", meta,
+                        Column("id", Integer, primary_key=True),
+                        Column("user_id", Integer),
+                        Column("title", String(160)), Column("room", String(60)),
+                        Column("style", String(60)), Column("note", String),
+                        Column("image", LargeBinary), Column("width", Integer),
+                        Column("height", Integer), Column("created_at", DateTime),
+                    )
+                    meta.create_all(sync_conn)
+                await conn.run_sync(make_old_shape)
+
+            await store.create_tables()          # the migration under test
+
+            async with store.session() as db:
+                user = await store.sign_up(db, "a@b.test", "a-good-password")
+                conv = await store.start_conversation(
+                    db, user.id, b"x", room="bedroom", style="japandi")
+                design = await store.save_design(
+                    db, user.id, b"y", conversation_id=conv.id)
+                assert design.conversation_id == conv.id
+
+            await store.create_tables()          # must not error the second time
+        finally:
+            await store.dispose()
+
+
 class TestKeepingADesignInAThread:
     def test_a_strangers_conversation_id_does_not_attach(self, client):
         """A design_id from another thread is ignored, not trusted — kept as
