@@ -75,9 +75,36 @@ specific things to buy. why is one sentence on who it suits.
 """
 
 DESIGNER = """\
-You are an interior designer talking to a client about this room:
+You are an interior designer talking to a client about their room.
 
+What was in the photograph they sent:
 {room}
+
+A design was then generated from it, and it is attached. Look at it before
+answering. It is the thing the client is looking at and asking about.
+
+If the client says something has been removed or changed, check the picture
+and believe them. A generated design routinely drops furniture that was in
+the original, and saying "I haven't removed anything" when they can see that
+you have is the single most infuriating thing you could do. Say what actually
+happened, say it plainly, and say what to do about it — usually: tick that
+item so it must stay, and draw it again.
+
+Be specific and brief — a short paragraph. Name real furniture and materials.
+Never move a door or a window; say so plainly if asked to.
+"""
+
+# Same job, minus the picture. Used only when no design has been drawn yet.
+DESIGNER_BLIND = """\
+You are an interior designer talking to a client about their room.
+
+What was in the photograph they sent:
+{room}
+
+You have NOT seen any generated design. You are working from that description
+alone. If the client asks what a design looks like or what it changed, say
+you cannot see it rather than guessing from the description — the description
+is of the original room, not of any design made from it.
 
 Be specific and brief — a short paragraph. Name real furniture and materials.
 Never move a door or a window; say so plainly if asked to.
@@ -154,17 +181,23 @@ def _checked(answer: dict) -> dict:
 
 
 async def discuss(
-    room_summary: str, turns: list[dict], settings: Settings
+    room_summary: str, turns: list[dict], settings: Settings,
+    design: bytes | None = None,
 ) -> str:
     """Continue the conversation about a room that has already been read.
 
     The room summary is re-sent every turn: the model holds no memory between
     calls, and without it the answers drift into generic advice.
+
+    The design is sent too, when one exists. Without it this was arguing with
+    people about their own eyes — told only what the *original* room contained,
+    it would insist nothing had been removed while the client sat looking at a
+    picture with the desk missing.
     """
     if not turns:
         raise ReadingError("Nothing was asked")
 
-    system = DESIGNER.format(room=room_summary)
+    system = (DESIGNER if design else DESIGNER_BLIND).format(room=room_summary)
 
     if resolve_backend(settings) == "free":
         from . import google_ai
@@ -180,6 +213,15 @@ async def discuss(
         content = str(turn.get("content", ""))[:4000]
         if content:
             messages.append({"role": role, "content": content})
+
+    # The picture rides with the newest question rather than the system
+    # message, so the model reads it as "this is what I am being asked about".
+    if design and messages[-1]["role"] == "user":
+        uri = "data:image/png;base64," + base64.b64encode(design).decode("ascii")
+        messages[-1] = {"role": "user", "content": [
+            {"type": "text", "text": messages[-1]["content"]},
+            {"type": "image_url", "image_url": {"url": uri}},
+        ]}
 
     try:
         response = await _client(settings).chat.completions.create(

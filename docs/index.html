@@ -167,7 +167,12 @@
   .chips { display: flex; gap: .35rem; flex-wrap: wrap; }
   .chip { font-size: .76rem; padding: .22rem .6rem; border-radius: 2px;
     background: var(--card); color: var(--muted); border: 1px solid var(--line); }
-  .chip.keep { color: var(--clay); border-color: var(--clay); }
+  .chip.keep { color: var(--clay); border-color: var(--clay);
+    background: var(--raise); }
+  .chip.pick { cursor: pointer; font: inherit; font-size: .76rem; }
+  .chip.pick::before { content: '○ '; }
+  .chip.keep.pick::before { content: '● '; }
+  .chip.pick:hover { border-color: var(--ink); }
   .dcard { border-top: 1px solid var(--line); padding: .8rem 0 .2rem; }
   .dcard:first-child { border-top: 0; padding-top: 0; }
   .dcard h4 { font-family: "Space Mono", ui-monospace, SFMono-Regular, monospace;
@@ -242,11 +247,14 @@
   .saved-card { position: relative; }
   .saved-card img { display: block; width: 100%; aspect-ratio: 4/3;
     object-fit: cover; }
+  .saved-card .get { right: auto; left: .4rem; text-decoration: none; }
   .saved-card .bin { position: absolute; top: .4rem; right: .4rem; border: 0;
     background: rgba(20,19,15,.7); color: #F5F2EA; font-size: .68rem;
     padding: .2rem .5rem; border-radius: 2px; cursor: pointer; }
-  .shots .keep { margin-top: .4rem; width: 100%; border-radius: 2px;
-    padding: .35rem; font-size: .76rem; }
+  .shot-row { display: flex; gap: .35rem; margin-top: .4rem; }
+  .shots .keep { flex: 1; border-radius: 2px; padding: .35rem;
+    font-size: .76rem; text-align: center; text-decoration: none;
+    line-height: 1.6; }
 
   .peek-note { grid-column: 1 / -1; display: grid; place-items: center;
     aspect-ratio: 3/1; background: var(--card); font-size: .74rem;
@@ -431,6 +439,9 @@
       <div class="box">
         <h3>What it found</h3>
         <p class="note" id="roomLine"></p>
+        <p class="hint">Ticked things must still be in the room. They can be
+           restyled or replaced with better versions — they just cannot
+           disappear. Click any one to let it go.</p>
         <div class="chips" id="chips"></div>
         <div id="dirs" style="margin-top:1.2rem"></div>
       </div>
@@ -1316,13 +1327,26 @@
           cap.innerHTML = '<b></b><span></span>';
           cap.querySelector('b').textContent = item.title || 'Design';
           cap.querySelector('span').textContent = item.style || '';
+
+          var get = document.createElement('a');
+          get.className = 'bin get';
+          get.textContent = 'Download';
+          get.href = api(item.url);
+          get.download = 'second-draft-' + item.id + '.png';
+
           card.appendChild(img);
           card.appendChild(bin);
+          card.appendChild(get);
           card.appendChild(cap);
           $('saved').appendChild(card);
         });
       })
       .catch(function () { $('savedBlock').classList.add('hidden'); });
+  }
+
+  function fileName(index) {
+    var bits = ['second-draft', room.id, style.id, String(index + 1)];
+    return bits.join('-').replace(/[^a-z0-9-]/gi, '') + '.png';
   }
 
   function keepDesign(base64, button) {
@@ -1399,14 +1423,41 @@
   NotARoom.prototype = Object.create(Error.prototype);
 
   /* ---- what it found ---- */
+  var mustStay = {}, lastDesign = null;
+
+  function drawChips(items) {
+    $('chips').innerHTML = '';
+    items.forEach(function (i) {
+      var chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'chip pick' + (mustStay[i.name] ? ' keep' : '');
+      chip.textContent = (i.count > 1 ? i.count + ' × ' : '') + i.name;
+      chip.title = mustStay[i.name]
+        ? 'Must still be in the room. Click to allow it to go.'
+        : 'May be removed. Click to require it.';
+      chip.onclick = function () {
+        mustStay[i.name] = !mustStay[i.name];
+        drawChips(items);
+      };
+      $('chips').appendChild(chip);
+    });
+  }
+
+  function keptList() {
+    return Object.keys(mustStay).filter(function (n) { return mustStay[n]; });
+  }
+
   function paint(d) {
     reading = d;
     $('roomLine').textContent = d.room || '';
-    $('chips').innerHTML = (d.items || []).map(function (i) {
-      var keep = String(i.treatment).toLowerCase() === 'keep';
-      return '<span class="chip' + (keep ? ' keep' : '') + '">' +
-        (i.count > 1 ? i.count + ' × ' : '') + i.name + (keep ? ' · kept' : '') + '</span>';
-    }).join('');
+    /* Everything it found starts as "must stay".
+       A desk that silently becomes a side table is the failure that makes
+       this feel broken; a restyled desk nobody asked to restyle is not. So
+       the safe default is on, and unticking is the deliberate act. */
+    mustStay = {};
+    (d.items || []).forEach(function (i) { mustStay[i.name] = true; });
+    lastDesign = null;
+    drawChips(d.items || []);
 
     $('dirs').innerHTML = (d.directions || []).map(function (x) {
       return '<div class="dcard"><h4>' + (x.title || '') + '</h4><div class="pal">' +
@@ -1462,6 +1513,16 @@
     f.append('room_type', room.id);
     f.append('profile', depth.id);
     f.append('variants', String(count));
+    /* The generator was being told to draw "a bedroom" and drawing the
+       average one — the desk and the television it was never told about
+       simply were not in the picture it painted. */
+    if (reading && reading.items) {
+      f.append('contents', reading.items.map(function (i) {
+        return (i.count > 1 ? i.count + ' ' : '') + i.name;
+      }).join(', '));
+      var kept = keptList();
+      if (kept.length) { f.append('keep', kept.join(', ')); }
+    }
     f.append('extra_prompt', $('text').value);
     var r = await fetch(api('/api/generate'), { method: 'POST', body: f, credentials: 'include' });
     var d = await r.json();
@@ -1476,17 +1537,32 @@
       var cap = document.createElement('figcaption');
       cap.textContent = 'Design ' + (i + 1) + ' · ' + style.name;
 
+      var row = document.createElement('div');
+      row.className = 'shot-row';
+
       var keep = document.createElement('button');
       keep.className = 'cta ghost keep';
       keep.type = 'button';
       keep.textContent = account ? 'Keep' : 'Sign in to keep';
       keep.onclick = function () { keepDesign(g.image_base64, keep); };
 
+      /* Saving puts it in an account; downloading puts it on the person's
+         own disk, which is what they actually send to a builder. */
+      var down = document.createElement('a');
+      down.className = 'cta ghost keep';
+      down.textContent = 'Download';
+      down.download = fileName(i);
+      down.href = img.src;
+
+      row.appendChild(keep);
+      row.appendChild(down);
+
       figure.appendChild(img);
       figure.appendChild(cap);
-      figure.appendChild(keep);
+      figure.appendChild(row);
       $('shots').appendChild(figure);
     });
+    lastDesign = d.generations.length ? d.generations[0].image_base64 : null;
     $('paneEmpty').classList.add('hidden');
     $('shots').classList.remove('hidden');
   }
@@ -1511,6 +1587,13 @@
         var f = new FormData();
         f.append('room_summary', roomBrief);
         f.append('turns', JSON.stringify(turns));
+        // Send the picture they are looking at, or it answers from the
+        // description of the original room and contradicts their own eyes.
+        if (lastDesign) {
+          var raw = atob(lastDesign), buf = new Uint8Array(raw.length);
+          for (var b = 0; b < raw.length; b++) { buf[b] = raw.charCodeAt(b); }
+          f.append('design', new Blob([buf], { type: 'image/png' }), 'design.png');
+        }
         var r = await fetch(api('/api/chat'), { method: 'POST', body: f, credentials: 'include' });
         var d = await r.json();
         if (!r.ok) throw new Error(d.detail || 'Could not answer');

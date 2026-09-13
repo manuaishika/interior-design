@@ -45,7 +45,8 @@ def _is_openai(settings: Settings) -> bool:
     return resolve_backend(settings) == "openai"
 
 
-async def _run_free(data, style, settings, *, extra_prompt, variants, room=""):
+async def _run_free(data, style, settings, *, extra_prompt, variants, room="",
+                    contents="", keep=""):
     """The free path: no segmentation, no mask, one image model.
 
     There is nothing to segment because there is nothing to mask — the whole
@@ -59,7 +60,8 @@ async def _run_free(data, style, settings, *, extra_prompt, variants, room=""):
                        settings.max_variants))
     image = prepare_image(data, settings)
     photo = image_to_png_bytes(image)
-    prompt = build_prompt(style, extra_prompt, room=room)
+    prompt = build_prompt(style, extra_prompt, room=room, contents=contents,
+                          keep=keep)
 
     drawn = await asyncio.gather(
         *(google_ai.redraw(photo, prompt, settings, variant=i)
@@ -91,7 +93,8 @@ async def _run_free(data, style, settings, *, extra_prompt, variants, room=""):
     return analysis, generations
 
 
-async def _run_openai(data, style, settings, *, extra_prompt, variants, room=""):
+async def _run_openai(data, style, settings, *, extra_prompt, variants, room="",
+                      contents="", keep=""):
     """One OpenAI key, and the lock still real.
 
     GPT-4o says where the doors, windows and walkways are; those boxes become
@@ -126,7 +129,11 @@ async def _run_openai(data, style, settings, *, extra_prompt, variants, room="")
         invert=False,
     )
 
-    prompt = build_prompt(style, extra_prompt, room=room)
+    # Without this the model is told to draw "a bedroom" and draws the average
+    # one: the desk and the television it was never told about simply are not
+    # in the picture it paints.
+    prompt = build_prompt(style, extra_prompt, room=room, contents=contents,
+                          keep=keep)
     drawn = await asyncio.gather(
         *(openai_images.redraw(
             image, inpaint_mask,
@@ -361,6 +368,8 @@ async def run_pipeline(
     seed: int | None = None,
     variants: int | None = None,
     room: str = "",
+    contents: str = "",
+    keep: str = "",
     profile: str | None = None,
     keep_mask_ids: set[str] | None = None,
     replace_mask_ids: set[str] | None = None,
@@ -373,11 +382,12 @@ async def run_pipeline(
     """
     if _is_free(settings):
         return await _run_free(data, style, settings, extra_prompt=extra_prompt,
-                               variants=variants, room=room)
+                               variants=variants, room=room, contents=contents,
+                               keep=keep)
     if _is_openai(settings):
         return await _run_openai(data, style, settings,
                                  extra_prompt=extra_prompt, variants=variants,
-                                 room=room)
+                                 room=room, contents=contents, keep=keep)
 
     count = settings.default_variants if variants is None else variants
     count = max(1, min(count, settings.max_variants))
@@ -395,8 +405,9 @@ async def run_pipeline(
     prompt = build_prompt(
         style,
         extra_prompt,
-        contents=analysis.described_as,
-        keep=keep_clause(analysis.contents),
+        contents=contents or analysis.described_as,
+        # What the person ticked wins over what was merely counted.
+        keep=keep or keep_clause(analysis.contents),
         room=room,
     )
     mask_b64 = encode_mask(inpaint_mask)

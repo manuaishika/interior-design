@@ -420,6 +420,7 @@ async def chat_endpoint(
     request: Request,
     room_summary: str = Form(...),
     turns: str = Form(...),
+    design: UploadFile | None = File(None),
 ):
     """Continue the conversation about a room already read."""
     settings = get_settings()
@@ -431,8 +432,11 @@ async def chat_endpoint(
     except (json.JSONDecodeError, ValueError) as exc:
         raise HTTPException(400, f"Bad turns: {exc}") from exc
 
+    drawn = await _read_upload(design, settings) if design is not None else None
+
     try:
-        return {"reply": await discuss(room_summary, parsed, settings)}
+        return {"reply": await discuss(room_summary, parsed, settings,
+                                       design=drawn)}
     except ReadingError as exc:
         raise HTTPException(502, str(exc)) from exc
 
@@ -443,6 +447,8 @@ async def generate_endpoint(
     photo: UploadFile = File(...),
     style: str = Form(...),
     room_type: str = Form(""),
+    contents: str = Form(""),
+    keep: str = Form(""),
     extra_prompt: str = Form(""),
     seed: int | None = Form(None),
     variants: int | None = Form(None),
@@ -466,6 +472,8 @@ async def generate_endpoint(
             seed=seed,
             variants=variants,
             room=room_type,
+            contents=contents,
+            keep=keep,
             profile=profile,
             keep_mask_ids=_parse_ids(keep_mask_ids),
             replace_mask_ids=_parse_ids(replace_mask_ids),

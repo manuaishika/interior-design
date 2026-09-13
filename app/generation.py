@@ -152,7 +152,16 @@ def build_prompt(
     if contents.strip():
         prompt += f" The room contains {contents.strip()}."
     if keep.strip():
-        prompt += f" {keep.strip()}, in their existing positions."
+        # "Keep" means the thing is still there and still works, not that it
+        # is untouched. A desk may become a better desk. It may not become a
+        # side table, and it may not quietly disappear — which is what happens
+        # when the model is never told the desk was there.
+        prompt += (
+            f" The room must still contain {keep.strip()}. These may be "
+            "restyled, replaced with better versions of the same thing, or "
+            "moved slightly — but every one of them must be clearly present "
+            "and usable in the result. Do not remove or substitute them."
+        )
     prompt += (
         " Tidy and uncluttered. Photorealistic, architectural photography, "
         "natural lighting, consistent perspective and proportions with the "
