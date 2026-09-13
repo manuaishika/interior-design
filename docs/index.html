@@ -180,8 +180,28 @@
   .dcard .pal { font-size: .68rem; letter-spacing: .1em; text-transform: uppercase;
     color: var(--clay); font-weight: 600; }
   .dcard p { margin: .35rem 0 0; font-size: .84rem; color: var(--muted); }
+  .talk-head { display: flex; align-items: center; justify-content: space-between;
+    gap: .8rem; }
+  .talk-head .cta { padding: .35rem .8rem; font-size: .78rem; border-radius: 2px; }
   .thread { display: flex; flex-direction: column; gap: .8rem; max-height: 20rem;
     overflow-y: auto; }
+  .thread:empty { display: none; }
+  .chip-row { display: flex; gap: .35rem; flex-wrap: wrap; margin-top: .7rem; }
+  .chip-row button { font-size: .74rem; padding: .22rem .6rem; border-radius: 2px;
+    border: 1px solid var(--line); background: var(--raise); cursor: pointer;
+    color: var(--muted); }
+  .chip-row button:hover { border-color: var(--clay); color: var(--ink); }
+
+  table.cost { width: 100%; border-collapse: collapse; font-size: .86rem; }
+  table.cost th, table.cost td { text-align: left; padding: .5rem .6rem;
+    border-bottom: 1px solid var(--line); }
+  table.cost th { font-size: .66rem; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--muted); font-weight: 600; }
+  table.cost td.num { text-align: right; white-space: nowrap;
+    font-family: "Space Mono", ui-monospace, monospace; }
+  table.cost tr.total td { border-bottom: 0; border-top: 2px solid var(--ink);
+    font-weight: 500; padding-top: .7rem; }
+  table.cost td.why { color: var(--muted); font-size: .78rem; }
   .turn .who { font-size: .64rem; letter-spacing: .14em; text-transform: uppercase;
     color: var(--muted); font-weight: 600; }
   .turn .said { font-size: .89rem; white-space: pre-wrap; }
@@ -300,6 +320,7 @@
       <button type="button" data-go="explore">Explore</button>
       <button type="button" data-go="how">How it works</button>
       <button type="button" data-go="pricing">Pricing</button>
+      <button type="button" id="navSaved" class="hidden">Your designs</button>
     </nav>
     <button class="cta ghost" id="login" type="button">Log in</button>
   </div>
@@ -427,15 +448,21 @@
       </div>
     </div>
 
-    <section class="sect hidden" id="savedBlock">
-      <div class="sec-head">
-        <h2 class="sec">Your designs</h2>
-        <span class="gal-note" id="savedNote"></span>
-      </div>
-      <div class="strip" id="saved"></div>
-    </section>
-
     <div class="readout hidden" id="readout">
+      <div class="box">
+        <div class="talk-head">
+          <h3>Talk it through</h3>
+          <button class="cta" id="redraw" type="button">Draw it again</button>
+        </div>
+        <p class="note">It can see the design above. Tell it what to change,
+           then draw it again.</p>
+        <div class="thread" id="thread"></div>
+        <div class="chip-row" id="quick"></div>
+        <div class="askrow">
+          <input id="ask" placeholder="Ask for a change, or ask why&hellip;">
+          <button class="cta" id="askGo" type="button">Ask</button>
+        </div>
+      </div>
       <div class="box">
         <h3>What it found</h3>
         <p class="note" id="roomLine"></p>
@@ -445,16 +472,24 @@
         <div class="chips" id="chips"></div>
         <div id="dirs" style="margin-top:1.2rem"></div>
       </div>
-      <div class="box">
-        <h3>Talk it through</h3>
-        <p class="note">It has your room in front of it.</p>
-        <div class="thread" id="thread"></div>
-        <div class="askrow">
-          <input id="ask" placeholder="Ask for a change, or ask why&hellip;">
-          <button class="cta" id="askGo" type="button">Ask</button>
-        </div>
-      </div>
     </div>
+
+    <section class="sect hidden" id="costBlock">
+      <div class="sec-head">
+        <h2 class="sec">What it would cost</h2>
+        <span class="gal-note" id="costNote"></span>
+      </div>
+      <table class="cost" id="cost"></table>
+      <p class="hint" id="costAssumes"></p>
+    </section>
+
+    <section class="sect hidden" id="savedBlock">
+      <div class="sec-head">
+        <h2 class="sec">Your designs</h2>
+        <span class="gal-note" id="savedNote"></span>
+      </div>
+      <div class="strip" id="saved"></div>
+    </section>
   </div>
 </main>
 
@@ -1198,10 +1233,23 @@
       });
   }
 
+  /* Somewhere to get back to your own work from, without scrolling past a
+     studio you are not using. */
+  $('navSaved').onclick = function () {
+    show('studio');
+    setTimeout(function () {
+      var block = $('savedBlock');
+      if (!block.classList.contains('hidden')) {
+        block.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 60);
+  };
+
   function showDoor() {
     $('login').textContent = account
       ? (account.name || account.email).split('@')[0] + ' · Sign out'
       : (needsCode && signedIn ? 'Sign out' : 'Sign in');
+    $('navSaved').classList.toggle('hidden', !account);
     refresh();
   }
 
@@ -1452,6 +1500,80 @@
     });
   }
 
+  /* Money is the question every client asks second, right after "can I see
+     it". Indicative ranges, labelled as such — a narrow number would be a
+     quotation, and this is not one. */
+  function money(value, currency) {
+    var n = Number(value) || 0;
+    try {
+      return n.toLocaleString(currency === 'INR' ? 'en-IN' : 'en-GB',
+        { style: 'currency', currency: currency || 'INR',
+          maximumFractionDigits: 0 });
+    } catch (e) { return (currency || '') + ' ' + Math.round(n); }
+  }
+
+  function drawCost(budget) {
+    var lines = budget && budget.lines ? budget.lines : [];
+    if (!lines.length) { $('costBlock').classList.add('hidden'); return; }
+    var cur = (budget.currency || 'INR').toUpperCase();
+
+    var low = 0, high = 0;
+    var rows = lines.map(function (l) {
+      low += Number(l.low) || 0;
+      high += Number(l.high) || 0;
+      var tr = document.createElement('tr');
+      [[l.item || '', ''], [money(l.low, cur), 'num'],
+       [money(l.high, cur), 'num'], [l.note || '', 'why']]
+        .forEach(function (cell) {
+          var td = document.createElement('td');
+          td.className = cell[1];
+          td.textContent = cell[0];
+          tr.appendChild(td);
+        });
+      return tr;
+    });
+
+    var table = $('cost');
+    table.innerHTML = '<thead><tr><th>Item</th><th class="num">From</th>' +
+      '<th class="num">To</th><th>Note</th></tr></thead>';
+    var body = document.createElement('tbody');
+    rows.forEach(function (r) { body.appendChild(r); });
+
+    var total = document.createElement('tr');
+    total.className = 'total';
+    ['Whole room', money(low, cur), money(high, cur), ''].forEach(function (t, i) {
+      var td = document.createElement('td');
+      if (i === 1 || i === 2) td.className = 'num';
+      td.textContent = t;
+      total.appendChild(td);
+    });
+    body.appendChild(total);
+    table.appendChild(body);
+
+    $('costNote').textContent = 'Indicative, not a quotation';
+    $('costAssumes').textContent = budget.assumes || '';
+    $('costBlock').classList.remove('hidden');
+  }
+
+  /* The follow-ups people actually type, one click away. */
+  var QUICK = [
+    'Keep everything but make it brighter',
+    'Show me a bolder colour',
+    'Put the desk back',
+    'Less furniture, more floor',
+    'Warmer lighting'
+  ];
+  function drawQuick() {
+    $('quick').innerHTML = '';
+    QUICK.forEach(function (text) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = text;
+      b.onclick = function () { $('ask').value = text; $('askGo').click(); };
+      $('quick').appendChild(b);
+    });
+  }
+
   function keptList() {
     return Object.keys(mustStay).filter(function (n) { return mustStay[n]; });
   }
@@ -1481,6 +1603,8 @@
     turns = [];
     $('thread').innerHTML = '';
     $('readout').classList.remove('hidden');
+    drawCost(d.budget);
+    drawQuick();
   }
 
   async function readRoom() {
@@ -1623,6 +1747,8 @@
     } catch (e) {
       into.textContent = (e && e.message) || 'Could not answer.';
     }
+    // The conversation is only worth having if it ends in a new picture.
+    $('redraw').textContent = 'Draw it again with this';
   }
 
   /* One button. It reads the room first, then draws. Nobody should have to
@@ -1647,6 +1773,22 @@
     if (!t) return;
     $('ask').value = '';
     ask(t);
+  };
+
+  /* After a conversation the obvious next move is to see it, so the button is
+     right there rather than back up in the sidebar. Whatever was said in the
+     thread travels with it. */
+  $('redraw').onclick = function () {
+    var said = turns.filter(function (t) { return t.role === 'user'; })
+                    .map(function (t) { return t.content; }).join(' ');
+    if (said) {
+      var box = $('text');
+      box.value = (box.value ? box.value + ' ' : '') + said;
+    }
+    turns = [];
+    $('thread').innerHTML = '';
+    $('go').click();
+    $('panel') && $('panel').scrollIntoView({ behavior: 'smooth' });
   };
   $('ask').addEventListener('keydown', function (e) {
     if (e.key === 'Enter') { e.preventDefault(); $('askGo').click(); }

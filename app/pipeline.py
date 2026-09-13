@@ -46,7 +46,7 @@ def _is_openai(settings: Settings) -> bool:
 
 
 async def _run_free(data, style, settings, *, extra_prompt, variants, room="",
-                    contents="", keep=""):
+                    contents="", keep="", depth=""):
     """The free path: no segmentation, no mask, one image model.
 
     There is nothing to segment because there is nothing to mask — the whole
@@ -61,7 +61,7 @@ async def _run_free(data, style, settings, *, extra_prompt, variants, room="",
     image = prepare_image(data, settings)
     photo = image_to_png_bytes(image)
     prompt = build_prompt(style, extra_prompt, room=room, contents=contents,
-                          keep=keep)
+                          keep=keep, depth=depth)
 
     drawn = await asyncio.gather(
         *(google_ai.redraw(photo, prompt, settings, variant=i)
@@ -94,7 +94,7 @@ async def _run_free(data, style, settings, *, extra_prompt, variants, room="",
 
 
 async def _run_openai(data, style, settings, *, extra_prompt, variants, room="",
-                      contents="", keep=""):
+                      contents="", keep="", depth=""):
     """One OpenAI key. No Replicate anywhere.
 
     GPT-4o says where the doors, windows and walkways are; those boxes become
@@ -140,7 +140,7 @@ async def _run_openai(data, style, settings, *, extra_prompt, variants, room="",
     # one: the desk and the television it was never told about simply are not
     # in the picture it paints.
     prompt = build_prompt(style, extra_prompt, room=room, contents=contents,
-                          keep=keep)
+                          keep=keep, depth=depth)
     drawn = await asyncio.gather(
         *(openai_images.redraw(
             image, sent_mask,
@@ -390,11 +390,12 @@ async def run_pipeline(
     if _is_free(settings):
         return await _run_free(data, style, settings, extra_prompt=extra_prompt,
                                variants=variants, room=room, contents=contents,
-                               keep=keep)
+                               keep=keep, depth=profile or "")
     if _is_openai(settings):
         return await _run_openai(data, style, settings,
                                  extra_prompt=extra_prompt, variants=variants,
-                                 room=room, contents=contents, keep=keep)
+                                 room=room, contents=contents, keep=keep,
+                                 depth=profile or "")
 
     count = settings.default_variants if variants is None else variants
     count = max(1, min(count, settings.max_variants))
@@ -415,6 +416,7 @@ async def run_pipeline(
         contents=contents or analysis.described_as,
         # What the person ticked wins over what was merely counted.
         keep=keep or keep_clause(analysis.contents),
+        depth=profile or "",
         room=room,
     )
     mask_b64 = encode_mask(inpaint_mask)

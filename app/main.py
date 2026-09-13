@@ -410,6 +410,7 @@ async def read_endpoint(
     request: Request,
     photo: UploadFile = File(...),
     room_type: str = Form("room"),
+    currency: str = Form("INR"),
 ):
     """Look at a room and say what is in it, plus three directions.
 
@@ -419,7 +420,7 @@ async def read_endpoint(
     auth.guard(request, settings)
     data = await _read_upload(photo, settings)
     try:
-        return await read_room(data, room_type, settings)
+        return await read_room(data, room_type, settings, currency=currency)
     except NotARoomError as exc:
         # 422, not 502: nothing is broken, the picture is just not a room.
         raise HTTPException(422, str(exc)) from exc

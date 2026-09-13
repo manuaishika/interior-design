@@ -62,7 +62,10 @@ Otherwise return JSON only, exactly this shape:
 {{"is_room": true,
   "room": "one sentence on the room and its condition",
   "items": [{{"name": "bed", "count": 2, "treatment": "keep"}}],
-  "directions": [{{"title": "", "palette": "", "pieces": ["", ""], "why": ""}}]}}
+  "directions": [{{"title": "", "palette": "", "pieces": ["", ""], "why": ""}}],
+  "budget": {{"currency": "INR",
+             "lines": [{{"item": "", "low": 0, "high": 0, "note": ""}}],
+             "assumes": ""}}}}
 
 items: everything notable you can see, with how many there are. Count
 carefully — two single beds are two, not one double.
@@ -72,6 +75,16 @@ renovation must not move those. Everything else is "redraw".
 directions: exactly three genuinely different directions for THIS room, not
 generic advice. palette is three or four colours and materials. pieces is three
 specific things to buy. why is one sentence on who it suits.
+
+budget: what a full redesign of THIS room would actually cost, in {currency}.
+Five to eight lines covering the real work — furniture, storage, wall finishes,
+flooring, lighting, soft furnishings, electrical, labour — priced for the size
+of room you can see, not for a generic room. low and high are whole numbers in
+{currency}, and the spread between them should be honest rather than narrow.
+assumes is one sentence naming what the figure takes for granted, such as the
+city, the standard of finish, and whether labour is included.
+
+These are indicative figures for a client conversation, not a quotation.
 """
 
 DESIGNER = """\
@@ -122,14 +135,16 @@ def _client(settings: Settings) -> AsyncOpenAI:
     )
 
 
-async def read_room(photo: bytes, room_type: str, settings: Settings) -> dict:
+async def read_room(photo: bytes, room_type: str, settings: Settings,
+                    currency: str = "INR") -> dict:
     """Look at the photograph and describe what is in the room.
 
     Two readers, one prompt. The free one is a different company's model on a
     key with no card behind it; it is handed the identical instructions so the
     two cannot quietly drift into reading rooms differently.
     """
-    prompt = SURVEY.format(room=room_type or "room")
+    prompt = SURVEY.format(room=room_type or "room",
+                           currency=(currency or "INR").upper())
 
     if resolve_backend(settings) == "free":
         from . import google_ai

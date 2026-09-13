@@ -64,10 +64,11 @@ class TestEveryEngineIsTold:
 
         real = pipeline.build_prompt
 
-        def spy(style, extra="", contents="", keep="", room=""):
+        def spy(style, extra="", contents="", keep="", room="", depth=""):
             seen["contents"] = contents
             seen["keep"] = keep
-            return real(style, extra, contents, keep, room)
+            seen["depth"] = depth
+            return real(style, extra, contents, keep, room, depth)
 
         monkeypatch.setattr(pipeline, "build_prompt", spy)
         monkeypatch.setattr(main, "get_settings", lambda: Settings(**keys))
@@ -208,3 +209,83 @@ class TestTheDesignerCanSee:
         what I am being asked about"."""
         source = open("app/reading.py", encoding="utf-8").read()
         assert 'messages[-1]["role"] == "user"' in source
+
+
+class TestHowFarToGoActuallyDoesSomething:
+    """It was a control on the page and a lock profile in the config, and
+    reached the generator through neither — so "full redesign" and "light
+    restyle" produced the same picture, and asking for something brighter only
+    ever repainted the wall."""
+
+    def test_the_two_depths_differ(self):
+        from app.generation import build_prompt
+
+        full = build_prompt("modern-luxury", depth="renovate")
+        light = build_prompt("modern-luxury", depth="restyle")
+        assert full != light
+
+    def test_a_full_redesign_replaces_the_pieces(self):
+        from app.generation import build_prompt
+
+        prompt = build_prompt("modern-luxury", depth="renovate")
+        assert "Replace the furniture" in prompt
+        # but the room itself still cannot move
+        assert "everything fixed stays exactly where it is" in prompt
+
+    def test_a_light_restyle_keeps_them(self):
+        from app.generation import build_prompt
+
+        prompt = build_prompt("modern-luxury", depth="restyle")
+        assert "Do not replace the pieces themselves" in prompt
+
+    def test_an_unknown_depth_says_nothing(self):
+        from app.generation import build_prompt
+
+        assert build_prompt("japandi", depth="") == build_prompt("japandi")
+
+    def test_the_clients_own_words_come_last(self):
+        """So the most recent thing read is what the person actually asked."""
+        from app.generation import build_prompt
+
+        prompt = build_prompt("japandi", "bright and beautiful", depth="renovate")
+        assert prompt.rstrip().endswith("bright and beautiful")
+        assert "The client asks:" in prompt
+
+
+class TestTheMoneyQuestion:
+    def test_the_reader_is_asked_for_a_budget(self):
+        """The question every client asks second, right after "can I see it"."""
+        from app.reading import SURVEY
+
+        prompt = SURVEY.format(room="bedroom", currency="INR")
+        assert '"budget"' in prompt
+        assert "not a quotation" in prompt
+        assert "labour" in prompt
+
+    def test_the_currency_is_not_hardcoded(self):
+        from app.reading import SURVEY
+
+        assert "GBP" in SURVEY.format(room="bedroom", currency="GBP")
+
+    def test_the_page_renders_it_as_a_table(self):
+        html = open("static/showcase.html", encoding="utf-8").read()
+        assert 'id="costBlock"' in html
+        assert "function drawCost(" in html
+        assert "Indicative, not a quotation" in html
+
+
+class TestTheConversationIsNotBuriedAtTheBottom:
+    def test_talking_comes_before_the_inventory(self):
+        """Nobody scrolls. The thing you do next has to be the thing you see."""
+        html = open("static/showcase.html", encoding="utf-8").read()
+        assert html.index("Talk it through") < html.index("What it found")
+
+    def test_a_conversation_can_end_in_a_new_picture(self):
+        html = open("static/showcase.html", encoding="utf-8").read()
+        assert 'id="redraw"' in html
+        assert "Draw it again with this" in html
+
+    def test_follow_ups_are_one_click(self):
+        html = open("static/showcase.html", encoding="utf-8").read()
+        assert "var QUICK = [" in html
+        assert 'id="quick"' in html

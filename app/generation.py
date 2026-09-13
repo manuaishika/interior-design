@@ -159,9 +159,34 @@ PRESERVE = (
 )
 
 
+# How far to go. This existed as a control on the page and as a lock profile
+# in the config, and reached the generator through neither — so "full redesign"
+# and "light restyle" produced the same picture, and asking for something
+# brighter only ever repainted the wall.
+DEPTHS: dict[str, str] = {
+    "renovate": (
+        "Go the whole way. Replace the furniture with genuinely different and "
+        "better pieces — a different bed, a different desk, different storage "
+        "and seating — and change the wall finishes, the flooring, the "
+        "lighting and the textiles. Every function the room has now it must "
+        "still have, and everything fixed stays exactly where it is, but the "
+        "loose pieces themselves should be visibly new."
+    ),
+    "restyle": (
+        "Keep the furniture that is there and change how it is finished: new "
+        "upholstery, new bedding and textiles, a new wall colour, better "
+        "lighting, tidier surfaces. Do not replace the pieces themselves."
+    ),
+}
+
+
+def depth_clause(depth: str) -> str:
+    return DEPTHS.get((depth or "").strip().lower(), "")
+
+
 def build_prompt(
     style: str, extra: str = "", contents: str = "", keep: str = "",
-    room: str = "",
+    room: str = "", depth: str = "",
 ) -> str:
     """Compose the generation prompt.
 
@@ -206,8 +231,13 @@ def build_prompt(
         "natural lighting, consistent perspective and proportions with the "
         "original room."
     )
+    how_far = depth_clause(depth)
+    if how_far:
+        prompt += f"\n\n{how_far}"
+
     if extra.strip():
-        prompt = f"{prompt} {extra.strip()}"
+        # Last, so a person's own words are the most recent thing read.
+        prompt = f"{prompt}\n\nThe client asks: {extra.strip()}"
     return prompt
 
 

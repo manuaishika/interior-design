@@ -110,7 +110,7 @@ class TestReading:
         await read_room(png(), "kitchen", settings())
 
         sent = seen["json"]["contents"][0]["parts"][0]["text"]
-        assert sent == SURVEY.format(room="kitchen")
+        assert sent == SURVEY.format(room="kitchen", currency="INR")
 
 
 class TestDrawing:
