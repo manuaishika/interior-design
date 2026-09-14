@@ -105,20 +105,33 @@ class TestTheSaveAndDownloadButtonsAreVisible:
         props = custom_properties(css)
         assert props["--dark"] == props["--ink"]
 
-    def test_a_ghost_button_inside_the_pane_is_not_ink_on_ink(self):
+    def test_a_ghost_button_inside_the_designs_tab_is_not_ink_on_ink(self):
+        """This is where a render's Save/Download buttons actually sit — the
+        one place in the pane where the background really is --dark."""
         css = style_block(page())
         props = custom_properties(css)
-        color = winning_color(css, {"cta", "ghost", "keep"}, {"pane"}, props)
+        color = winning_color(css, {"cta", "ghost", "keep"}, {"pane-tab"}, props)
         assert color is not None, "no rule sets a colour for this button at all"
         assert color != props["--dark"]
 
     def test_the_same_button_outside_the_pane_is_unaffected(self):
-        """The fix is scoped to `.pane .cta.ghost` on purpose — the plain
-        version is correct everywhere else (the top bar, the sign-in
-        dialog), so this pins that the general rule was not changed."""
+        """The fix is scoped on purpose — the plain version is correct
+        everywhere else (the top bar, the sign-in dialog), so this pins that
+        the general rule was not changed."""
         css = style_block(page())
         props = custom_properties(css)
         color = winning_color(css, {"cta", "ghost"}, set(), props)
+        assert color == props["--ink"]
+
+    def test_the_redraw_button_in_the_convo_bar_is_not_light_on_light(self):
+        """#redraw sits inside .convo-bar, which sits inside .pane — so a
+        fix scoped to ".pane .cta.ghost" rather than specifically to the
+        designs tab would hand it light-on-dark colours while it is actually
+        rendered on .convo-bar's own light card. Same bug fix 1 was about,
+        the other way round, and just as invisible to every other test."""
+        css = style_block(page())
+        props = custom_properties(css)
+        color = winning_color(css, {"cta", "ghost"}, {"pane", "convo-bar"}, props)
         assert color == props["--ink"]
 
     def test_docs_copy_has_the_same_fix(self):
@@ -126,5 +139,7 @@ class TestTheSaveAndDownloadButtonsAreVisible:
         one deliberate line — this fix is not that line."""
         css = style_block(page("docs/index.html"))
         props = custom_properties(css)
-        color = winning_color(css, {"cta", "ghost", "keep"}, {"pane"}, props)
+        color = winning_color(css, {"cta", "ghost", "keep"}, {"pane-tab"}, props)
         assert color != props["--dark"]
+        color = winning_color(css, {"cta", "ghost"}, {"pane", "convo-bar"}, props)
+        assert color == props["--ink"]

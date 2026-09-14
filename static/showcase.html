@@ -57,12 +57,18 @@
   .cta.ghost { background: none; color: var(--ink); border: 1px solid var(--line); }
   .cta.ghost:hover { border-color: var(--clay); background: none; }
   /* .cta.ghost's ink-on-nothing is correct everywhere it is used except
-     inside .pane, whose background IS --ink (aliased as --dark) — same
-     colour on same colour, so the label vanished and only the border ever
-     showed. Scoped here rather than changed globally, because outside .pane
-     the plain version is right (the top bar, the sign-in dialog). */
-  .pane .cta.ghost { color: #EFEAE0; border-color: rgba(239, 234, 224, .35); }
-  .pane .cta.ghost:hover { color: #F5F2EA; border-color: var(--clay); }
+     where the background really is --ink (--dark, same colour) directly
+     behind it — same colour on same colour, so the label vanished and only
+     the border ever showed. That is only the designs tab: the found/cost
+     tabs and the convo-bar are their own light cards floating inside the
+     dark pane (see .pane-tab, .convo-bar), so .cta.ghost is correct there
+     too and must NOT be re-scoped to the whole .pane — a #redraw button
+     inside .convo-bar picking up light-on-dark colours would be invisible
+     against .convo-bar's own light background, the exact bug this exists
+     to prevent, the other way round. */
+  .pane-tab[data-tab="designs"] .cta.ghost { color: #EFEAE0;
+    border-color: rgba(239, 234, 224, .35); }
+  .pane-tab[data-tab="designs"] .cta.ghost:hover { color: #F5F2EA; border-color: var(--clay); }
   .cta.clay { background: var(--clay); }
   .cta.clay:hover { background: #963d1c; }
   .cta[disabled] { opacity: .45; cursor: default; }
@@ -158,23 +164,57 @@
     text-align: center; min-height: 1.1rem; }
   .msg.bad { color: var(--bad); }
 
-  .pane { background: var(--dark); color: #EFEAE0; min-height: 380px; padding: 1.4rem;
-    display: grid; place-items: center; }
-  .pane .empty { text-align: center; max-width: 34ch; }
-  .pane .empty h3 { font-size: 1.05rem; color: #F5F2EA; }
-  .pane .empty p { font-size: .84rem; color: #A79E90; margin: .6rem 0 0; }
+  /* The pane is now the whole right-hand side and everything that used to
+     be three things stacked under it — the conversation, what was found,
+     what it would cost — lives inside it: two tabs plus a bar pinned to the
+     bottom that is always visible regardless of which tab is open. `order`
+     controls the visual stacking independently of source order, because
+     source order is what test_talking_comes_before_the_inventory pins
+     ("Talk it through" ahead of "What it found") and that has to stay true
+     even though the conversation now renders last, at the bottom. */
+  .pane { background: var(--dark); display: flex; flex-direction: column;
+    padding: 0; min-height: 460px; overflow: hidden; }
+  .pane-tabs { order: 1; flex: none; display: flex; gap: .2rem;
+    padding: .7rem 1rem 0; }
+  .pane-tabs.hidden { display: none; }
+  .pane-tabs button { background: none; border: 0; color: #A79E90; cursor: pointer;
+    font-size: .8rem; padding: .5rem .8rem; border-bottom: 2px solid transparent; }
+  .pane-tabs button.on { color: #F5F2EA; border-bottom-color: var(--clay); }
+  .pane-tabs button:hover { color: #EFEAE0; }
+  .pane-tabs button.hidden { display: none; }
+  .pane-scroll { order: 2; flex: 1; overflow-y: auto; padding: 1.2rem; min-height: 0; }
+  /* !important, to match the site-wide .hidden it sits alongside: without
+     it, the more specific [data-tab="designs"] display rule below would win
+     a specificity tie and the "inactive tab" state would not actually hide
+     anything — the exact class of mistake fix 1 was about, one property
+     over. */
+  .tabhidden { display: none !important; }
+  .pane-tab[data-tab="designs"] { display: flex; flex-direction: column;
+    align-items: center; justify-content: center; min-height: 100%; color: #EFEAE0; }
+  .pane-tab[data-tab="designs"] .empty { text-align: center; max-width: 34ch; }
+  .pane-tab[data-tab="designs"] .empty h3 { font-size: 1.05rem; color: #F5F2EA; }
+  .pane-tab[data-tab="designs"] .empty p { font-size: .84rem; color: #A79E90; margin: .6rem 0 0; }
+  .pane-tab[data-tab="found"], .pane-tab[data-tab="cost"] {
+    background: var(--raise); color: var(--ink); border-radius: 2px;
+    padding: 1.1rem 1.2rem; }
+  .pane-tab .note { font-size: .8rem; color: var(--muted); margin: 0 0 .9rem; }
   .shots { display: grid; gap: .8rem; width: 100%;
     grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); align-self: start; }
   .shots figure { margin: 0; }
   .shots img { width: 100%; border-radius: 2px; display: block; }
   .shots figcaption { font-size: .72rem; color: #A79E90; margin-top: .35rem; }
 
-  .readout { display: grid; gap: 1.6rem; margin-top: 2.2rem; }
-  @media (min-width: 860px) { .readout { grid-template-columns: 1fr 1fr; } }
-  .box { border: 1px solid var(--line); border-radius: 2px; background: var(--raise);
-    padding: 1.1rem 1.2rem; }
-  .box h3 { font-size: .95rem; margin-bottom: .2rem; }
-  .box .note { font-size: .8rem; color: var(--muted); margin: 0 0 .9rem; }
+  /* The conversation, pinned to the bottom of the pane and always visible —
+     `order: 3` puts it last visually no matter where it sits in source. Its
+     own light card (like the tabs above) rather than styled for the dark
+     pane directly, so .turn / .chip-row / .askrow keep the exact colours
+     they already had and this does not need its own contrast audit. */
+  .convo-bar { order: 3; flex: none; background: var(--raise); color: var(--ink);
+    border-top: 1px solid var(--line); padding: .9rem 1.1rem; }
+  .convo-bar.hidden { display: none; }
+  .convo-label { display: block; font-size: .68rem; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--muted); font-weight: 600;
+    margin-bottom: .5rem; }
   .chips { display: flex; gap: .35rem; flex-wrap: wrap; }
   .chip { font-size: .76rem; padding: .22rem .6rem; border-radius: 2px;
     background: var(--card); color: var(--muted); border: 1px solid var(--line); }
@@ -191,15 +231,15 @@
   .dcard .pal { font-size: .68rem; letter-spacing: .1em; text-transform: uppercase;
     color: var(--clay); font-weight: 600; }
   .dcard p { margin: .35rem 0 0; font-size: .84rem; color: var(--muted); }
-  .talk-head { display: flex; align-items: center; justify-content: space-between;
-    gap: .8rem; }
-  .talk-head .cta { padding: .35rem .8rem; font-size: .78rem; border-radius: 2px; }
-  .thread { display: flex; flex-direction: column; gap: .8rem; max-height: 20rem;
-    overflow-y: auto; }
-  .thread:empty { display: none; }
-  .chip-row { display: flex; gap: .35rem; flex-wrap: wrap; margin-top: .7rem; }
+  /* Grows upward from the input, capped rather than the 20rem it could be as
+     a standalone card — this now sits in a bar at the foot of the pane, not
+     a page section of its own. */
+  .thread { display: flex; flex-direction: column; gap: .8rem;
+    max-height: 11rem; overflow-y: auto; margin-bottom: .7rem; }
+  .thread:empty { display: none; margin: 0; }
+  .chip-row { display: flex; gap: .35rem; flex-wrap: wrap; margin-bottom: .7rem; }
   .chip-row button { font-size: .74rem; padding: .22rem .6rem; border-radius: 2px;
-    border: 1px solid var(--line); background: var(--raise); cursor: pointer;
+    border: 1px solid var(--line); background: var(--card); cursor: pointer;
     color: var(--muted); }
   .chip-row button:hover { border-color: var(--clay); color: var(--ink); }
 
@@ -217,7 +257,7 @@
     color: var(--muted); font-weight: 600; }
   .turn .said { font-size: .89rem; white-space: pre-wrap; }
   .turn.me .said { color: var(--muted); }
-  .askrow { display: flex; gap: .5rem; margin-top: .9rem; }
+  .askrow { display: flex; gap: .5rem; }
   .askrow input { flex: 1; border: 1px solid var(--line); border-radius: 2px;
     padding: .5rem .9rem; font-size: .86rem; background: var(--raise); }
 
@@ -469,50 +509,59 @@
         </div>
 
         <div class="pane" id="pane">
-          <div class="empty" id="paneEmpty">
-            <h3>Your designs appear here</h3>
-            <p>Add a photo and choose a direction. Nothing is generated until you
-               press the button.</p>
+          <!-- Source order keeps "Talk it through" ahead of "What it found" —
+               nobody scrolls, so the thing said about the room must not read
+               as an afterthought below it. Visual order is set with `order`
+               below instead: tabs on top, the conversation pinned to the
+               bottom, always visible, growing upward as it fills. -->
+          <div class="convo-bar hidden" id="convoBar">
+            <span class="convo-label">Talk it through</span>
+            <div class="thread" id="thread"></div>
+            <div class="chip-row" id="quick"></div>
+            <div class="askrow">
+              <input id="ask" placeholder="Ask for a change, or ask why&hellip;">
+              <button class="cta" id="askGo" type="button">Ask</button>
+              <button class="cta ghost" id="redraw" type="button">Draw it again</button>
+            </div>
           </div>
-          <div class="shots hidden" id="shots"></div>
+
+          <div class="pane-tabs hidden" id="paneTabs">
+            <button type="button" class="on" data-tab="designs">Designs</button>
+            <button type="button" data-tab="found">What it found</button>
+            <button type="button" class="hidden" data-tab="cost" id="costTabBtn">What it would cost</button>
+          </div>
+
+          <div class="pane-scroll">
+            <div class="pane-tab" data-tab="designs">
+              <div class="empty" id="paneEmpty">
+                <h3>Your designs appear here</h3>
+                <p>Add a photo and choose a direction. Nothing is generated until you
+                   press the button.</p>
+              </div>
+              <div class="shots hidden" id="shots"></div>
+            </div>
+
+            <div class="pane-tab tabhidden" data-tab="found">
+              <p class="note" id="roomLine"></p>
+              <p class="hint">Ticked things must still be in the room. They can be
+                 restyled or replaced with better versions — they just cannot
+                 disappear. Click any one to let it go.</p>
+              <div class="chips" id="chips"></div>
+              <div id="dirs" style="margin-top:1.2rem"></div>
+            </div>
+
+            <div class="pane-tab tabhidden hidden" data-tab="cost" id="costBlock">
+              <div class="sec-head">
+                <h2 class="sec">What it would cost</h2>
+                <span class="gal-note" id="costNote"></span>
+              </div>
+              <table class="cost" id="cost"></table>
+              <p class="hint" id="costAssumes"></p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-
-    <div class="readout hidden" id="readout">
-      <div class="box">
-        <div class="talk-head">
-          <h3>Talk it through</h3>
-          <button class="cta" id="redraw" type="button">Draw it again</button>
-        </div>
-        <p class="note">It can see the design above. Tell it what to change,
-           then draw it again.</p>
-        <div class="thread" id="thread"></div>
-        <div class="chip-row" id="quick"></div>
-        <div class="askrow">
-          <input id="ask" placeholder="Ask for a change, or ask why&hellip;">
-          <button class="cta" id="askGo" type="button">Ask</button>
-        </div>
-      </div>
-      <div class="box">
-        <h3>What it found</h3>
-        <p class="note" id="roomLine"></p>
-        <p class="hint">Ticked things must still be in the room. They can be
-           restyled or replaced with better versions — they just cannot
-           disappear. Click any one to let it go.</p>
-        <div class="chips" id="chips"></div>
-        <div id="dirs" style="margin-top:1.2rem"></div>
-      </div>
-    </div>
-
-    <section class="sect hidden" id="costBlock">
-      <div class="sec-head">
-        <h2 class="sec">What it would cost</h2>
-        <span class="gal-note" id="costNote"></span>
-      </div>
-      <table class="cost" id="cost"></table>
-      <p class="hint" id="costAssumes"></p>
-    </section>
 
     <section class="sect hidden" id="savedBlock">
       <div class="sec-head">
@@ -1530,6 +1579,10 @@
     $('roomLine').textContent = d.title || roomBrief;
     $('chips').innerHTML = '';
     $('dirs').innerHTML = '';
+    // Not persisted per thread, so a stale figure from whatever was open
+    // before this must not linger on the tab.
+    $('costBlock').classList.add('hidden');
+    $('costTabBtn').classList.add('hidden');
     drawQuick();
 
     $('shots').innerHTML = '';
@@ -1547,11 +1600,11 @@
     $('paneEmpty').classList.toggle('hidden', (d.designs || []).length > 0);
     $('shots').classList.toggle('hidden', (d.designs || []).length === 0);
 
-    $('readout').classList.remove('hidden');
+    showResults();
     show('studio');
     refresh();
     setTimeout(function () {
-      $('readout').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      $('pane').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 60);
   }
 
@@ -1625,7 +1678,7 @@
     reading = null;
     turns = [];
     $('thread').innerHTML = '';
-    $('readout').classList.add('hidden');
+    hideResults();
     var url = URL.createObjectURL(photo.files[0]);
     $('thumb').src = url;
     $('thumb').classList.remove('hidden');
@@ -1691,7 +1744,11 @@
 
   function drawCost(budget) {
     var lines = budget && budget.lines ? budget.lines : [];
-    if (!lines.length) { $('costBlock').classList.add('hidden'); return; }
+    if (!lines.length) {
+      $('costBlock').classList.add('hidden');
+      $('costTabBtn').classList.add('hidden');
+      return;
+    }
     var cur = (budget.currency || 'INR').toUpperCase();
 
     var low = 0, high = 0;
@@ -1730,6 +1787,7 @@
     $('costNote').textContent = 'Indicative, not a quotation';
     $('costAssumes').textContent = budget.assumes || '';
     $('costBlock').classList.remove('hidden');
+    $('costTabBtn').classList.remove('hidden');
   }
 
   /* The follow-ups people actually type, one click away. */
@@ -1753,6 +1811,34 @@
 
   function keptList() {
     return Object.keys(mustStay).filter(function (n) { return mustStay[n]; });
+  }
+
+  /* Designs / What it found / What it would cost, as tabs inside the pane
+     rather than cards stacked down the page. The conversation is not one of
+     these tabs — it is the bar pinned under all of them, always visible. */
+  function switchTab(name) {
+    Array.prototype.forEach.call($('paneTabs').children, function (b) {
+      b.classList.toggle('on', b.getAttribute('data-tab') === name);
+    });
+    Array.prototype.forEach.call($('pane').querySelectorAll('.pane-tab'), function (el) {
+      el.classList.toggle('tabhidden', el.getAttribute('data-tab') !== name);
+    });
+  }
+  $('paneTabs').onclick = function (e) {
+    var b = e.target.closest('[data-tab]');
+    if (b && !b.classList.contains('hidden')) { switchTab(b.getAttribute('data-tab')); }
+  };
+
+  /* One pair of calls for "a room has been read" / "start over" — everything
+     that used to be #readout's hidden class now lives on two elements. */
+  function showResults() {
+    $('paneTabs').classList.remove('hidden');
+    $('convoBar').classList.remove('hidden');
+    switchTab('designs');
+  }
+  function hideResults() {
+    $('paneTabs').classList.add('hidden');
+    $('convoBar').classList.add('hidden');
   }
 
   function paint(d) {
@@ -1779,7 +1865,7 @@
     }).join(', ');
     turns = [];
     $('thread').innerHTML = '';
-    $('readout').classList.remove('hidden');
+    showResults();
     drawCost(d.budget);
     drawQuick();
     ensureConversation();
