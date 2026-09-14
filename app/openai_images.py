@@ -282,15 +282,26 @@ def _edit_size(size: tuple[int, int]) -> str:
     return f"{snap16(width)}x{snap16(height)}"
 
 
-# gpt-image-2.5 takes no seed, so options have to differ by instruction.
+# gpt-image-2.5 takes no seed, so options have to differ by instruction alone
+# — and a vague mood word ("warmer") is not enough difference for it to act
+# on: left with room to interpret, it tends to converge on the same obvious
+# reading of a style. The first slot used to be "" (no instruction at all),
+# which meant one option out of every batch was never told to differ from
+# anything. Every slot now names something concrete and physical — a colour,
+# a material, a silhouette — because that is what a model this literal
+# actually diverges on.
 VARIATIONS = (
-    "",
-    " Take a warmer, softer reading of this, with more textile and more "
-    "layered lighting.",
-    " Take a cooler, more pared-back reading, with fewer pieces and more "
-    "empty floor.",
-    " Take a bolder reading, with one strong colour and one sculptural piece "
-    "as the focus.",
+    " Make one confident, specific choice — one accent colour, one material, "
+    "one statement piece — and carry it through the whole room rather than "
+    "scattering small variations.",
+    " Take the quiet version: a tight neutral palette, natural materials, "
+    "nothing glossy or saturated, more empty floor than furniture.",
+    " Change the furniture's actual silhouettes, not just their colours — a "
+    "different shape of bed frame, desk or seating — while keeping the same "
+    "style and the same footprint in the room.",
+    " Lead with a different dominant material than a plain reading would: "
+    "stone, metal or lacquer where wood would be the obvious choice, or the "
+    "reverse.",
 )
 
 

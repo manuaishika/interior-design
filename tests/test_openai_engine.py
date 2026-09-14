@@ -216,6 +216,14 @@ class TestThePipeline:
         await run_pipeline(buf.getvalue(), "japandi", settings(), variants=3)
         assert len(set(asked)) == 3
 
+    def test_no_variation_is_a_blank_instruction(self):
+        """The first slot used to be "" — no instruction at all — so option
+        one of every batch was never told to differ from anything, which is
+        why a run of "different" designs came back looking the same."""
+        from app.openai_images import VARIATIONS
+
+        assert all(v.strip() for v in VARIATIONS)
+
     @pytest.mark.asyncio
     async def test_the_room_brief_still_travels(self, monkeypatch):
         """A nursery has to stay a nursery on this engine too."""

@@ -177,6 +177,14 @@ class TestDrawing:
 
         assert len(set(asked)) == 3
 
+    def test_no_variation_is_a_blank_instruction(self):
+        """The first slot used to be "" — no instruction at all — so option
+        one of every batch was never told to differ from anything, which is
+        why a run of "different" designs came back looking the same."""
+        from app.google_ai import VARIATIONS
+
+        assert all(v.strip() for v in VARIATIONS)
+
     @pytest.mark.asyncio
     async def test_a_refusal_is_repeated_not_swallowed(self, monkeypatch):
         """When prose comes back where a picture should be, that sentence is

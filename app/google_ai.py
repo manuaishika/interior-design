@@ -252,15 +252,23 @@ KEEP_THE_BUILDING = (
 )
 
 # One image model, one photograph, no seed — so options have to differ by
-# instruction. Each nudge asks for a genuinely different room, not a re-roll.
+# instruction alone, and a vague mood word ("warmer") is not concrete enough
+# for it to act on. The first slot used to be "" — no instruction at all, so
+# one option in every batch was never told to differ from anything. Every
+# slot now names something physical — a colour, a material, a silhouette —
+# which is what actually pushes two runs of the same model apart.
 VARIATIONS = (
-    "",
-    " Take a warmer, softer reading of this style, with more textile and "
-    "more layered lighting.",
-    " Take a cooler, more pared-back reading of this style, with fewer "
-    "pieces and more empty floor.",
-    " Take a bolder reading of this style, with one strong colour and one "
-    "sculptural piece as the focus.",
+    " Make one confident, specific choice — one accent colour, one material, "
+    "one statement piece — and carry it through the whole room rather than "
+    "scattering small variations.",
+    " Take the quiet version: a tight neutral palette, natural materials, "
+    "nothing glossy or saturated, more empty floor than furniture.",
+    " Change the furniture's actual silhouettes, not just their colours — a "
+    "different shape of bed frame, desk or seating — while keeping the same "
+    "style and the same footprint in the room.",
+    " Lead with a different dominant material than a plain reading would: "
+    "stone, metal or lacquer where wood would be the obvious choice, or the "
+    "reverse.",
 )
 
 
