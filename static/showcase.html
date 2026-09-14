@@ -56,6 +56,13 @@
   .cta:hover { background: #2C2A24; }
   .cta.ghost { background: none; color: var(--ink); border: 1px solid var(--line); }
   .cta.ghost:hover { border-color: var(--clay); background: none; }
+  /* .cta.ghost's ink-on-nothing is correct everywhere it is used except
+     inside .pane, whose background IS --ink (aliased as --dark) — same
+     colour on same colour, so the label vanished and only the border ever
+     showed. Scoped here rather than changed globally, because outside .pane
+     the plain version is right (the top bar, the sign-in dialog). */
+  .pane .cta.ghost { color: #EFEAE0; border-color: rgba(239, 234, 224, .35); }
+  .pane .cta.ghost:hover { color: #F5F2EA; border-color: var(--clay); }
   .cta.clay { background: var(--clay); }
   .cta.clay:hover { background: #963d1c; }
   .cta[disabled] { opacity: .45; cursor: default; }
@@ -271,10 +278,10 @@
   .saved-card .bin { position: absolute; top: .4rem; right: .4rem; border: 0;
     background: rgba(20,19,15,.7); color: #F5F2EA; font-size: .68rem;
     padding: .2rem .5rem; border-radius: 2px; cursor: pointer; }
-  .shot-row { display: flex; gap: .35rem; margin-top: .4rem; }
-  .shots .keep { flex: 1; border-radius: 2px; padding: .35rem;
-    font-size: .76rem; text-align: center; text-decoration: none;
-    line-height: 1.6; }
+  .shot-row { display: flex; gap: .45rem; margin-top: .55rem; }
+  .shots .keep { flex: 1; border-radius: 2px; padding: .5rem .6rem;
+    font-size: .78rem; text-align: center; text-decoration: none;
+    line-height: 1.5; }
 
   .thread-list { display: grid; gap: .1rem; margin-top: 1.4rem; }
   .thread-card { display: flex; align-items: center; gap: .8rem;

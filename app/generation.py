@@ -145,7 +145,8 @@ PRESERVE = (
     "Keep exactly as they are, in the same places and at the same sizes:\n"
     "- the camera position, angle, height and field of view. Do not crop, "
     "zoom, straighten or change the proportions of the room\n"
-    "- the walls, the ceiling and the floor plan, including ceiling height\n"
+    "- the walls and the floor plan\n"
+    "- the ceiling HEIGHT — how far up it is — and where it meets the walls\n"
     "- every door and every window, each at its own position and size\n"
     "- built-in storage. A wardrobe stays a wardrobe in the same place with "
     "the same doors. It must never become a doorway, a wall or a window\n"
@@ -155,7 +156,11 @@ PRESERVE = (
     "Do not add furniture this room does not already have. If the "
     "photograph shows one bed, the result shows one bed — never invent a "
     "second bed, a second door or a second window. Do not turn a private "
-    "room into a hotel room."
+    "room into a hotel room.\n\n"
+    "None of this freezes finish, only structure. The wall surfaces, the "
+    "ceiling's own treatment — a false ceiling, cove lighting, coving, a "
+    "different colour — and the floor covering are all fair game; only "
+    "their positions and the ceiling's height are fixed."
 )
 
 
@@ -168,14 +173,19 @@ DEPTHS: dict[str, str] = {
         "Go the whole way. Replace the furniture with genuinely different and "
         "better pieces — a different bed, a different desk, different storage "
         "and seating — and change the wall finishes, the flooring, the "
-        "lighting and the textiles. Every function the room has now it must "
+        "lighting and the textiles. The ceiling's own treatment is part of "
+        "this, not exempt from it: a false ceiling, cove lighting, coving or "
+        "simply a different colour are all genuine options, not just a flat "
+        "repaint of what was there. Every function the room has now it must "
         "still have, and everything fixed stays exactly where it is, but the "
         "loose pieces themselves should be visibly new."
     ),
     "restyle": (
         "Keep the furniture that is there and change how it is finished: new "
         "upholstery, new bedding and textiles, a new wall colour, better "
-        "lighting, tidier surfaces. Do not replace the pieces themselves."
+        "lighting, tidier surfaces. Do not replace the pieces themselves, and "
+        "leave the ceiling exactly as it is — this is not the pass that adds "
+        "a false ceiling or new coving."
     ),
 }
 

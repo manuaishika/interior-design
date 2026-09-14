@@ -152,3 +152,34 @@ class TestTheWordsDoTheWork:
         prompt = build_prompt("none", contents="a desk")
         assert "You may restyle them" in prompt
         assert "better version of the same thing" in prompt
+
+    def test_ceiling_height_is_structure_not_finish(self):
+        """Freezing the ceiling's height is right. Freezing its appearance —
+        the old wording covered both — is why a bold redesign came back
+        reading as barely touched."""
+        assert "ceiling HEIGHT" in PRESERVE
+        assert "false ceiling" in PRESERVE
+
+
+class TestHowFarToGoActuallyChangesTheCeiling:
+    """"the vibe looks very similar" traced back to the ceiling being frozen
+    completely, not just its height."""
+
+    def test_a_full_redesign_may_touch_the_ceiling(self):
+        from app.generation import DEPTHS
+
+        assert "ceiling" in DEPTHS["renovate"].lower()
+        assert "false ceiling" in DEPTHS["renovate"] or "cove" in DEPTHS["renovate"]
+
+    def test_a_light_restyle_leaves_it_alone(self):
+        from app.generation import DEPTHS
+
+        assert "ceiling" in DEPTHS["restyle"].lower()
+        low = DEPTHS["restyle"].lower()
+        assert "leave the ceiling" in low or "ceiling stays" in low
+
+    def test_ceiling_height_stays_fixed_either_way(self):
+        """The depth only ever governs finish. Height is PRESERVE's job, on
+        every depth, so a full redesign cannot use "go the whole way" as
+        licence to also change how tall the room is."""
+        assert "ceiling HEIGHT" in PRESERVE
