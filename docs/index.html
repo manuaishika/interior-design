@@ -123,6 +123,10 @@
   .panel-top .dot { width: 7px; height: 7px; border-radius: 50%;
     background: var(--clay); display: inline-block; margin-right: .5rem; }
   .panel-top #state { letter-spacing: .04em; text-transform: none; font-size: .76rem; }
+  .panel-top-right { display: flex; align-items: center; gap: .9rem; }
+  .panel-top-right button { background: none; border: 0; padding: 0; cursor: pointer;
+    color: var(--muted); font: inherit; letter-spacing: inherit; text-transform: inherit; }
+  .panel-top-right button:hover { color: var(--clay); }
   .panel-body { display: grid; }
   @media (min-width: 860px) { .panel-body { grid-template-columns: 290px minmax(0,1fr); } }
   .controls { padding: 1rem; border-right: 1px solid var(--line); }
@@ -293,9 +297,13 @@
   .thread-card .meta b { display: block; font-size: .9rem;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .thread-card .meta span { font-size: .74rem; color: var(--muted); }
+  .thread-card .actions { display: flex; align-items: center; gap: .2rem; flex: none; }
   .thread-card .bin { border: 0; background: none; color: var(--muted);
     font-size: .74rem; cursor: pointer; padding: .3rem .5rem; }
   .thread-card .bin:hover { color: var(--clay); }
+  .thread-card .get { color: var(--muted); font-size: .74rem;
+    text-decoration: none; padding: .3rem .5rem; }
+  .thread-card .get:hover { color: var(--clay); }
 
   .peek-note { grid-column: 1 / -1; display: grid; place-items: center;
     aspect-ratio: 3/1; background: var(--card); font-size: .74rem;
@@ -341,8 +349,6 @@
       <button type="button" data-go="explore">Explore</button>
       <button type="button" data-go="how">How it works</button>
       <button type="button" data-go="pricing">Pricing</button>
-      <button type="button" id="navSaved" class="hidden">Your designs</button>
-      <button type="button" id="navHistory" class="hidden">Your chats</button>
     </nav>
     <button class="cta ghost" id="login" type="button">Log in</button>
   </div>
@@ -421,7 +427,10 @@
     <div class="panel">
       <div class="panel-top">
         <span><span class="dot"></span>Second Draft engine</span>
-        <span id="state">Getting ready&hellip;</span>
+        <span class="panel-top-right">
+          <button type="button" id="historyBtn" class="hidden">History</button>
+          <span id="state">Getting ready&hellip;</span>
+        </span>
       </div>
       <div class="panel-body">
         <div class="controls">
@@ -505,20 +514,12 @@
       <p class="hint" id="costAssumes"></p>
     </section>
 
-    <section class="sect hidden" id="historyBlock">
-      <div class="sec-head">
-        <h2 class="sec">Your chats</h2>
-        <span class="gal-note" id="historyNote"></span>
-      </div>
-      <div class="thread-list" id="history"></div>
-    </section>
-
     <section class="sect hidden" id="savedBlock">
       <div class="sec-head">
-        <h2 class="sec">Your designs</h2>
+        <h2 class="sec">History</h2>
         <span class="gal-note" id="savedNote"></span>
       </div>
-      <div class="strip" id="saved"></div>
+      <div class="thread-list" id="saved"></div>
     </section>
   </div>
 </main>
@@ -1262,8 +1263,7 @@
         account = s.account || null;
         googleReady = Boolean(s.google_available);
         showDoor();
-        loadSaved();
-        loadHistory();
+        if (historyOpen) { loadHistoryPanel(); }
       })
       .catch(function () {
         needsCode = false; signedIn = true; account = null;
@@ -1271,33 +1271,27 @@
       });
   }
 
-  /* Somewhere to get back to your own work from, without scrolling past a
-     studio you are not using. */
-  $('navSaved').onclick = function () {
-    show('studio');
-    setTimeout(function () {
-      var block = $('savedBlock');
-      if (!block.classList.contains('hidden')) {
-        block.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 60);
-  };
-  $('navHistory').onclick = function () {
-    show('studio');
-    setTimeout(function () {
-      var block = $('historyBlock');
-      if (!block.classList.contains('hidden')) {
-        block.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 60);
+  /* One drawer, not two nav items. "Your chats" sitting next to Pricing said
+     it was a section of the product; it is a drawer somebody opens
+     occasionally, so it lives in the studio panel's own header instead. */
+  var historyOpen = false;
+  $('historyBtn').onclick = function () {
+    historyOpen = !historyOpen;
+    $('savedBlock').classList.toggle('hidden', !historyOpen);
+    if (historyOpen) {
+      loadHistoryPanel();
+      setTimeout(function () {
+        $('savedBlock').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 60);
+    }
   };
 
   function showDoor() {
     $('login').textContent = account
       ? (account.name || account.email).split('@')[0] + ' · Sign out'
       : (needsCode && signedIn ? 'Sign out' : 'Sign in');
-    $('navSaved').classList.toggle('hidden', !account);
-    $('navHistory').classList.toggle('hidden', !account);
+    $('historyBtn').classList.toggle('hidden', !account);
+    if (!account) { historyOpen = false; $('savedBlock').classList.add('hidden'); }
     refresh();
   }
 
@@ -1399,57 +1393,11 @@
     } catch (e) {}
   })();
 
-  /* ---- designs somebody kept ---------------------------------------- */
-  function loadSaved() {
-    if (!account) {
-      $('savedBlock').classList.add('hidden');
-      return;
-    }
-    fetch(api('/api/designs'), { credentials: 'include' })
-      .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
-      .then(function (d) {
-        var list = d.designs || [];
-        $('savedBlock').classList.toggle('hidden', list.length === 0);
-        $('savedNote').textContent = list.length
-          ? list.length + (list.length === 1 ? ' design' : ' designs') : '';
-        $('saved').innerHTML = '';
-        list.forEach(function (item) {
-          var card = document.createElement('figure');
-          card.className = 'plate saved-card';
-          var img = document.createElement('img');
-          img.src = api(item.url);
-          img.alt = item.title || 'Design';
-          var bin = document.createElement('button');
-          bin.className = 'bin';
-          bin.type = 'button';
-          bin.textContent = 'Remove';
-          bin.onclick = function () {
-            fetch(api('/api/designs/' + item.id),
-                  { method: 'DELETE', credentials: 'include' })
-              .then(loadSaved);
-          };
-          var cap = document.createElement('figcaption');
-          cap.innerHTML = '<b></b><span></span>';
-          cap.querySelector('b').textContent = item.title || 'Design';
-          cap.querySelector('span').textContent = item.style || '';
-
-          var get = document.createElement('a');
-          get.className = 'bin get';
-          get.textContent = 'Download';
-          get.href = api(item.url);
-          get.download = 'second-draft-' + item.id + '.png';
-
-          card.appendChild(img);
-          card.appendChild(bin);
-          card.appendChild(get);
-          card.appendChild(cap);
-          $('saved').appendChild(card);
-        });
-      })
-      .catch(function () { $('savedBlock').classList.add('hidden'); });
-  }
-
-  /* ---- chats somebody had ------------------------------------------- */
+  /* ---- history: chats and designs together, in one drawer ------------
+     Opened by #historyBtn, not shown by default — see showDoor() / the
+     handler above. A design kept from inside a thread is also reachable by
+     opening that thread, so it appears in both places; that overlap is
+     harmless and simpler than tracking which designs to hide here. */
   function threadDate(iso) {
     try {
       return new Date(iso).toLocaleDateString(undefined,
@@ -1457,54 +1405,91 @@
     } catch (e) { return ''; }
   }
 
-  function loadHistory() {
-    if (!account) {
-      $('historyBlock').classList.add('hidden');
-      return;
-    }
-    fetch(api('/api/conversations'), { credentials: 'include' })
-      .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
-      .then(function (d) {
-        var list = d.conversations || [];
-        $('historyBlock').classList.toggle('hidden', list.length === 0);
-        $('historyNote').textContent = list.length
-          ? list.length + (list.length === 1 ? ' chat' : ' chats') : '';
-        $('history').innerHTML = '';
-        list.forEach(function (item) {
-          var card = document.createElement('div');
-          card.className = 'thread-card';
+  function loadHistoryPanel() {
+    if (!account) { $('savedBlock').classList.add('hidden'); return; }
+    Promise.all([
+      fetch(api('/api/conversations'), { credentials: 'include' })
+        .then(function (r) { return r.ok ? r.json() : { conversations: [] }; })
+        .catch(function () { return { conversations: [] }; }),
+      fetch(api('/api/designs'), { credentials: 'include' })
+        .then(function (r) { return r.ok ? r.json() : { designs: [] }; })
+        .catch(function () { return { designs: [] }; }),
+    ]).then(function (results) {
+      var chats = (results[0].conversations || []).map(function (c) {
+        return { kind: 'chat', id: c.id, title: c.title || 'Untitled',
+                sub: [c.room, c.style].filter(Boolean).join(' · '),
+                date: c.updated_at, thumb: '/api/conversations/' + c.id + '/photo' };
+      });
+      var designs = (results[1].designs || []).map(function (d) {
+        return { kind: 'design', id: d.id, title: d.title || 'Design',
+                sub: [d.room, d.style].filter(Boolean).join(' · '),
+                date: d.created_at, thumb: d.url };
+      });
+      var items = chats.concat(designs).sort(function (a, b) {
+        return new Date(b.date) - new Date(a.date);
+      });
 
-          var img = document.createElement('img');
-          img.src = api('/api/conversations/' + item.id + '/photo');
-          img.alt = '';
+      $('savedNote').textContent = items.length
+        ? items.length + (items.length === 1 ? ' item' : ' items') : 'Nothing yet';
+      $('saved').innerHTML = '';
+      items.forEach(function (item) {
+        var card = document.createElement('div');
+        card.className = 'thread-card';
 
-          var meta = document.createElement('div');
-          meta.className = 'meta';
-          meta.innerHTML = '<b></b><span></span>';
-          meta.querySelector('b').textContent = item.title || 'Untitled';
-          meta.querySelector('span').textContent =
-            [item.room, item.style].filter(Boolean).join(' · ') +
-            (item.updated_at ? ' · ' + threadDate(item.updated_at) : '');
+        var img = document.createElement('img');
+        img.src = api(item.thumb);
+        img.alt = '';
 
-          var bin = document.createElement('button');
-          bin.type = 'button';
-          bin.className = 'bin';
-          bin.textContent = 'Remove';
-          bin.onclick = function (e) {
-            e.stopPropagation();
-            fetch(api('/api/conversations/' + item.id),
-                  { method: 'DELETE', credentials: 'include' })
-              .then(loadHistory);
-          };
+        var meta = document.createElement('div');
+        meta.className = 'meta';
+        meta.innerHTML = '<b></b><span></span>';
+        meta.querySelector('b').textContent = item.title;
+        meta.querySelector('span').textContent =
+          (item.kind === 'chat' ? 'Chat' : 'Design') +
+          (item.sub ? ' · ' + item.sub : '') +
+          (item.date ? ' · ' + threadDate(item.date) : '');
 
-          card.appendChild(img);
-          card.appendChild(meta);
-          card.appendChild(bin);
-          card.onclick = function () { openConversation(item.id); };
-          $('history').appendChild(card);
-        });
-      })
-      .catch(function () { $('historyBlock').classList.add('hidden'); });
+        var actions = document.createElement('div');
+        actions.className = 'actions';
+
+        if (item.kind === 'design') {
+          var get = document.createElement('a');
+          get.className = 'get';
+          get.textContent = 'Download';
+          get.href = api(item.thumb);
+          get.download = 'second-draft-' + item.id + '.png';
+          get.onclick = function (e) { e.stopPropagation(); };
+          actions.appendChild(get);
+        }
+
+        var bin = document.createElement('button');
+        bin.type = 'button';
+        bin.className = 'bin';
+        bin.textContent = 'Remove';
+        bin.onclick = function (e) {
+          e.stopPropagation();
+          var path = item.kind === 'chat' ? '/api/conversations/' + item.id
+                                           : '/api/designs/' + item.id;
+          fetch(api(path), { method: 'DELETE', credentials: 'include' })
+            .then(loadHistoryPanel);
+        };
+        actions.appendChild(bin);
+
+        card.appendChild(img);
+        card.appendChild(meta);
+        card.appendChild(actions);
+        card.onclick = function () {
+          if (item.kind === 'chat') {
+            historyOpen = false;
+            $('savedBlock').classList.add('hidden');
+            openConversation(item.id);
+          } else {
+            window.open(api(item.thumb), '_blank');
+          }
+        };
+        $('saved').appendChild(card);
+      });
+    });
   }
 
   /* Reopening a thread. A native file input cannot be filled by script, so
@@ -1844,7 +1829,9 @@
     fetch(api('/api/conversations'), { method: 'POST', body: cf,
                                        credentials: 'include' })
       .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (c) { if (c) { convId = c.id; loadHistory(); } })
+      .then(function (c) {
+        if (c) { convId = c.id; if (historyOpen) { loadHistoryPanel(); } }
+      })
       .catch(function () {});
   }
 
@@ -1913,9 +1900,10 @@
     $('paneEmpty').classList.add('hidden');
     $('shots').classList.remove('hidden');
 
-    // Refresh the shelf once, after them all, rather than once per design.
-    if (saving.length) {
-      Promise.all(saving).then(loadSaved);
+    // Refresh the drawer once, after them all, rather than once per design —
+    // and only if it is actually open, so a closed drawer costs nothing.
+    if (saving.length && historyOpen) {
+      Promise.all(saving).then(loadHistoryPanel);
     }
   }
 

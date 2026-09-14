@@ -42,8 +42,11 @@ class TestTheyKeepThemselves:
         assert "if (!quiet) { openDialog(); }" in html
 
     def test_the_shelf_refreshes_once_not_per_design(self):
+        """The shelf is now the merged History drawer (fix 3), not a
+        designs-only list — refreshed once after a whole batch saves, and
+        only if it is actually open."""
         html = open("static/showcase.html", encoding="utf-8").read()
-        assert "Promise.all(saving).then(loadSaved);" in html
+        assert "Promise.all(saving).then(loadHistoryPanel);" in html
 
 
 class TestStorage:
