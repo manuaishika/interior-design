@@ -1568,8 +1568,17 @@
     return bits.join('-').replace(/[^a-z0-9-]/gi, '') + '.png';
   }
 
-  function keepDesign(base64, button) {
-    if (!account) { openDialog(); return; }
+  /* Nobody thinks of a generated picture as unsaved. Making people press
+     Keep meant almost everything they made was thrown away the moment they
+     pressed Draw again — they had made dozens of designs and found two.
+
+     So every design is kept as it arrives, for anyone signed in. The button
+     is now a status, not a chore. */
+  function keepDesign(base64, button, quiet) {
+    if (!account) {
+      if (!quiet) { openDialog(); }
+      return Promise.resolve();
+    }
     var bytes = atob(base64), buffer = new Uint8Array(bytes.length);
     for (var i = 0; i < bytes.length; i++) { buffer[i] = bytes.charCodeAt(i); }
 
@@ -1582,18 +1591,21 @@
     // Kept from inside a thread, so reopening it later shows what was drawn.
     if (convId) { body.append('conversation_id', String(convId)); }
 
-    button.disabled = true;
-    button.textContent = 'Keeping…';
-    fetch(api('/api/designs'), { method: 'POST', body: body,
-                                 credentials: 'include' })
+    if (button) {
+      button.disabled = true;
+      button.textContent = 'Saving…';
+    }
+    return fetch(api('/api/designs'), { method: 'POST', body: body,
+                                        credentials: 'include' })
       .then(function (r) {
         if (!r.ok) throw new Error();
-        button.textContent = 'Kept';
-        return loadSaved();
+        if (button) { button.textContent = 'Saved'; }
       })
       .catch(function () {
-        button.disabled = false;
-        button.textContent = 'Keep';
+        if (button) {
+          button.disabled = false;
+          button.textContent = 'Save';
+        }
       });
   }
 
@@ -1852,6 +1864,7 @@
     var d = await r.json();
     if (!r.ok) throw new Error(d.detail || 'Could not draw');
     $('shots').innerHTML = '';
+    var saving = [];
     d.generations.forEach(function (g, i) {
       var figure = document.createElement('figure');
       var img = document.createElement('img');
@@ -1867,8 +1880,10 @@
       var keep = document.createElement('button');
       keep.className = 'cta ghost keep';
       keep.type = 'button';
-      keep.textContent = account ? 'Keep' : 'Sign in to keep';
+      keep.disabled = Boolean(account);
+      keep.textContent = account ? 'Saving…' : 'Sign in to save';
       keep.onclick = function () { keepDesign(g.image_base64, keep); };
+      saving.push(keepDesign(g.image_base64, keep, true));
 
       /* Saving puts it in an account; downloading puts it on the person's
          own disk, which is what they actually send to a builder. */
@@ -1889,6 +1904,11 @@
     lastDesign = d.generations.length ? d.generations[0].image_base64 : null;
     $('paneEmpty').classList.add('hidden');
     $('shots').classList.remove('hidden');
+
+    // Refresh the shelf once, after them all, rather than once per design.
+    if (saving.length) {
+      Promise.all(saving).then(loadSaved);
+    }
   }
 
   function addTurn(role, text) {

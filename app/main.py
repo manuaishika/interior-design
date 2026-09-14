@@ -106,6 +106,20 @@ async def _close_the_books() -> None:
     await store.dispose()
 
 
+def _media_type(data: bytes) -> str:
+    """What this actually is, rather than what it used to be.
+
+    Designs are stored as JPEG now and older rows are still PNG, so the two
+    magic numbers decide — a PNG served as a JPEG downloads with the wrong
+    extension and some viewers refuse it outright.
+    """
+    if data[:8] == b"\x89PNG\r\n\x1a\n":
+        return "image/png"
+    if data[:3] == b"\xff\xd8\xff":
+        return "image/jpeg"
+    return "application/octet-stream"
+
+
 @app.get("/api/health")
 async def health():
     """What this deployment can actually do, right now.
@@ -421,7 +435,7 @@ async def conversation_photo(request: Request, conversation_id: int):
         conv = await store.conversation_for(db, who, conversation_id)
         if conv is None:
             raise HTTPException(404, "No such conversation.")
-        return Response(conv.photo, media_type="image/png")
+        return Response(conv.photo, media_type=_media_type(conv.photo))
 
 
 @app.patch("/api/conversations/{conversation_id}")
@@ -456,7 +470,7 @@ async def design_image(request: Request, design_id: int):
             # 404 rather than 403: somebody else's id should not be confirmed
             # to exist merely by not being yours.
             raise HTTPException(404, "No such design.")
-        return Response(design.image, media_type="image/png")
+        return Response(design.image, media_type=_media_type(design.image))
 
 
 @app.delete("/api/designs/{design_id}")

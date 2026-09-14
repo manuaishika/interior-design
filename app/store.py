@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import datetime as dt
 import hashlib
+import io
 import logging
 import secrets
 
@@ -287,6 +288,33 @@ async def from_google(db: AsyncSession, google_id: str, email: str,
 # Designs
 # ---------------------------------------------------------------------------
 
+# Rooms are photographs, so JPEG at a high quality is visually the same file
+# and roughly a tenth of the size. That matters now that every design saves
+# itself: a free Postgres is a gigabyte, a PNG render is a couple of megabytes,
+# and nobody wants to discover that ceiling by hitting it.
+JPEG_QUALITY = 88
+STORED_MEDIA_TYPE = "image/jpeg"
+
+
+def compress(image: bytes) -> bytes:
+    """Shrink a render for storage. Returns the original if anything is odd
+    about it — a design that saves imperfectly beats one that fails to save."""
+    try:
+        from PIL import Image
+
+        picture = Image.open(io.BytesIO(image))
+        picture.load()
+        if picture.mode in ("RGBA", "LA", "P"):
+            picture = picture.convert("RGB")
+        out = io.BytesIO()
+        picture.save(out, format="JPEG", quality=JPEG_QUALITY, optimize=True)
+        smaller = out.getvalue()
+        return smaller if 0 < len(smaller) < len(image) else image
+    except Exception:
+        log.warning("Could not compress a design; storing it as it came")
+        return image
+
+
 async def save_design(db: AsyncSession, user_id: int, image: bytes, *,
                       title: str = "", room: str = "", style: str = "",
                       note: str = "", width: int = 0, height: int = 0,
@@ -294,7 +322,7 @@ async def save_design(db: AsyncSession, user_id: int, image: bytes, *,
     # conversation_id is trusted here — the caller must already have checked
     # it belongs to user_id (conversation_for does that), the same way every
     # other write in this module leaves ownership to its caller's lookup.
-    design = Design(user_id=user_id, image=image, title=title[:160],
+    design = Design(user_id=user_id, image=compress(image), title=title[:160],
                     room=room[:60], style=style[:60], note=note,
                     width=width, height=height, conversation_id=conversation_id)
     db.add(design)
@@ -303,7 +331,7 @@ async def save_design(db: AsyncSession, user_id: int, image: bytes, *,
 
 
 async def designs_for(db: AsyncSession, user_id: int,
-                      limit: int = 60) -> list[Design]:
+                      limit: int = 200) -> list[Design]:
     rows = await db.scalars(
         select(Design).where(Design.user_id == user_id)
         .order_by(Design.created_at.desc()).limit(limit)
