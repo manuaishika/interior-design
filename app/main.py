@@ -607,6 +607,7 @@ async def generate_endpoint(
     extra_prompt: str = Form(""),
     seed: int | None = Form(None),
     variants: int | None = Form(None),
+    variant_offset: int = Form(0),
     profile: str | None = Form(None),
     keep_mask_ids: str | None = Form(None),
     replace_mask_ids: str | None = Form(None),
@@ -614,6 +615,8 @@ async def generate_endpoint(
     """Upload -> analyze -> masked generation.
 
     Returns N design options plus the structured JSON they were built from.
+    `variant_offset` is for a caller firing one request per design rather
+    than one request for a whole batch — see run_pipeline's docstring.
     """
     settings = get_settings()
     auth.guard(request, settings)
@@ -626,6 +629,7 @@ async def generate_endpoint(
             extra_prompt=extra_prompt,
             seed=seed,
             variants=variants,
+            variant_offset=variant_offset,
             room=room_type,
             contents=contents,
             keep=keep,

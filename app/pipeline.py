@@ -46,7 +46,7 @@ def _is_openai(settings: Settings) -> bool:
 
 
 async def _run_free(data, style, settings, *, extra_prompt, variants, room="",
-                    contents="", keep="", depth=""):
+                    contents="", keep="", depth="", variant_offset=0):
     """The free path: no segmentation, no mask, one image model.
 
     There is nothing to segment because there is nothing to mask — the whole
@@ -63,8 +63,13 @@ async def _run_free(data, style, settings, *, extra_prompt, variants, room="",
     prompt = build_prompt(style, extra_prompt, room=room, contents=contents,
                           keep=keep, depth=depth)
 
+    # variant_offset lets the page ask for one design at a time instead of
+    # waiting for a whole batch to finish before showing the first — see
+    # run_pipeline's docstring. Each independent request still needs a
+    # distinct wording nudge, or "one at a time" would draw the same option
+    # three times over.
     drawn = await asyncio.gather(
-        *(google_ai.redraw(photo, prompt, settings, variant=i)
+        *(google_ai.redraw(photo, prompt, settings, variant=variant_offset + i)
           for i in range(count)),
         return_exceptions=True,
     )
@@ -80,7 +85,7 @@ async def _run_free(data, style, settings, *, extra_prompt, variants, room="",
             image_base64=base64.b64encode(result).decode("ascii"),
             inpaint_mask_base64="",
             prompt=prompt,
-            variant_index=index,
+            variant_index=variant_offset + index,
         ))
 
     if not generations:
@@ -94,7 +99,7 @@ async def _run_free(data, style, settings, *, extra_prompt, variants, room="",
 
 
 async def _run_openai(data, style, settings, *, extra_prompt, variants, room="",
-                      contents="", keep="", depth=""):
+                      contents="", keep="", depth="", variant_offset=0):
     """One OpenAI key. No Replicate anywhere.
 
     GPT-4o says where the doors, windows and walkways are; those boxes become
@@ -141,10 +146,13 @@ async def _run_openai(data, style, settings, *, extra_prompt, variants, room="",
     # in the picture it paints.
     prompt = build_prompt(style, extra_prompt, room=room, contents=contents,
                           keep=keep, depth=depth)
+    # variant_offset: see _run_free's docstring note — one request per
+    # design still needs count(=1) requests to land on different wording.
     drawn = await asyncio.gather(
         *(openai_images.redraw(
             image, sent_mask,
-            prompt + openai_images.VARIATIONS[i % len(openai_images.VARIATIONS)],
+            prompt + openai_images.VARIATIONS[
+                (variant_offset + i) % len(openai_images.VARIATIONS)],
             settings)
           for i in range(count)),
         return_exceptions=True,
@@ -168,7 +176,7 @@ async def _run_openai(data, style, settings, *, extra_prompt, variants, room="",
             image_base64=base64.b64encode(result).decode("ascii"),
             inpaint_mask_base64=mask_b64,
             prompt=prompt,
-            variant_index=index,
+            variant_index=variant_offset + index,
         ))
 
     if not generations:
@@ -374,6 +382,7 @@ async def run_pipeline(
     extra_prompt: str = "",
     seed: int | None = None,
     variants: int | None = None,
+    variant_offset: int = 0,
     room: str = "",
     contents: str = "",
     keep: str = "",
@@ -386,16 +395,25 @@ async def run_pipeline(
     Analysis runs once and is shared across the options: segmentation and
     labeling are the expensive, slow part, and every option is constrained by
     the same locked-region mask anyway.
+
+    `variant_offset` is for a caller doing one request per design instead of
+    one request for the whole batch — asyncio.gather inside a single call
+    means nothing appears until the slowest of the batch finishes, which for
+    two or three 20-40 second images reads as the app having hung. Firing N
+    independent variants=1 requests instead lets the page show the first as
+    soon as it lands; each still needs a distinct wording nudge or all N
+    would draw the same option, hence the offset.
     """
     if _is_free(settings):
         return await _run_free(data, style, settings, extra_prompt=extra_prompt,
                                variants=variants, room=room, contents=contents,
-                               keep=keep, depth=profile or "")
+                               keep=keep, depth=profile or "",
+                               variant_offset=variant_offset)
     if _is_openai(settings):
         return await _run_openai(data, style, settings,
                                  extra_prompt=extra_prompt, variants=variants,
                                  room=room, contents=contents, keep=keep,
-                                 depth=profile or "")
+                                 depth=profile or "", variant_offset=variant_offset)
 
     count = settings.default_variants if variants is None else variants
     count = max(1, min(count, settings.max_variants))

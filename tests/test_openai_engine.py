@@ -216,6 +216,41 @@ class TestThePipeline:
         await run_pipeline(buf.getvalue(), "japandi", settings(), variants=3)
         assert len(set(asked)) == 3
 
+    @pytest.mark.asyncio
+    async def test_one_request_per_design_still_differs(self, monkeypatch):
+        """FIX-NEXT.md #5: the page now fires one variants=1 request per
+        design instead of one request for the whole batch, so the first can
+        appear without waiting for the slowest. Every one of those separate
+        calls used to land on i=0 and therefore the identical VARIATIONS
+        slot — variant_offset is what a caller doing this has to set."""
+        from app.pipeline import run_pipeline
+
+        asked = []
+
+        async def find(image, s):
+            return []
+
+        async def redraw(image, mask, prompt, s):
+            asked.append(prompt)
+            buf = io.BytesIO()
+            Image.new("RGB", (8, 8)).save(buf, "PNG")
+            return buf.getvalue()
+
+        monkeypatch.setattr("app.openai_images.find_structure", find)
+        monkeypatch.setattr("app.openai_images.redraw", redraw)
+
+        buf = io.BytesIO()
+        Image.new("RGB", (100, 100)).save(buf, "PNG")
+        indices = []
+        for offset in range(3):
+            _, generations = await run_pipeline(
+                buf.getvalue(), "japandi", settings(),
+                variants=1, variant_offset=offset)
+            indices.append(generations[0].variant_index)
+
+        assert len(set(asked)) == 3          # three different prompts...
+        assert indices == [0, 1, 2]           # ...correctly numbered as one batch
+
     def test_no_variation_is_a_blank_instruction(self):
         """The first slot used to be "" — no instruction at all — so option
         one of every batch was never told to differ from anything, which is

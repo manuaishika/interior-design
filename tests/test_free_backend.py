@@ -421,6 +421,30 @@ class TestHealthAndPipeline:
         assert generations[0].image_base64
 
     @pytest.mark.asyncio
+    async def test_one_request_per_design_still_differs(self, monkeypatch):
+        """FIX-NEXT.md #5: one variants=1 request per design instead of one
+        request for the whole batch, so the first can appear without
+        waiting for the slowest — every one of those separate calls used to
+        land on variant=0 and draw the identical option three times over."""
+        from app.pipeline import run_pipeline
+
+        seen = []
+
+        async def redraw(photo, prompt, s, variant=0):
+            seen.append(variant)
+            return png((24, 24))
+
+        monkeypatch.setattr("app.google_ai.redraw", redraw)
+        indices = []
+        for offset in range(3):
+            _, generations = await run_pipeline(
+                png(), "japandi", settings(), variants=1, variant_offset=offset)
+            indices.append(generations[0].variant_index)
+
+        assert seen == [0, 1, 2]
+        assert indices == [0, 1, 2]
+
+    @pytest.mark.asyncio
     async def test_one_failed_option_does_not_lose_the_others(self, monkeypatch):
         from app.pipeline import run_pipeline
 

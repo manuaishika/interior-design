@@ -1920,7 +1920,52 @@
       .catch(function () {});
   }
 
-  async function draw() {
+  /* One request per design, fired together, instead of one request for the
+     whole batch. asyncio.gather inside a single call meant nothing appeared
+     until the slowest of two or three 20-40 second images finished — a
+     minute staring at an empty pane reads as the app having hung. Now the
+     first one to land appears immediately and the rest fill in around it;
+     variant_offset is what keeps three separate variants=1 calls from all
+     drawing the identical option (see pipeline.run_pipeline's docstring). */
+  function appendDesign(g, i, saving) {
+    var figure = document.createElement('figure');
+    var img = document.createElement('img');
+    img.src = 'data:image/png;base64,' + g.image_base64;
+    img.alt = 'Design ' + (i + 1);
+
+    var cap = document.createElement('figcaption');
+    cap.textContent = 'Design ' + (i + 1) + ' · ' + style.name;
+
+    var row = document.createElement('div');
+    row.className = 'shot-row';
+
+    var keep = document.createElement('button');
+    keep.className = 'cta ghost keep';
+    keep.type = 'button';
+    keep.disabled = Boolean(account);
+    keep.textContent = account ? 'Saving…' : 'Sign in to save';
+    keep.onclick = function () { keepDesign(g.image_base64, keep); };
+    saving.push(keepDesign(g.image_base64, keep, true));
+
+    /* Saving puts it in an account; downloading puts it on the person's
+       own disk, which is what they actually send to a builder. */
+    var down = document.createElement('a');
+    down.className = 'cta ghost keep';
+    down.textContent = 'Download';
+    down.download = fileName(i);
+    down.href = img.src;
+
+    row.appendChild(keep);
+    row.appendChild(down);
+
+    figure.appendChild(img);
+    figure.appendChild(cap);
+    figure.appendChild(row);
+    $('shots').appendChild(figure);
+    lastDesign = g.image_base64;
+  }
+
+  async function drawOne(i, saving, progress) {
     var f = new FormData();
     f.append('photo', currentPhoto());
     f.append('style', style.id);
@@ -1928,62 +1973,51 @@
     // then not sending it is how "nursery" used to draw a generic bedroom.
     f.append('room_type', room.id);
     f.append('profile', depth.id);
-    f.append('variants', String(count));
+    f.append('variants', '1');
+    f.append('variant_offset', String(i));
     /* The generator was being told to draw "a bedroom" and drawing the
        average one — the desk and the television it was never told about
        simply were not in the picture it painted. */
     if (reading && reading.items) {
-      f.append('contents', reading.items.map(function (i) {
-        return (i.count > 1 ? i.count + ' ' : '') + i.name;
+      f.append('contents', reading.items.map(function (item) {
+        return (item.count > 1 ? item.count + ' ' : '') + item.name;
       }).join(', '));
       var kept = keptList();
       if (kept.length) { f.append('keep', kept.join(', ')); }
     }
     f.append('extra_prompt', $('text').value);
-    var r = await fetch(api('/api/generate'), { method: 'POST', body: f, credentials: 'include' });
-    var d = await r.json();
-    if (!r.ok) throw new Error(d.detail || 'Could not draw');
+
+    try {
+      var r = await fetch(api('/api/generate'), { method: 'POST', body: f, credentials: 'include' });
+      var d = await r.json();
+      if (!r.ok) throw new Error(d.detail || 'Could not draw');
+      appendDesign(d.generations[0], i, saving);
+      progress.done++;
+    } catch (e) {
+      progress.failed++;
+      progress.lastError = e;
+    }
+    var settled = progress.done + progress.failed;
+    say(settled < progress.total
+      ? 'Drawn ' + progress.done + ' of ' + progress.total +
+        (progress.failed ? ', ' + progress.failed + ' failed' : '') + '…'
+      : '');
+  }
+
+  async function draw() {
     $('shots').innerHTML = '';
-    var saving = [];
-    d.generations.forEach(function (g, i) {
-      var figure = document.createElement('figure');
-      var img = document.createElement('img');
-      img.src = 'data:image/png;base64,' + g.image_base64;
-      img.alt = 'Design ' + (i + 1);
-
-      var cap = document.createElement('figcaption');
-      cap.textContent = 'Design ' + (i + 1) + ' · ' + style.name;
-
-      var row = document.createElement('div');
-      row.className = 'shot-row';
-
-      var keep = document.createElement('button');
-      keep.className = 'cta ghost keep';
-      keep.type = 'button';
-      keep.disabled = Boolean(account);
-      keep.textContent = account ? 'Saving…' : 'Sign in to save';
-      keep.onclick = function () { keepDesign(g.image_base64, keep); };
-      saving.push(keepDesign(g.image_base64, keep, true));
-
-      /* Saving puts it in an account; downloading puts it on the person's
-         own disk, which is what they actually send to a builder. */
-      var down = document.createElement('a');
-      down.className = 'cta ghost keep';
-      down.textContent = 'Download';
-      down.download = fileName(i);
-      down.href = img.src;
-
-      row.appendChild(keep);
-      row.appendChild(down);
-
-      figure.appendChild(img);
-      figure.appendChild(cap);
-      figure.appendChild(row);
-      $('shots').appendChild(figure);
-    });
-    lastDesign = d.generations.length ? d.generations[0].image_base64 : null;
     $('paneEmpty').classList.add('hidden');
     $('shots').classList.remove('hidden');
+
+    var saving = [];
+    var progress = { done: 0, failed: 0, total: count, lastError: null };
+    var requests = [];
+    for (var i = 0; i < count; i++) { requests.push(drawOne(i, saving, progress)); }
+    await Promise.all(requests);
+
+    if (progress.done === 0) {
+      throw progress.lastError || new Error('Could not draw');
+    }
 
     // Refresh the drawer once, after them all, rather than once per design —
     // and only if it is actually open, so a closed drawer costs nothing.
@@ -2055,7 +2089,10 @@
         paint(await readRoom());
         say('');
       }
-      if (live && canDraw) { say('Drawing ' + count + '…'); await draw(); say(''); }
+      // draw() reports its own progress — "Drawn 1 of 3…" — as each design
+      // actually lands, rather than one static line for however long the
+      // slowest of the batch takes.
+      if (live && canDraw) { await draw(); }
       else { say('Read done. Pictures need the drawing engine switched on.'); }
     } catch (e) {
       if (e && e.name === 'NotARoom') { reading = null; }
