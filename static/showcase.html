@@ -1,12 +1,21 @@
 <title>Second Draft</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Rubik:wght@300;400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Rubik:wght@300;400;500&display=swap">
 
 <style>
   /* One committed light palette. The room drawings supply the colour; the
      page around them stays out of the way. */
   :root {
+    /* One place to change the display face.
+       New Spirit, which this is drawn after, is a commercial typeface from
+       Newlyn and cannot be embedded without a licence. Fraunces is the closest
+       thing that is free to use — a warm contemporary serif with the same
+       generous curves — and its SOFT and WONK axes are set below to lean it
+       further that way. Buy the New Spirit webfont and this single line, plus
+       an @font-face block, is the whole swap. */
+    --display: "Fraunces", "New Spirit", Georgia, "Times New Roman", serif;
+
     --bg:     #F2EFE6;   /* bone */
     --raise:  #FAF8F2;
     --card:   #E9E4D7;
@@ -23,15 +32,19 @@
   body { margin: 0; background: var(--bg); color: var(--ink);
     font-family: "Rubik", ui-sans-serif, system-ui, sans-serif; font-size: 15px;
     line-height: 1.6; -webkit-font-smoothing: antialiased; }
-  h1, h2, h3, .serif { font-family: "Space Mono", ui-monospace, SFMono-Regular, monospace;
-    font-weight: 700; margin: 0; line-height: 1.2; letter-spacing: -.035em; }
+  h1, h2, h3, .serif { font-family: var(--display);
+    font-weight: 600; margin: 0; line-height: 1.12; letter-spacing: -.012em;
+    /* SOFT rounds the terminals, WONK lets the italicised forms lean —
+       together they are what stop Fraunces reading as a newspaper. */
+    font-variation-settings: "SOFT" 40, "WONK" 1; }
   button, input, select, textarea { font: inherit; color: inherit; }
   :focus-visible { outline: 2px solid var(--clay); outline-offset: 2px; }
   .hidden { display: none !important; }
   .wrap { max-width: 1120px; margin: 0 auto; padding: 0 clamp(1.1rem, 4vw, 2.6rem); }
-  .kick { font-family: "Space Mono", ui-monospace, monospace; font-size: .68rem;
-    letter-spacing: .22em; text-transform: uppercase; color: var(--clay);
-    font-weight: 700; margin: 0 0 1rem; }
+  /* The kicker stays a sans: a serif at 11px in all-caps with heavy
+     tracking turns to mush. */
+  .kick { font-size: .68rem; letter-spacing: .22em; text-transform: uppercase;
+    color: var(--clay); font-weight: 600; margin: 0 0 1rem; }
   .lede { color: var(--muted); max-width: 46ch; font-size: 1.02rem; margin: 1.1rem 0 0; }
   .hero-do { display: flex; align-items: center; gap: .9rem; flex-wrap: wrap;
     margin: 1.8rem 0 0; }
@@ -42,8 +55,8 @@
   .top { position: sticky; top: 0; z-index: 40; background: var(--bg);
     border-bottom: 1px solid var(--line); }
   .top-in { display: flex; align-items: center; gap: 1.4rem; height: 62px; }
-  .brand { font-family: "Space Mono", ui-monospace, SFMono-Regular, monospace;
-    font-size: 1rem; font-weight: 700; letter-spacing: -.04em;
+  .brand { font-family: var(--display);
+    font-size: 1.45rem; font-weight: 600; letter-spacing: -.015em;
     background: none; border: 0; cursor: pointer; padding: 0; }
   nav { display: flex; gap: .3rem; margin: 0 auto; }
   nav button { background: none; border: 0; cursor: pointer; padding: .4rem .7rem;
@@ -79,8 +92,8 @@
   }
 
   .view { padding: clamp(2.2rem, 6vw, 4.4rem) 0 5rem; }
-  h1.big { font-size: clamp(1.55rem, 3.4vw, 2.5rem); max-width: 24ch; }
-  h2.sec { font-size: clamp(1.25rem, 2.2vw, 1.6rem); }
+  h1.big { font-size: clamp(2.1rem, 5vw, 3.6rem); max-width: 20ch; }
+  h2.sec { font-size: clamp(1.6rem, 3vw, 2.2rem); }
   .sec-head { display: flex; align-items: baseline; justify-content: space-between;
     gap: 1rem; flex-wrap: wrap; margin-bottom: 1.4rem; }
   .link { background: none; border: 0; color: var(--clay); cursor: pointer;
@@ -99,8 +112,8 @@
   .plate figcaption { padding: .6rem .8rem .75rem; display: flex;
     align-items: baseline; justify-content: space-between; gap: .6rem;
     flex-wrap: wrap; }
-  .plate figcaption b { font-family: "Space Mono", ui-monospace, SFMono-Regular, monospace;
-    font-weight: 700; font-size: .87rem; letter-spacing: -.03em; }
+  .plate figcaption b { font-family: var(--display);
+    font-weight: 600; font-size: 1.15rem; letter-spacing: -.01em; }
   .plate figcaption span { font-size: .74rem; color: var(--clay); }
   .plate .made { display: block; padding: 0 .8rem .8rem; font-size: .76rem;
     color: var(--muted); margin-top: -.4rem; }
@@ -111,13 +124,13 @@
   .steps > div { border-top: 1px solid var(--line); padding: 1.1rem 0 1.6rem; }
   .steps .n { font-size: .68rem; letter-spacing: .18em; color: var(--clay);
     font-weight: 600; }
-  .steps h3 { font-size: .95rem; margin: .5rem 0 .4rem; }
+  .steps h3 { font-size: 1.3rem; margin: .5rem 0 .4rem; }
   .steps p { margin: 0; color: var(--muted); font-size: .89rem; }
 
   /* ---------- dark band ---------- */
   .band { background: var(--dark); color: #F3EFE7; text-align: center;
     padding: clamp(3rem, 8vw, 5.5rem) 1.5rem; margin: 4rem 0 -5rem; }
-  .band h2 { font-size: clamp(1.3rem, 2.8vw, 2rem); color: #F5F2EA; }
+  .band h2 { font-size: clamp(1.9rem, 4.4vw, 3rem); color: #F5F2EA; }
   .band p { color: #B8AFA1; margin: .9rem 0 1.8rem; font-size: .93rem; }
 
   /* ---------- the studio ---------- */
@@ -138,8 +151,8 @@
   .controls { padding: 1rem; border-right: 1px solid var(--line); }
   .drop { border: 1px dashed var(--line); border-radius: 2px; background: var(--card);
     padding: 1.5rem 1rem; text-align: center; cursor: pointer; width: 100%; }
-  .drop b { display: block; font-family: "Space Mono", ui-monospace, SFMono-Regular, monospace;
-    font-weight: 700; font-size: .9rem; letter-spacing: -.02em; }
+  .drop b { display: block; font-family: var(--display);
+    font-weight: 600; font-size: 1.2rem; letter-spacing: -.01em; }
   .drop span { font-size: .74rem; color: var(--muted); }
   .drop img { max-height: 116px; border-radius: 6px; margin-bottom: .4rem; }
   .lab { font-size: .66rem; letter-spacing: .18em; text-transform: uppercase;
@@ -226,8 +239,8 @@
   .chip.pick:hover { border-color: var(--ink); }
   .dcard { border-top: 1px solid var(--line); padding: .8rem 0 .2rem; }
   .dcard:first-child { border-top: 0; padding-top: 0; }
-  .dcard h4 { font-family: "Space Mono", ui-monospace, SFMono-Regular, monospace;
-    font-weight: 700; font-size: .92rem; letter-spacing: -.02em; margin: 0; }
+  .dcard h4 { font-family: var(--display);
+    font-weight: 600; font-size: 1.15rem; letter-spacing: -.01em; margin: 0; }
   .dcard .pal { font-size: .68rem; letter-spacing: .1em; text-transform: uppercase;
     color: var(--clay); font-weight: 600; }
   .dcard p { margin: .35rem 0 0; font-size: .84rem; color: var(--muted); }
@@ -249,7 +262,7 @@
   table.cost th { font-size: .66rem; letter-spacing: .16em; text-transform: uppercase;
     color: var(--muted); font-weight: 600; }
   table.cost td.num { text-align: right; white-space: nowrap;
-    font-family: "Space Mono", ui-monospace, monospace; }
+    font-family: var(--display); }
   table.cost tr.total td { border-bottom: 0; border-top: 2px solid var(--ink);
     font-weight: 500; padding-top: .7rem; }
   table.cost td.why { color: var(--muted); font-size: .78rem; }
@@ -274,7 +287,7 @@
   @media (min-width: 900px) { .passes { grid-template-columns: 1fr 1fr; } }
   .pass { border-top: 1px solid var(--line); padding: 1.1rem 0 1.4rem; }
   .pass .n { font-size: .68rem; letter-spacing: .18em; color: var(--clay); font-weight: 600; }
-  .pass h3 { font-size: 1rem; margin: .45rem 0 .4rem; }
+  .pass h3 { font-size: 1.4rem; margin: .45rem 0 .4rem; }
   .pass p { margin: 0; color: var(--muted); font-size: .89rem; }
   .stack { display: grid; gap: .8rem; }
 
@@ -284,9 +297,9 @@
   .tier { border: 1px solid var(--line); border-radius: 2px; padding: 1.5rem 1.4rem;
     background: var(--raise); display: flex; flex-direction: column; }
   .tier.pick { background: var(--dark); border-color: var(--dark); color: #EFEAE0; }
-  .tier h3 { font-size: 1rem; }
-  .tier .price { font-family: "Space Mono", ui-monospace, SFMono-Regular, monospace;
-    font-weight: 700; font-size: 1.9rem; letter-spacing: -.04em;
+  .tier h3 { font-size: 1.35rem; }
+  .tier .price { font-family: var(--display);
+    font-weight: 600; font-size: 2.6rem; letter-spacing: -.02em;
     line-height: 1.1; margin-top: .5rem; }
   .tier .per { font-size: .82rem; color: var(--muted); }
   .tier.pick .per, .tier.pick li { color: #B8AFA1; }
@@ -307,8 +320,8 @@
     padding: .8rem; box-shadow: 0 12px 30px rgba(20,19,15,.18); }
   .peek-head { display: flex; align-items: baseline; justify-content: space-between;
     gap: .6rem; margin-bottom: .6rem; flex-wrap: wrap; }
-  .peek-head b { font-family: "Space Mono", ui-monospace, monospace;
-    font-size: .9rem; letter-spacing: -.03em; }
+  .peek-head b { font-family: var(--display);
+    font-weight: 600; font-size: 1.15rem; letter-spacing: -.01em; }
   .peek-head span { font-size: .72rem; color: var(--clay); }
   .peek-shots { display: grid; grid-template-columns: repeat(3, 1fr); gap: .4rem; }
   .peek-shots figure { margin: 0; border: 1px solid var(--line); overflow: hidden; }
@@ -370,8 +383,8 @@
   footer { border-top: 1px solid var(--line); padding: 2.6rem 0 3.4rem; }
   .foot { display: grid; gap: 1.8rem; }
   @media (min-width: 780px) { .foot { grid-template-columns: 2fr 1fr 1fr; } }
-  .foot h4 { font-family: "Space Mono", ui-monospace, SFMono-Regular, monospace;
-    font-weight: 700; font-size: .95rem; letter-spacing: -.03em; margin: 0 0 .5rem; }
+  .foot h4 { font-family: var(--display);
+    font-weight: 600; font-size: 1.3rem; letter-spacing: -.01em; margin: 0 0 .5rem; }
   .foot p, .foot li { font-size: .84rem; color: var(--muted); margin: 0; }
   .foot .cap { font-size: .66rem; letter-spacing: .18em; text-transform: uppercase;
     font-weight: 600; color: var(--ink); margin-bottom: .6rem; }
