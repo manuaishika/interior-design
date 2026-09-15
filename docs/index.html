@@ -2126,6 +2126,31 @@
     if (e.key === 'Enter') { e.preventDefault(); $('askGo').click(); }
   });
 
+  /* Reproduced live: the dark pane's own centred text (the "Your designs
+     appear here" empty state) sometimes never actually paints, though the
+     DOM and computed layout are correct — scrolling one pixel fixes it
+     instantly. That is a browser compositor missing a repaint after a late
+     layout shift, most likely the moment the webfonts finish loading and
+     reflow the paragraph above the panel, changing the pane's height after
+     its first paint. Nothing here can stop that shift from happening, but a
+     forced reflow once the fonts are actually in gives the compositor a
+     second, correct chance to paint whatever moved. Cheap and harmless if
+     the bug never fires. */
+  function nudgeRepaint() {
+    var pane = $('pane');
+    if (!pane) { return; }
+    // A transform round-trip promotes the element to its own compositing
+    // layer and back, forcing a real repaint with no visible change — safer
+    // than a global trick like zoom, and scoped to the element that actually
+    // showed the bug.
+    pane.style.transform = 'translateZ(0)';
+    requestAnimationFrame(function () { pane.style.transform = ''; });
+  }
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(nudgeRepaint);
+  }
+  window.addEventListener('load', nudgeRepaint);
+
   check();
   refresh();
 })();
