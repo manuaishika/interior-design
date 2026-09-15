@@ -420,6 +420,20 @@ class TestNotARoom:
         for rejected in ("person", "animal", "screenshot", "landscape"):
             assert rejected in prompt
 
+    def test_a_professionally_shot_room_is_still_a_room(self):
+        """Real failure: a genuine, furnished living room — shallow depth of
+        field, moody lighting, the kind of photo a listing or a magazine
+        would use — was rejected as "not a room" while the model's own
+        subject line described it as "a living room with a sofa and coffee
+        table". Describing furniture and then calling the result not-a-room
+        is the model contradicting itself, and the prompt now says so."""
+        from app.reading import SURVEY
+
+        prompt = SURVEY.lower()
+        assert "shallow depth of field" in prompt
+        assert "contradiction" in prompt
+        assert "when genuinely unsure, it counts" in prompt
+
     def test_a_real_reading_passes_through_untouched(self, monkeypatch):
         import asyncio, json
         from types import SimpleNamespace
