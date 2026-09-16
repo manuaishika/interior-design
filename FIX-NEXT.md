@@ -130,3 +130,76 @@ feels broken.
 
 If that is too big a change to make safely, at minimum put a real progress
 line in the panel — "Drawing 1 of 3" — rather than a static message.
+
+---
+
+## 6. Two photographs minimum for a full redesign
+
+**Do this after fix 4.** It touches the controls rail, which the layout rewrite
+also moves, and doing them in the other order means merging the same file
+twice.
+
+### Why
+
+One photograph shows one corner. A light restyle only changes the finishes on
+things already in frame, so one is enough. A full redesign changes the ceiling,
+the flooring and the furniture — and then has to invent everything the camera
+could not see, which is where the invented doorways and impossible air
+conditioners came from.
+
+Two photographs from different corners give it most of the room. It also fixes
+the reader missing things: a television at the edge of one frame is plainly
+there in the other.
+
+This is a real capability rather than a trick. `images.edit` takes **up to 16
+reference images**. We are sending one.
+
+### The rule
+
+| depth | minimum |
+| --- | --- |
+| Light restyle | 1 photo |
+| **Full redesign** | **2 photos** |
+
+Enforce it, but never as a dead end. Someone with one photograph must be told
+what to do about it:
+
+> A full redesign changes things a single photograph cannot show — the ceiling,
+> the far wall, the corner behind you. Add a second photo from another corner
+> of the room, or switch to Light restyle.
+
+Both escapes in that sentence must work: adding a photo, and switching depth.
+If they switch to Light restyle the warning clears immediately.
+
+### Build
+
+**Page.** `#photo` takes `multiple`. The drop area becomes a strip of
+thumbnails with an add tile and a remove control on each. Keep `#plus` working
+as it does.
+
+**The first photo is the one that gets redrawn** — the others are reference.
+Say so on the strip ("This view is the one redrawn") and let people reorder, or
+they will upload the best photo second and wonder why the output ignores it.
+
+**`/api/generate`** takes `photos: list[UploadFile]` instead of one `photo`.
+Accept a single `photo` as well so nothing already calling it breaks. Validate
+every file through `_read_upload`, not just the first.
+
+**`/api/read`** should read *all* of them — one survey across every view, so
+the item list is the union. That is what stops the television going missing.
+
+**`pipeline._run_openai`** passes the first as the image to edit and the rest
+as references. `openai_images.redraw` grows a `references: list[bytes]`
+parameter; the OpenAI client takes a list for `image`.
+
+**Cost.** Each extra reference is more input to pay for on every variant. Not
+much, but say so in the interface next to the count rather than letting a
+surprise arrive on the bill.
+
+### Tests
+
+- A full redesign with one photo is refused, and the message names both ways out
+- A light restyle with one photo still works
+- Two photos reach the generator, first as subject and rest as reference
+- A single `photo` field still works — old callers must not break
+- Every uploaded file is validated, not only the first
