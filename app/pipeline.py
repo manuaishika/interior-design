@@ -13,6 +13,7 @@ import random
 
 from PIL import Image
 
+from . import store
 from .config import DEFAULT_PROFILE, Settings, is_locked, resolve_backend
 from .describe import count_instances, describe_room, keep_clause
 from .generation import GenerationError, build_prompt, encode_mask
@@ -43,6 +44,31 @@ def _is_free(settings: Settings) -> bool:
 
 def _is_openai(settings: Settings) -> bool:
     return resolve_backend(settings) == "openai"
+
+
+async def _furnish_contents(
+    contents: str, items: list[dict] | None, style: str, room: str
+) -> tuple[str, list[dict]]:
+    """Steer the redraw towards real stock, where there is any.
+
+    For each item the person did not tick as must-stay, look for a catalogue
+    product in the same category, style and room and fold a description of
+    it into `contents` — "a walnut desk, 1200mm wide" — so the generator
+    aims at something orderable instead of inventing a generic one. With no
+    catalogue loaded, or no items supplied, this is a no-op: contents comes
+    back unchanged and no products are returned, exactly as the app behaved
+    before a catalogue existed.
+    """
+    if not items or not store.is_configured():
+        return contents, []
+
+    from . import catalogue
+
+    async with store.session() as db:
+        phrases, matched = await catalogue.furnish(db, items, style=style, room=room)
+    if phrases:
+        contents = f"{contents}, {', '.join(phrases)}" if contents else ", ".join(phrases)
+    return contents, matched
 
 
 async def _run_free(data, style, settings, *, extra_prompt, variants, room="",
@@ -99,7 +125,8 @@ async def _run_free(data, style, settings, *, extra_prompt, variants, room="",
 
 
 async def _run_openai(data, style, settings, *, extra_prompt, variants, room="",
-                      contents="", keep="", depth="", variant_offset=0):
+                      contents="", keep="", depth="", variant_offset=0,
+                      items=None):
     """One OpenAI key. No Replicate anywhere.
 
     GPT-4o says where the doors, windows and walkways are; those boxes become
@@ -140,6 +167,8 @@ async def _run_openai(data, style, settings, *, extra_prompt, variants, room="",
         invert=False,
     )
     sent_mask = inpaint_mask if settings.use_inpaint_mask else None
+
+    contents, matched_products = await _furnish_contents(contents, items, style, room)
 
     # Without this the model is told to draw "a bedroom" and draws the average
     # one: the desk and the television it was never told about simply are not
@@ -185,6 +214,7 @@ async def _run_openai(data, style, settings, *, extra_prompt, variants, room="",
     analysis = RoomAnalysis(
         image_width=image.size[0], image_height=image.size[1],
         objects=objects, masks_returned=len(masks), masks_labeled=len(objects),
+        products=matched_products,
     )
     return analysis, generations
 
@@ -386,6 +416,7 @@ async def run_pipeline(
     room: str = "",
     contents: str = "",
     keep: str = "",
+    items: list[dict] | None = None,
     profile: str | None = None,
     keep_mask_ids: set[str] | None = None,
     replace_mask_ids: set[str] | None = None,
@@ -413,7 +444,8 @@ async def run_pipeline(
         return await _run_openai(data, style, settings,
                                  extra_prompt=extra_prompt, variants=variants,
                                  room=room, contents=contents, keep=keep,
-                                 depth=profile or "", variant_offset=variant_offset)
+                                 depth=profile or "", variant_offset=variant_offset,
+                                 items=items)
 
     count = settings.default_variants if variants is None else variants
     count = max(1, min(count, settings.max_variants))

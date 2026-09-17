@@ -6,10 +6,12 @@ so most of this pins rejection behaviour, not just the happy path.
 """
 
 import csv
+import io
 from pathlib import Path
 
 import pytest
 import pytest_asyncio
+from PIL import Image
 from sqlalchemy import select
 
 from app import store
@@ -186,3 +188,121 @@ class TestMatching:
         ])
         found = await match(db, "sofa")
         assert [p.sku for p in found] == ["A-SOFA"]
+
+
+class TestSteeringARender:
+    """Job 2c: a redraw aims at real stock instead of an invented desk."""
+
+    def _png(self):
+        buf = io.BytesIO()
+        Image.new("RGB", (64, 64), (180, 170, 160)).save(buf, "PNG")
+        return buf.getvalue()
+
+    @pytest.mark.asyncio
+    async def test_a_redrawn_item_is_steered_towards_real_stock(
+        self, tmp_path, monkeypatch
+    ):
+        from app.pipeline import run_pipeline
+
+        db_url = f"sqlite+aiosqlite:///{tmp_path}/cat.db"
+        store.configure(db_url)
+        await store.create_tables()
+        async with store.session() as session:
+            report = await import_csv(session, [row(
+                sku="D1", category="desk", colour="walnut", width_mm="1200",
+                style_tags="japandi", room_tags="bedroom")])
+        assert report.added == 1
+
+        settings = Settings(openai_api_key="sk-test", database_url=db_url)
+
+        async def find(image, s):
+            return []
+
+        asked = []
+
+        async def redraw(image, mask, prompt, s):
+            asked.append(prompt)
+            return self._png()
+
+        monkeypatch.setattr("app.openai_images.find_structure", find)
+        monkeypatch.setattr("app.openai_images.redraw", redraw)
+
+        try:
+            analysis, generations = await run_pipeline(
+                self._png(), "japandi", settings, variants=1, room="bedroom",
+                contents="1 desk",
+                items=[{"name": "desk", "count": 1, "treatment": "redraw"}],
+            )
+        finally:
+            await store.dispose()
+
+        assert "walnut desk" in asked[0]
+        assert analysis.products
+        assert analysis.products[0]["sku"] == "D1"
+        assert "walnut desk" in generations[0].prompt
+
+    @pytest.mark.asyncio
+    async def test_an_item_ticked_keep_is_not_replaced(self, tmp_path, monkeypatch):
+        from app.pipeline import run_pipeline
+
+        db_url = f"sqlite+aiosqlite:///{tmp_path}/cat.db"
+        store.configure(db_url)
+        await store.create_tables()
+        async with store.session() as session:
+            await import_csv(session, [row(sku="D1", category="desk")])
+
+        settings = Settings(openai_api_key="sk-test", database_url=db_url)
+
+        async def find(image, s):
+            return []
+
+        asked = []
+
+        async def redraw(image, mask, prompt, s):
+            asked.append(prompt)
+            return self._png()
+
+        monkeypatch.setattr("app.openai_images.find_structure", find)
+        monkeypatch.setattr("app.openai_images.redraw", redraw)
+
+        try:
+            analysis, _ = await run_pipeline(
+                self._png(), "japandi", settings, variants=1, room="bedroom",
+                contents="1 desk",
+                items=[{"name": "desk", "count": 1, "treatment": "keep"}],
+            )
+        finally:
+            await store.dispose()
+
+        assert analysis.products == []
+        assert "walnut desk" not in asked[0]
+
+    @pytest.mark.asyncio
+    async def test_with_no_catalogue_configured_nothing_changes(self, monkeypatch):
+        """The invariant BUILD-NEXT.md asks for: with no catalogue loaded,
+        everything still works exactly as it does today."""
+        from app.pipeline import run_pipeline
+
+        store._sessions = None   # simulate no store.configure() having run
+        settings = Settings(openai_api_key="sk-test")
+
+        async def find(image, s):
+            return []
+
+        asked = []
+
+        async def redraw(image, mask, prompt, s):
+            asked.append(prompt)
+            return self._png()
+
+        monkeypatch.setattr("app.openai_images.find_structure", find)
+        monkeypatch.setattr("app.openai_images.redraw", redraw)
+
+        analysis, _ = await run_pipeline(
+            self._png(), "japandi", settings, variants=1, room="bedroom",
+            contents="1 desk",
+            items=[{"name": "desk", "count": 1, "treatment": "redraw"}],
+        )
+
+        assert analysis.products == []
+        assert asked[0].count("1 desk") == 1

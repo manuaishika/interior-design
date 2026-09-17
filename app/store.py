@@ -217,6 +217,10 @@ def session() -> AsyncSession:
     return _sessions()
 
 
+def is_configured() -> bool:
+    return _sessions is not None
+
+
 async def dispose() -> None:
     global _engine, _sessions
     if _engine is not None:

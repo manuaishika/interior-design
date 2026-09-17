@@ -604,6 +604,7 @@ async def generate_endpoint(
     room_type: str = Form(""),
     contents: str = Form(""),
     keep: str = Form(""),
+    items: str = Form(""),
     extra_prompt: str = Form(""),
     seed: int | None = Form(None),
     variants: int | None = Form(None),
@@ -622,6 +623,12 @@ async def generate_endpoint(
     auth.guard(request, settings)
     data = await _read_upload(photo, settings)
     try:
+        parsed_items = json.loads(items) if items else None
+        if not isinstance(parsed_items, list):
+            parsed_items = None
+    except json.JSONDecodeError:
+        parsed_items = None
+    try:
         analysis, generations = await run_pipeline(
             data,
             style,
@@ -633,6 +640,7 @@ async def generate_endpoint(
             room=room_type,
             contents=contents,
             keep=keep,
+            items=parsed_items,
             profile=profile,
             keep_mask_ids=_parse_ids(keep_mask_ids),
             replace_mask_ids=_parse_ids(replace_mask_ids),

@@ -63,6 +63,14 @@ class RoomAnalysis(BaseModel):
     described_as: str = Field(
         "", description="The room in words, as handed to the generator."
     )
+    products: list[dict] = Field(
+        default_factory=list,
+        description=(
+            "Real catalogue products matched to items this design steers "
+            "towards, when a catalogue is loaded. Empty otherwise — see "
+            "CATALOGUE.md."
+        ),
+    )
 
     # Debugging counters — how many masks SAM2 produced vs. how many survived
     # filtering and got labeled.

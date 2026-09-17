@@ -217,6 +217,24 @@
   .shots img { width: 100%; border-radius: 2px; display: block; }
   .shots figcaption { font-size: .72rem; color: #A79E90; margin-top: .35rem; }
 
+  /* Real stock, steered towards rather than photographed — CATALOGUE.md's
+     "honest limit". Sits under the shots grid so it reads as belonging to
+     the designs above it rather than as a separate section of the page. */
+  .products { width: 100%; margin-top: 1.1rem; padding-top: 1rem;
+    border-top: 1px solid rgba(239,234,224,.16); }
+  .products .honest { font-size: .74rem; color: #A79E90; margin: 0 0 .7rem; }
+  .product-grid { display: grid; gap: .7rem;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+  .product-card { display: flex; flex-direction: column; gap: .3rem; }
+  .product-card img { width: 100%; aspect-ratio: 4/3; object-fit: cover;
+    border-radius: 2px; background: rgba(239,234,224,.06); }
+  .product-card .p-for { font-size: .68rem; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--clay); }
+  .product-card .p-name { font-size: .84rem; color: #EFEAE0; font-weight: 600; }
+  .product-card .p-size { font-size: .74rem; color: #A79E90; }
+  .product-card .p-price { font-size: .84rem; color: #EFEAE0; }
+  .product-card a { font-size: .76rem; color: var(--clay); }
+
   /* The conversation, pinned to the bottom of the pane and always visible —
      `order: 3` puts it last visually no matter where it sits in source. Its
      own light card (like the tabs above) rather than styled for the dark
@@ -552,6 +570,7 @@
                    press the button.</p>
               </div>
               <div class="shots hidden" id="shots"></div>
+              <div class="products hidden" id="products"></div>
             </div>
 
             <div class="pane-tab tabhidden" data-tab="found">
@@ -570,6 +589,7 @@
               </div>
               <table class="cost" id="cost"></table>
               <p class="hint" id="costAssumes"></p>
+              <p class="hint hidden" id="costReal"></p>
             </div>
           </div>
         </div>
@@ -1723,7 +1743,7 @@
   NotARoom.prototype = Object.create(Error.prototype);
 
   /* ---- what it found ---- */
-  var mustStay = {}, lastDesign = null;
+  var mustStay = {}, lastDesign = null, catalogueProducts = [];
 
   function drawChips(items) {
     $('chips').innerHTML = '';
@@ -1741,6 +1761,46 @@
       };
       $('chips').appendChild(chip);
     });
+  }
+
+  function esc(s) {
+    return String(s || '').replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  /* CATALOGUE.md's "show it, and price it" — real stock this batch was
+     steered towards, beside the designs it produced. One list per batch,
+     not one per design: matching runs on the same items, style and room
+     for every variant, so all three would show the identical products. */
+  function drawProducts() {
+    var el = $('products');
+    if (!catalogueProducts.length) {
+      el.classList.add('hidden');
+      el.innerHTML = '';
+      return;
+    }
+    el.innerHTML =
+      '<p class="honest">Real products this design was steered towards — ' +
+      'the render is the mood, not a photograph of them.</p>' +
+      '<div class="product-grid">' +
+      catalogueProducts.map(function (p) {
+        var img = p.image_url
+          ? '<img src="' + esc(p.image_url) + '" alt="' + esc(p.name) + '">'
+          : '';
+        var link = p.product_url
+          ? '<a href="' + esc(p.product_url) + '" target="_blank" rel="noopener">View product</a>'
+          : '';
+        return '<div class="product-card">' + img +
+          '<span class="p-for">for the ' + esc(p.matched_for || p.category) + '</span>' +
+          '<span class="p-name">' + esc(p.name) + '</span>' +
+          '<span class="p-size">' + p.width_mm + '×' + p.depth_mm +
+          '×' + p.height_mm + ' mm</span>' +
+          '<span class="p-price">' + money(p.price, p.currency) + '</span>' +
+          link + '</div>';
+      }).join('') + '</div>';
+    el.classList.remove('hidden');
+    drawCostReal();
   }
 
   /* Money is the question every client asks second, right after "can I see
@@ -1801,6 +1861,31 @@
     $('costAssumes').textContent = budget.assumes || '';
     $('costBlock').classList.remove('hidden');
     $('costTabBtn').classList.remove('hidden');
+    drawCostReal();
+  }
+
+  /* The estimate above stays — most rooms hold things the catalogue does
+     not sell — but where real stock was matched, say what it actually
+     totals rather than leaving that number buried in the product cards. */
+  function drawCostReal() {
+    var el = $('costReal');
+    if (!$('cost').children.length || !catalogueProducts.length) {
+      el.classList.add('hidden');
+      return;
+    }
+    var byCurrency = {};
+    catalogueProducts.forEach(function (p) {
+      var cur = p.currency || 'INR';
+      byCurrency[cur] = (byCurrency[cur] || 0) + (Number(p.price) || 0);
+    });
+    var total = Object.keys(byCurrency).map(function (cur) {
+      return money(byCurrency[cur], cur);
+    }).join(' + ');
+    var n = catalogueProducts.length;
+    el.textContent = n + (n > 1 ? ' items were' : ' item was') +
+      ' matched to real catalogue products, totalling ' + total +
+      ' — the rest of the estimate above is still indicative.';
+    el.classList.remove('hidden');
   }
 
   /* The follow-ups people actually type, one click away. */
@@ -1864,6 +1949,8 @@
     mustStay = {};
     (d.items || []).forEach(function (i) { mustStay[i.name] = true; });
     lastDesign = null;
+    catalogueProducts = [];
+    drawProducts();
     drawChips(d.items || []);
 
     $('dirs').innerHTML = (d.directions || []).map(function (x) {
@@ -1997,6 +2084,13 @@
       }).join(', '));
       var kept = keptList();
       if (kept.length) { f.append('keep', kept.join(', ')); }
+      // Same items, but with treatment as the person has it *now* — mustStay
+      // reflects any chip they have toggled since the room was read, and a
+      // catalogue match should aim at what they actually asked to redraw.
+      f.append('items', JSON.stringify(reading.items.map(function (item) {
+        return { name: item.name, count: item.count,
+                treatment: mustStay[item.name] ? 'keep' : 'redraw' };
+      })));
     }
     f.append('extra_prompt', $('text').value);
 
@@ -2005,6 +2099,10 @@
       var d = await r.json();
       if (!r.ok) throw new Error(d.detail || 'Could not draw');
       appendDesign(d.generations[0], i, saving);
+      if (d.analysis && d.analysis.products && d.analysis.products.length) {
+        catalogueProducts = d.analysis.products;
+        drawProducts();
+      }
       progress.done++;
     } catch (e) {
       progress.failed++;

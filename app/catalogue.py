@@ -301,3 +301,95 @@ async def products_for_category(db: AsyncSession, category: str) -> list[Product
 async def all_products(db: AsyncSession) -> list[Product]:
     rows = await db.scalars(select(Product).order_by(Product.category, Product.name))
     return list(rows)
+
+
+# ---------------------------------------------------------------------------
+# Naming what the reader saw against the fixed category list
+# ---------------------------------------------------------------------------
+
+# The reader names furniture freely — "bedside table", "coffee table",
+# "TV console" — but a category has to come from the closed list above or
+# matching finds nothing. This is the one place that bridges the two, by
+# keyword, in keeping with the rest of matching: no ML, no embeddings, a
+# guess that is right often enough to be worth making.
+_CATEGORY_KEYWORDS: dict[str, tuple[str, ...]] = {
+    "bed": ("bed", "cot", "crib"),
+    "wardrobe": ("wardrobe", "closet", "armoire"),
+    "desk": ("desk",),
+    "sofa": ("sofa", "couch", "sectional", "loveseat"),
+    "chair": ("chair", "armchair", "stool", "recliner", "bench"),
+    "storage": ("cabinet", "shelf", "shelving", "drawer", "dresser",
+               "sideboard", "bookcase", "credenza", "console"),
+    "lighting": ("lamp", "light", "chandelier", "pendant", "sconce"),
+    "rug": ("rug", "carpet"),
+    "soft-furnishing": ("cushion", "curtain", "throw", "pillow", "drape"),
+    "appliance": ("fridge", "refrigerator", "oven", "stove", "microwave",
+                 "dishwasher", "washing machine", "tv", "television"),
+    "table": ("table",),
+    "decor": ("mirror", "artwork", "vase", "plant", "ornament"),
+}
+
+
+def category_for(item_name: str) -> str | None:
+    """The fixed category a freeform item name most likely names, or None.
+
+    None means "don't guess" — an item this can't place is left to the
+    generator to invent, exactly as it would with no catalogue at all.
+    """
+    lower = (item_name or "").strip().lower()
+    for category, keywords in _CATEGORY_KEYWORDS.items():
+        if any(keyword in lower for keyword in keywords):
+            return category
+    return None
+
+
+def product_card(product: Product, *, matched_for: str = "") -> dict:
+    """The shape returned to the client: enough to show a photo, a name, a
+    size, a price and a link out, per CATALOGUE.md's "show it, and price
+    it"."""
+    return {
+        "sku": product.sku,
+        "matched_for": matched_for,
+        "name": product.name,
+        "category": product.category,
+        "price": product.price,
+        "currency": product.currency,
+        "width_mm": product.width_mm,
+        "depth_mm": product.depth_mm,
+        "height_mm": product.height_mm,
+        "colour": product.colour,
+        "image_url": product.image_url,
+        "image_file": product.image_file,
+        "product_url": product.product_url,
+    }
+
+
+async def furnish(db: AsyncSession, items: list[dict], *, style: str = "",
+                  room: str = "") -> tuple[list[str], list[dict]]:
+    """For every item the person did not tick as must-stay, find a real
+    product that could stand in for it.
+
+    Returns a phrase per match, to fold into the generation prompt — "a
+    walnut desk, 1200mm wide" instead of "a desk" — and a product card per
+    match, for the response. An item with no fixed category, or with no
+    stock in it, is silently skipped: the generator still invents something
+    for it, exactly as it would with no catalogue loaded at all.
+    """
+    phrases: list[str] = []
+    matched: list[dict] = []
+    for item in items:
+        if str(item.get("treatment", "")).strip().lower() == "keep":
+            continue
+        name = str(item.get("name", "")).strip()
+        category = category_for(name)
+        if category is None:
+            continue
+        found = await match(db, category, style=style, room=room, limit=1)
+        if not found:
+            continue
+        product = found[0]
+        phrases.append(
+            f"a {product.colour} {category}, {product.width_mm}mm wide"
+            if product.colour else f"a {category}, {product.width_mm}mm wide")
+        matched.append(product_card(product, matched_for=name))
+    return phrases, matched
