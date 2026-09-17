@@ -1,45 +1,30 @@
-# Demo catalogue
+# Catalogue data
 
-Placeholder rows in `catalog_template.csv` — replace with the client's real
-products. Names and prices are illustrative, not real products.
+**The schema lives in [`../CATALOGUE.md`](../CATALOGUE.md). There is one, and
+this is not a second one.**
 
-## Why product IDs, not just pictures
+- `../Second-Draft-catalogue.xlsx` — the workbook to send the client. Drop-downs,
+  validation, a Read me tab, three example rows.
+- `../catalogue-template.csv` — the same columns as a CSV, generated from that
+  workbook so the two cannot drift apart.
 
-A folder of pictures cannot be sold from. The pipeline already returns, for
-every piece of furniture it finds, a label and a box:
+Put the client's returned file in here as `catalog.csv` and run the importer.
 
-    { "label": "bed", "bounding_box": {...}, "locked": false }
+## Two ways to give us the photos
 
-`label` is what you look up. Without an ID on the other side there is nothing
-to look it up *in* — no price to quote, no link to click, no way to answer
-"does that sofa actually fit in this room".
+Either column works; a row should use one, not both.
 
-So: **IDs are the spine, pictures hang off them.** One row per product, one
-image file named after the ID.
+- `image_url` — the photo is already online. Right-click on their site, copy
+  image address.
+- `image_file` — the photos are a folder on somebody's computer. The filename
+  goes in the column, the folder comes with the sheet, and the importer copies
+  them in.
 
-## The fields that matter, and why
+A client with a website will do the first. A client with a hard drive full of
+JPEGs will do the second, and telling them to build a website first is how a
+catalogue never arrives.
 
-| Field | Why it earns its place |
-| --- | --- |
-| `product_id` | The join key. Everything else hangs off it. |
-| `name` | What a person reads. |
-| `category` | Matches the pipeline's label (`bed`, `sofa`, `table`, `rug`). |
-| `style` | Lets you filter the catalogue to the chosen look. |
-| `width/depth/height_cm` | **The one clients actually care about.** A design that recommends a 240cm sofa for a 200cm wall is worthless, and dimensions are what let you check. |
-| `price`, `currency` | Turns a render into a quote. |
-| `image_file` | For showing the product beside the render. |
-| `product_url` | Where to buy it. Leave blank if there isn't one yet. |
+## Measurements are millimetres
 
-## Size to aim for
-
-Thirty to fifty products across five or six categories is plenty for a demo.
-Enough that a room can be furnished several different ways; small enough that
-you can photograph and measure them all in an afternoon.
-
-## Layout
-
-    data/
-      catalog.csv
-      images/
-        sofa-001.jpg
-        bed-001.jpg
+Whole numbers, no decimals. A 2.4 metre wardrobe is `2400`. Centimetres invite
+`1.5` and then somebody has to guess whether that is fifteen millimetres.
