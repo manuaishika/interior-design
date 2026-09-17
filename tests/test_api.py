@@ -465,3 +465,36 @@ class TestAnalyzeEndpoint:
         body = client.post("/api/analyze", files=upload()).json()
         assert "generation" not in body
         assert body["analysis"]["masks_returned"] == 9
+
+
+class TestHowItWorksIsTrue:
+    """The page described masking the doors and repainting everything else —
+    an architecture that was removed because it erased the furniture. A page
+    explaining how the product works has to explain how it actually works."""
+
+    def test_it_does_not_describe_the_mask(self, client):
+        html = client.get("/").text
+        how = html[html.index('id="v-how"'):html.index('id="v-pricing"')]
+        assert "inpainting mask" not in how
+        assert "Mask pass" not in how
+        assert "differing only by seed" not in how
+
+    def test_it_describes_what_the_code_does(self, client):
+        html = client.get("/").text
+        how = html[html.index('id="v-how"'):html.index('id="v-pricing"')]
+        assert "redraws the whole photograph" in how
+        assert "what stays" in how
+        assert "prices the work" in how
+
+    def test_the_change_is_owned_not_hidden(self, client):
+        """Somebody who read the old page should find out what happened to it
+        rather than wondering whether they misremembered."""
+        html = client.get("/").text
+        how = html[html.index('id="v-how"'):html.index('id="v-pricing"')]
+        assert "Earlier versions masked" in how
+
+    def test_no_decorative_drawings_are_left_on_it(self, client):
+        """Two 500px room drawings filled half the page and illustrated none of
+        the four passes."""
+        html = client.get("/").text
+        assert 'id="howArt"' not in html
