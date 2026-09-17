@@ -203,3 +203,104 @@ surprise arrive on the bill.
 - Two photos reach the generator, first as subject and rest as reference
 - A single `photo` field still works — old callers must not break
 - Every uploaded file is validated, not only the first
+
+---
+
+## 7. Quality is the cost dial, and it is not wired up
+
+**Do this first. It is two lines and it is where the money is going.**
+
+`openai_images.redraw` never sends `quality`, so every render uses OpenAI's
+default. On `gpt-image-2.5-sunburst` that resolves high, and the published
+range per 1024x1024 image runs **$0.006 at `low` to $0.211 at `max`** — a
+factor of about thirty-five. We are paying near the top of it and nobody chose
+that.
+
+Both models cost the same; the price is in the tokens, so `quality` and `size`
+are the whole lever.
+
+### Build
+
+Add `image_quality` to `Settings` and pass it through. Then tie the allowance
+to the tier — quality *and* count together, because that is exactly the ladder
+the pricing page already sells:
+
+| tier | quality | designs per run | rough cost per run |
+| --- | --- | --- | --- |
+| Free | `low` | 2 | about 1 cent |
+| One Room / Whole Home | `high` | 3 | ~20-30 cents |
+| Studio | `xhigh` | 4 | ~60-80 cents |
+
+Those are estimates from the published per-image range at 1024x1024; our
+landscape size is larger, so treat them as a floor and confirm against the
+OpenAI usage page after a day of real use.
+
+`max_variants` is currently 4 for everybody. It should come from the tier, and
+the page's `−/+` control must not offer more than the tier allows — with a line
+saying why, not a silently capped button.
+
+**Sanity-check the cheap tier by eye before shipping it.** `low` may be too
+rough to show a client; if it is, `medium` is the free tier and the free tier
+gets 2 designs rather than 3.
+
+---
+
+## 8. A follow-up must edit the design, not start again
+
+### Why it feels like nothing happens
+
+Saying "change the wall colour" and pressing Draw again does not change the
+wall colour of the design on screen. `#redraw` appends the conversation to the
+brief and re-runs the whole pipeline **from the original photograph**. A new
+room comes back, not an edit of the one being discussed — so the change is
+lost among fifty other differences and the conversation reads as ignored.
+
+### The fix
+
+A follow-up should edit **the design that is being discussed**, with the
+instruction as the whole prompt:
+
+```
+openai_images.redraw(<the generated design>, None, "Change the wall colour to
+                     deep olive. Change nothing else.", settings)
+```
+
+Same endpoint, different subject. `gpt-image-2.5` is built for exactly this —
+multi-turn editing is in its release notes.
+
+Two paths, and the difference has to be visible in the interface:
+
+- **Draw it again** — back to the photograph, new designs, everything may move
+- **Apply this change** — edits the design on screen, one thing moves
+
+Add the second as the primary button in the conversation, keep the first as
+the secondary. Carry the design forward each time so a third instruction edits
+the second result, not the first.
+
+Append `PRESERVE` to the edit instruction as well, or the second edit
+reintroduces the invented doorway the first one avoided.
+
+### Tests
+
+- A follow-up sends the generated design as the subject, not the room photo
+- The instruction is the prompt; the original style preset is not re-applied
+- A chain of three edits builds on each other
+
+---
+
+## 9. Before and after
+
+A section under the designs: the original photograph and a chosen design, with
+a **draggable divider** between them — drag left to see what was there, right
+to see what it became. One control, no legend needed.
+
+Underneath, what actually changed, from the reading: the kept items and the
+replaced ones as two short lists. The picture shows the difference; the lists
+say what it was.
+
+Plain `<input type="range">` over two stacked images and a CSS `clip-path` is
+enough. No library.
+
+Also give it a **Download both** that writes a single side-by-side JPEG — that
+is the thing that gets sent to a client or a builder, and stitching it by hand
+is the friction that stops people sharing the work.
