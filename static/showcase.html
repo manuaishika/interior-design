@@ -597,6 +597,7 @@
             <button id="more" type="button" aria-label="More">+</button>
             <span>designs per run</span>
           </div>
+          <p class="hint" id="tierNote"></p>
 
           <button class="cta" id="go" type="button" disabled>Reimagine this room</button>
           <span class="msg" id="msg"></span>
@@ -1435,8 +1436,17 @@
     $('peek').classList.add('hidden');
   }, { passive: true });
 
-  $('less').onclick = function () { count = Math.max(1, count - 1); $('countN').textContent = count; };
-  $('more').onclick = function () { count = Math.min(4, count + 1); $('countN').textContent = count; };
+  $('less').onclick = function () {
+    count = Math.max(1, count - 1);
+    $('countN').textContent = count;
+    $('more').disabled = count >= ((tier && tier.variants) || 4);
+  };
+  $('more').onclick = function () {
+    var max = (tier && tier.variants) || 4;
+    count = Math.min(max, count + 1);
+    $('countN').textContent = count;
+    $('more').disabled = count >= max;
+  };
 
   /* Where the work happens. Deployed, that is this same site, so there is
      nothing to configure and nothing to show anyone. ?server=... exists only
@@ -1496,6 +1506,7 @@
      are my designs". Signing in is now about keeping your work, so it is
      offered whether or not this deployment gates anything. */
   var needsCode = false, signedIn = true, account = null, googleReady = false;
+  var tier = null;
   var mode = 'in';                       // 'in' | 'up' | 'code'
 
   function loadSession() {
@@ -1506,13 +1517,30 @@
         signedIn = Boolean(s.signed_in);
         account = s.account || null;
         googleReady = Boolean(s.google_available);
+        tier = s.tier || null;
+        applyTierCap();
         showDoor();
         if (historyOpen) { loadHistoryPanel(); }
       })
       .catch(function () {
         needsCode = false; signedIn = true; account = null;
+        tier = null;
+        applyTierCap();
         showDoor();
       });
+  }
+
+  /* TODO.md #4 — the tier decides how many, not the caller, and a plan
+     capped at two must not leave + looking clickable and doing nothing:
+     that reads as broken, not as a limit. */
+  function applyTierCap() {
+    var max = (tier && tier.variants) || 4;
+    if (count > max) { count = max; $('countN').textContent = count; }
+    $('more').disabled = count >= max;
+    $('tierNote').textContent = tier
+      ? tier.label + ' plan — up to ' + max + ' design' +
+        (max === 1 ? '' : 's') + ' per run.'
+      : '';
   }
 
   /* One drawer, not two nav items. "Your chats" sitting next to Pricing said

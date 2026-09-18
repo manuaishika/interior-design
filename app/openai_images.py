@@ -43,7 +43,7 @@ import numpy as np
 from openai import AsyncOpenAI
 from PIL import Image
 
-from .config import Settings, tier_of
+from .config import Settings
 from .imaging import Mask
 
 log = logging.getLogger(__name__)
@@ -342,7 +342,8 @@ def looks_inverted(original: Image.Image, drawn: bytes,
 
 async def redraw(image: Image.Image, inpaint_mask: Image.Image | None,
                  prompt: str, settings: Settings,
-                 references: list[bytes] | None = None) -> bytes:
+                 references: list[bytes] | None = None,
+                 quality: str = "medium") -> bytes:
     """Redraw the room.
 
     With no mask — the default, and what ChatGPT does — the model edits the
@@ -350,6 +351,10 @@ async def redraw(image: Image.Image, inpaint_mask: Image.Image | None,
     With a mask it repaints everything the mask leaves open, which on a strong
     editing model means erasing the furniture and inventing new furniture in
     its place. That is not what anybody wanted.
+
+    `quality` is the caller's job to resolve from a tier (see
+    config.tier_of) — this function has no notion of accounts or plans, only
+    of the one dial OpenAI actually bills by.
     """
     photo = io.BytesIO()
     image.convert("RGB").save(photo, format="PNG")
@@ -381,7 +386,7 @@ async def redraw(image: Image.Image, inpaint_mask: Image.Image | None,
             "prompt": prompt[:4000],
             "size": _edit_size(image.size),
             # Never left to the default. The default is the expensive end.
-            "quality": tier_of(settings)["quality"],
+            "quality": quality,
             "n": 1,
         }
         if mask is not None:

@@ -214,9 +214,10 @@ class TestThePipeline:
         buf = io.BytesIO()
         Image.new("RGB", (100, 100)).save(buf, "PNG")
         # A paid tier, because free is capped at two and this is about the
-        # instructions differing, not about the cap.
-        await run_pipeline(buf.getvalue(), "japandi", settings(tier="room"),
-                           variants=3)
+        # instructions differing, not about the cap. The tier now travels as
+        # its own argument rather than through Settings — see TODO.md #4.
+        await run_pipeline(buf.getvalue(), "japandi", settings(),
+                           variants=3, tier="room")
         assert len(set(asked)) == 3
 
     @pytest.mark.asyncio
@@ -353,19 +354,24 @@ class TestTheTierDecides:
         ("studio", "xhigh", 4),
     ])
     def test_each_tier_gets_something_different(self, tier, quality, variants):
-        from app.config import Settings, tier_of
+        """tier_of takes the resolved tier string directly now — TODO.md #4
+        moved the tier off Settings (one value for the whole deployment) and
+        onto store.User (one value per account), so this can no longer be
+        exercised through a Settings object at all."""
+        from app.config import tier_of
 
-        got = tier_of(Settings(tier=tier))
+        got = tier_of(tier)
         assert got["quality"] == quality
         assert got["variants"] == variants
 
     def test_an_unknown_tier_is_the_cheap_one(self):
         """Failing open on a paid tier bills somebody for a plan they do not
         have."""
-        from app.config import Settings, tier_of
+        from app.config import tier_of
 
-        assert tier_of(Settings(tier="gold"))["quality"] == "medium"
-        assert tier_of(Settings())["quality"] == "medium"
+        assert tier_of("gold")["quality"] == "medium"
+        assert tier_of(None)["quality"] == "medium"
+        assert tier_of("")["quality"] == "medium"
 
     @pytest.mark.asyncio
     async def test_the_free_tier_cannot_be_asked_for_four(self, monkeypatch):
@@ -387,8 +393,8 @@ class TestTheTierDecides:
 
         buf = io.BytesIO()
         Image.new("RGB", (100, 100)).save(buf, "PNG")
-        await run_pipeline(buf.getvalue(), "japandi", settings(tier="free"),
-                           variants=4)
+        await run_pipeline(buf.getvalue(), "japandi", settings(),
+                           variants=4, tier="free")
         assert len(drawn) == 2
 
 

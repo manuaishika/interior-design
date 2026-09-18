@@ -47,7 +47,8 @@ def _is_openai(settings: Settings) -> bool:
     return resolve_backend(settings) == "openai"
 
 
-async def edit_design(design: bytes, instruction: str, settings: Settings) -> bytes:
+async def edit_design(design: bytes, instruction: str, settings: Settings,
+                      tier: str = "") -> bytes:
     """A follow-up edits the design that is on screen, not the room it came
     from.
 
@@ -73,7 +74,8 @@ async def edit_design(design: bytes, instruction: str, settings: Settings) -> by
 
     image = load_image(design)
     prompt = f"{instruction.strip()}\n\n{PRESERVE}"
-    return await openai_images.redraw(image, None, prompt, settings)
+    return await openai_images.redraw(image, None, prompt, settings,
+                                      quality=tier_of(tier)["quality"])
 
 
 async def _furnish_contents(
@@ -156,7 +158,7 @@ async def _run_free(data, style, settings, *, extra_prompt, variants, room="",
 
 async def _run_openai(data, style, settings, *, extra_prompt, variants, room="",
                       contents="", keep="", depth="", variant_offset=0,
-                      items=None, references=None):
+                      items=None, references=None, tier=""):
     """One OpenAI key. No Replicate anywhere.
 
     GPT-4o says where the doors, windows and walkways are; those boxes become
@@ -172,7 +174,7 @@ async def _run_openai(data, style, settings, *, extra_prompt, variants, room="",
 
     # The tier decides how many, not the caller. A plan that sells four designs
     # and hands four to everybody is not a plan.
-    allowed = min(tier_of(settings)["variants"], settings.max_variants)
+    allowed = min(tier_of(tier)["variants"], settings.max_variants)
     count = max(1, min(variants or settings.default_variants, allowed))
     image = prepare_image(data, settings)
 
@@ -209,12 +211,13 @@ async def _run_openai(data, style, settings, *, extra_prompt, variants, room="",
                           keep=keep, depth=depth)
     # variant_offset: see _run_free's docstring note — one request per
     # design still needs count(=1) requests to land on different wording.
+    quality = tier_of(tier)["quality"]
     drawn = await asyncio.gather(
         *(openai_images.redraw(
             image, sent_mask,
             prompt + openai_images.VARIATIONS[
                 (variant_offset + i) % len(openai_images.VARIATIONS)],
-            settings, references=references)
+            settings, references=references, quality=quality)
           for i in range(count)),
         return_exceptions=True,
     )
@@ -450,6 +453,7 @@ async def run_pipeline(
     keep: str = "",
     items: list[dict] | None = None,
     references: list[bytes] | None = None,
+    tier: str = "",
     profile: str | None = None,
     keep_mask_ids: set[str] | None = None,
     replace_mask_ids: set[str] | None = None,
@@ -478,7 +482,7 @@ async def run_pipeline(
                                  extra_prompt=extra_prompt, variants=variants,
                                  room=room, contents=contents, keep=keep,
                                  depth=profile or "", variant_offset=variant_offset,
-                                 items=items, references=references)
+                                 items=items, references=references, tier=tier)
 
     count = settings.default_variants if variants is None else variants
     count = max(1, min(count, settings.max_variants))

@@ -170,6 +170,12 @@ class Settings(BaseSettings):
     # every render used the expensive default and nobody had chosen it.
     #
     # Quality and count together are the whole ladder the pricing page sells.
+    #
+    # This is now only the fallback for a session with no account at all — a
+    # code-only visitor admitted by STUDIO_ACCESS_CODE, who is nobody in
+    # particular (see auth.py). A signed-in account's tier lives on
+    # store.User.tier instead, so two people signed into the same
+    # deployment can be on different plans; see main._tier_for.
     tier: str = "free"
 
     # --- SAM2 tuning -------------------------------------------------------
@@ -238,8 +244,12 @@ TIERS: dict[str, dict] = {
 DEFAULT_TIER = "free"
 
 
-def tier_of(settings: Settings) -> dict:
-    return TIERS.get((settings.tier or "").strip().lower(), TIERS[DEFAULT_TIER])
+def tier_of(tier: str | None) -> dict:
+    """What a tier is allowed. `tier` is the resolved value for *this
+    request* — a signed-in account's own `store.User.tier`, or
+    `Settings.tier` for a session with no account — never Settings on its
+    own, or every account would be on the same plan again."""
+    return TIERS.get((tier or "").strip().lower(), TIERS[DEFAULT_TIER])
 
 
 def resolve_backend(settings: Settings) -> str:

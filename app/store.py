@@ -84,6 +84,11 @@ class User(Base):
     password_hash: Mapped[str | None] = mapped_column(String(255), default=None)
     google_id: Mapped[str | None] = mapped_column(String(64), unique=True,
                                                   index=True, default=None)
+    # What this account is allowed to draw at — see config.TIERS. No payments
+    # yet, so this is set by hand in the database; the column exists so that
+    # is already where quality and design count are read from, not from one
+    # Settings value shared by everyone who opens the studio.
+    tier: Mapped[str] = mapped_column(String(16), default="free")
     created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True),
                                                     default=now)
 
@@ -180,27 +185,36 @@ def configure(database_url: str = "") -> None:
 def _add_missing_columns(sync_conn) -> None:
     """create_all only creates tables that do not exist yet — it never alters
     one that does. `designs` already existed, with real people's designs in
-    it, by the time conversation_id was added to the model. This is the
-    one-line version of a migration for a project with one schema and, until
-    now, no history to migrate (see HANDOFF.md); if more of these
-    accumulate, that line is where this becomes Alembic.
+    it, by the time conversation_id was added to the model, and `users`
+    already existed, with real accounts in it, by the time tier did. This is
+    the one-line-per-column version of a migration for a project with one
+    schema and, until now, no history to migrate (see HANDOFF.md); if more
+    of these accumulate, that line is where this becomes Alembic.
     """
     inspector = inspect(sync_conn)
-    if "designs" not in inspector.get_table_names():
-        return   # create_all just made it fresh, already with the column
-    existing = {c["name"] for c in inspector.get_columns("designs")}
-    if "conversation_id" in existing:
-        return
-    # No FK clause on SQLite: it does not enforce one without a pragma
-    # nothing here turns on, and ALTER TABLE ... ADD CONSTRAINT is not
-    # supported there anyway. Postgres gets the real constraint.
-    if sync_conn.dialect.name == "postgresql":
-        sync_conn.execute(text(
-            "ALTER TABLE designs ADD COLUMN conversation_id INTEGER "
-            "REFERENCES conversations(id) ON DELETE CASCADE"))
-    else:
-        sync_conn.execute(text(
-            "ALTER TABLE designs ADD COLUMN conversation_id INTEGER"))
+    tables = inspector.get_table_names()
+
+    if "designs" in tables:
+        existing = {c["name"] for c in inspector.get_columns("designs")}
+        if "conversation_id" not in existing:
+            # No FK clause on SQLite: it does not enforce one without a
+            # pragma nothing here turns on, and ALTER TABLE ... ADD
+            # CONSTRAINT is not supported there anyway. Postgres gets the
+            # real constraint.
+            if sync_conn.dialect.name == "postgresql":
+                sync_conn.execute(text(
+                    "ALTER TABLE designs ADD COLUMN conversation_id INTEGER "
+                    "REFERENCES conversations(id) ON DELETE CASCADE"))
+            else:
+                sync_conn.execute(text(
+                    "ALTER TABLE designs ADD COLUMN conversation_id INTEGER"))
+
+    if "users" in tables:
+        existing = {c["name"] for c in inspector.get_columns("users")}
+        if "tier" not in existing:
+            sync_conn.execute(text(
+                "ALTER TABLE users ADD COLUMN tier VARCHAR(16) "
+                "DEFAULT 'free'"))
 
 
 async def create_tables() -> None:

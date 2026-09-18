@@ -26,7 +26,8 @@ from . import auth, google_login, store
 from .openai_images import image_models as openai_images_chain
 from urllib.parse import quote
 
-from .config import LOCK_PROFILES, Settings, get_settings, resolve_backend
+from .config import (DEFAULT_TIER, LOCK_PROFILES, Settings, TIERS,
+                     get_settings, resolve_backend)
 from .generation import STYLES, GenerationError
 from .models import AnalyzeResponse, GenerateResponse
 from .pipeline import analyze_room, edit_design, prepare_image, run_pipeline
@@ -188,7 +189,34 @@ def _land(request: Request, response: Response, settings: Settings,
 
 def _card(user) -> dict:
     return {"email": user.email, "name": user.name,
-            "google": bool(user.google_id)}
+            "google": bool(user.google_id), "tier": user.tier}
+
+
+def _tier_card(tier: str) -> dict:
+    key = (tier or "").strip().lower()
+    if key not in TIERS:
+        key = DEFAULT_TIER
+    info = TIERS[key]
+    return {"id": key, "label": info["label"], "quality": info["quality"],
+            "variants": info["variants"]}
+
+
+async def _tier_for(request: Request, settings: Settings) -> str:
+    """The tier that actually governs this request.
+
+    A signed-in account's own `store.User.tier`, so two people signed into
+    the same deployment can be on different plans — the gap TODO.md #4
+    closed. `Settings.tier` is only the fallback for a session with no
+    account at all: a code-only visitor let in by STUDIO_ACCESS_CODE, who
+    is admitted but nobody in particular (see auth.py) and so has nowhere
+    to keep a tier of their own.
+    """
+    who = auth.current_user_id(request, settings)
+    if who is None:
+        return settings.tier
+    async with store.session() as db:
+        user = await store.by_id(db, who)
+        return (user.tier if user else None) or settings.tier
 
 
 @app.get("/api/session")
@@ -201,11 +229,13 @@ async def session_state(request: Request):
         async with store.session() as db:
             user = await store.by_id(db, who)
             account = _card(user) if user else None
+    tier = account["tier"] if account else settings.tier
     return {
         "required": auth.required(settings),
         "signed_in": auth.signed_in(request, settings),
         "account": account,
         "google_available": google_login.configured(settings),
+        "tier": _tier_card(tier),
     }
 
 
@@ -623,6 +653,7 @@ async def generate_endpoint(
     """
     settings = get_settings()
     auth.guard(request, settings)
+    tier = await _tier_for(request, settings)
     data = await _read_upload(photo, settings)
     try:
         parsed_items = json.loads(items) if items else None
@@ -645,6 +676,7 @@ async def generate_endpoint(
             contents=contents,
             keep=keep,
             items=parsed_items,
+            tier=tier,
             profile=profile,
             keep_mask_ids=_parse_ids(keep_mask_ids),
             replace_mask_ids=_parse_ids(replace_mask_ids),
@@ -673,12 +705,13 @@ async def edit_endpoint(
     """
     settings = get_settings()
     auth.guard(request, settings)
+    tier = await _tier_for(request, settings)
     instruction = instruction.strip()
     if not instruction:
         raise HTTPException(400, "Say what to change.")
     data = await _read_upload(design, settings)
     try:
-        result = await edit_design(data, instruction, settings)
+        result = await edit_design(data, instruction, settings, tier=tier)
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
     except RuntimeError as exc:
