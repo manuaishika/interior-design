@@ -1978,8 +1978,14 @@
       'the render is the mood, not a photograph of them.</p>' +
       '<div class="product-grid">' +
       catalogueProducts.map(function (p) {
-        var img = p.image_url
-          ? '<img src="' + esc(p.image_url) + '" alt="' + esc(p.name) + '">'
+        // photo_url is either the client's own external URL, or a path this
+        // server serves itself (a folder of JPEGs the importer copied in —
+        // see CATALOGUE.md); only the second kind needs routing through
+        // api() the way any other server-served image on this page does.
+        var photo = p.photo_url;
+        if (photo && !/^https?:/i.test(photo)) { photo = api(photo); }
+        var img = photo
+          ? '<img src="' + esc(photo) + '" alt="' + esc(p.name) + '">'
           : '';
         var link = p.product_url
           ? '<a href="' + esc(p.product_url) + '" target="_blank" rel="noopener">View product</a>'

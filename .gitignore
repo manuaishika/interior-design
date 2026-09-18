@@ -12,6 +12,10 @@ runs/
 *.db
 second-draft.db
 
+# a real client's catalogue — their prices and photos, not this repo's
+data/catalog.csv
+data/catalog-images/
+
 # local smoke tests + their output
 smoke_openai.py
 smoke_out.png

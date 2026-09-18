@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import datetime as dt
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Iterable
 
 from sqlalchemy import Boolean, DateTime, Float, Integer, JSON, String, Text, select
@@ -28,6 +29,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .store import Base, now
+
+# Where a client's own photos live when they sent a folder of JPEGs rather
+# than a website (see data/README.md). The importer copies files in here;
+# main.py serves it at CATALOG_IMAGES_URL_PREFIX so `image_file` becomes a
+# real, fetchable photo instead of inert data.
+CATALOG_IMAGES_DIR = Path(__file__).resolve().parent.parent / "data" / "catalog-images"
+CATALOG_IMAGES_URL_PREFIX = "/catalog-images"
 
 # The fixed list a category must come from — this is what matching keys off.
 # A free-text category matches nothing, which is the whole point of the
@@ -343,6 +351,22 @@ def category_for(item_name: str) -> str | None:
     return None
 
 
+def photo_url_for(product: Product) -> str | None:
+    """One fetchable URL, whichever of the two photo columns the row used.
+
+    A client's own website means `image_url` — already a real address. A
+    folder of JPEGs means `image_file` — a filename the importer copied
+    into CATALOG_IMAGES_DIR, served at CATALOG_IMAGES_URL_PREFIX. Either
+    way the caller gets one URL and does not need to know which column it
+    came from.
+    """
+    if product.image_url:
+        return product.image_url
+    if product.image_file:
+        return f"{CATALOG_IMAGES_URL_PREFIX}/{product.image_file}"
+    return None
+
+
 def product_card(product: Product, *, matched_for: str = "") -> dict:
     """The shape returned to the client: enough to show a photo, a name, a
     size, a price and a link out, per CATALOGUE.md's "show it, and price
@@ -358,6 +382,7 @@ def product_card(product: Product, *, matched_for: str = "") -> dict:
         "depth_mm": product.depth_mm,
         "height_mm": product.height_mm,
         "colour": product.colour,
+        "photo_url": photo_url_for(product),
         "image_url": product.image_url,
         "image_file": product.image_file,
         "product_url": product.product_url,

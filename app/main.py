@@ -22,7 +22,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import auth, google_login, store
+from . import auth, catalogue, google_login, store
 from .openai_images import image_models as openai_images_chain
 from urllib.parse import quote
 
@@ -56,6 +56,15 @@ app.add_middleware(
 
 if STATIC_DIR.is_dir():
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+# A client's own photos, when they sent a folder of JPEGs rather than a
+# website — see catalogue.CATALOG_IMAGES_DIR and data/README.md. Created
+# eagerly so the mount never fails on a deploy that has not imported a
+# catalogue with local photos yet.
+catalogue.CATALOG_IMAGES_DIR.mkdir(parents=True, exist_ok=True)
+app.mount(catalogue.CATALOG_IMAGES_URL_PREFIX,
+         StaticFiles(directory=catalogue.CATALOG_IMAGES_DIR),
+         name="catalog-images")
 
 
 def _parse_ids(raw: str | None) -> set[str]:

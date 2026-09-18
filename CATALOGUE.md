@@ -10,13 +10,26 @@ thing somebody can order.
 ## How to collect it — a spreadsheet, with links to the pictures
 
 The confusion is always the images. **You do not put pictures inside a
-spreadsheet.** You put a link to each picture. The image file lives wherever it
-already lives — the client's website, a shared Drive folder, a storage bucket —
-and the sheet holds its address. One row per product. That is how every real
-product feed works, IKEA's included.
+spreadsheet.** One row per product, and the photo is one of two columns —
+`image_url` if it is already online, `image_file` if it is not. That is how
+every real product feed works, IKEA's included.
 
 `catalogue-template.csv` in this repo is the template. Send that file to the
 client and ask them to fill it in and send it back as CSV.
+
+### The two ways to give us a photo
+
+A row uses one of these, not both — see `data/README.md`.
+
+- **`image_url`** — the photo is already online, on the client's own site or
+  anywhere else public. Right-click it, copy the image address, paste that.
+- **`image_file`** — the photos are a folder of JPEGs on somebody's computer.
+  Just the filename goes in the sheet (`hale-wardrobe.jpg`); the folder
+  itself comes alongside it, and
+  `python -m app.import_catalogue data/catalog.csv path/to/that/folder`
+  copies every file the sheet names into `data/catalog-images/`, which the
+  app serves at `/catalog-images`. Telling a client with a hard drive full of
+  JPEGs to build a website first is how a catalogue never arrives.
 
 ### The columns
 
@@ -32,7 +45,8 @@ client and ask them to fill it in and send it back as CSV.
 | `material` | yes | plain words |
 | `style_tags` | yes | comma-separated, from the six looks the app already has |
 | `room_tags` | yes | semicolon-separated, matching the room list |
-| `image_url` | **yes** | a direct link to the image file, publicly reachable |
+| `image_url` | one of these two | a direct link to the image file, publicly reachable |
+| `image_file` | one of these two | just the filename — see "the two ways to give us a photo" below |
 | `product_url` | yes | the page a customer would buy from |
 | `in_stock` | yes | `yes` / `no` |
 | `lead_time_days` | no | whole number |
@@ -47,10 +61,10 @@ this room" find the desks. A free-text category matches nothing.
 ### Telling the client
 
 > Please fill in this spreadsheet, one row per product, and send it back as a
-> CSV. For the photos, paste the web address of each image rather than the
-> image itself — if they are on your website, right-click the picture and copy
-> the image address. If they are only on a computer somewhere, put them in a
-> shared Drive folder set to "anyone with the link", and paste those links.
+> CSV. For the photos: if they are on your website, right-click each picture,
+> copy the image address, and paste that into `image_url`. If they are only
+> on a computer somewhere, put the filename in `image_file` instead and send
+> the photos themselves as a folder alongside the sheet — no website needed.
 >
 > The three measurements matter more than anything else: without the size in
 > millimetres we cannot tell whether a piece fits the room.
