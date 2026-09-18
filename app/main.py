@@ -602,6 +602,7 @@ async def generate_endpoint(
     photo: UploadFile = File(...),
     style: str = Form(...),
     room_type: str = Form(""),
+    extras: list[UploadFile] = File(default_factory=list),
     contents: str = Form(""),
     keep: str = Form(""),
     items: str = Form(""),
@@ -638,6 +639,8 @@ async def generate_endpoint(
             variants=variants,
             variant_offset=variant_offset,
             room=room_type,
+            references=[await _read_upload(e, settings) for e in extras
+                        if e is not None and e.filename],
             contents=contents,
             keep=keep,
             items=parsed_items,

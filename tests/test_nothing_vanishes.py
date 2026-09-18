@@ -85,7 +85,7 @@ class TestTheMaskIsNoLongerADemolitionOrder:
         async def find(image, s):
             return [{"kind": "door", "box": [0.0, 0.0, 0.2, 1.0]}]
 
-        async def redraw(image, mask, prompt, s):
+        async def redraw(image, mask, prompt, s, **kw):
             seen["mask"] = mask
             buf = io.BytesIO()
             Image.new("RGB", (8, 8)).save(buf, "PNG")

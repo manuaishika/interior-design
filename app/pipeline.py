@@ -14,7 +14,8 @@ import random
 from PIL import Image
 
 from . import store
-from .config import DEFAULT_PROFILE, Settings, is_locked, resolve_backend
+from .config import (DEFAULT_PROFILE, Settings, is_locked, resolve_backend,
+                     tier_of)
 from .describe import count_instances, describe_room, keep_clause
 from .generation import GenerationError, build_prompt, encode_mask
 from .imaging import (
@@ -126,7 +127,7 @@ async def _run_free(data, style, settings, *, extra_prompt, variants, room="",
 
 async def _run_openai(data, style, settings, *, extra_prompt, variants, room="",
                       contents="", keep="", depth="", variant_offset=0,
-                      items=None):
+                      items=None, references=None):
     """One OpenAI key. No Replicate anywhere.
 
     GPT-4o says where the doors, windows and walkways are; those boxes become
@@ -140,8 +141,10 @@ async def _run_openai(data, style, settings, *, extra_prompt, variants, room="",
     """
     from . import openai_images
 
-    count = max(1, min(variants or settings.default_variants,
-                       settings.max_variants))
+    # The tier decides how many, not the caller. A plan that sells four designs
+    # and hands four to everybody is not a plan.
+    allowed = min(tier_of(settings)["variants"], settings.max_variants)
+    count = max(1, min(variants or settings.default_variants, allowed))
     image = prepare_image(data, settings)
 
     regions = await openai_images.find_structure(image, settings)
@@ -182,7 +185,7 @@ async def _run_openai(data, style, settings, *, extra_prompt, variants, room="",
             image, sent_mask,
             prompt + openai_images.VARIATIONS[
                 (variant_offset + i) % len(openai_images.VARIATIONS)],
-            settings)
+            settings, references=references)
           for i in range(count)),
         return_exceptions=True,
     )
@@ -417,6 +420,7 @@ async def run_pipeline(
     contents: str = "",
     keep: str = "",
     items: list[dict] | None = None,
+    references: list[bytes] | None = None,
     profile: str | None = None,
     keep_mask_ids: set[str] | None = None,
     replace_mask_ids: set[str] | None = None,
@@ -445,7 +449,7 @@ async def run_pipeline(
                                  extra_prompt=extra_prompt, variants=variants,
                                  room=room, contents=contents, keep=keep,
                                  depth=profile or "", variant_offset=variant_offset,
-                                 items=items)
+                                 items=items, references=references)
 
     count = settings.default_variants if variants is None else variants
     count = max(1, min(count, settings.max_variants))

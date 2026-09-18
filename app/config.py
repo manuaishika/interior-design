@@ -163,6 +163,15 @@ class Settings(BaseSettings):
     # not enough on its own; verified, we confirmed end-to-end on a live key.
     openai_image_model: str = ""
 
+    # --- what a tier is allowed -------------------------------------------
+    # Image cost is charged in tokens, so quality is a dial and not a label:
+    # the published range per 1024x1024 runs from about $0.006 at "low" to
+    # about $0.211 at "max", a factor of thirty-five. Sending nothing meant
+    # every render used the expensive default and nobody had chosen it.
+    #
+    # Quality and count together are the whole ladder the pricing page sells.
+    tier: str = "free"
+
     # --- SAM2 tuning -------------------------------------------------------
     sam2_points_per_side: int = 32
     sam2_pred_iou_thresh: float = 0.88
@@ -215,6 +224,22 @@ class Settings(BaseSettings):
     max_upload_bytes: int = 20 * 1024 * 1024
     # Longest edge the uploaded photo is resized to before analysis.
     max_image_edge: int = 1536
+
+
+# What each tier gets. The names match the pricing page, because a plan that
+# promises "better designs" and delivers identical ones is a refund waiting to
+# happen.
+TIERS: dict[str, dict] = {
+    "free":     {"quality": "medium", "variants": 2, "label": "Free"},
+    "room":     {"quality": "high",   "variants": 3, "label": "One Room"},
+    "home":     {"quality": "high",   "variants": 4, "label": "Whole Home"},
+    "studio":   {"quality": "xhigh",  "variants": 4, "label": "Studio"},
+}
+DEFAULT_TIER = "free"
+
+
+def tier_of(settings: Settings) -> dict:
+    return TIERS.get((settings.tier or "").strip().lower(), TIERS[DEFAULT_TIER])
 
 
 def resolve_backend(settings: Settings) -> str:

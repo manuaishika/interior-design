@@ -171,7 +171,7 @@ class TestThePipeline:
             return [{"kind": "door", "box": [0.0, 0.0, 0.2, 1.0]},
                     {"kind": "window", "box": [0.8, 0.1, 1.0, 0.6]}]
 
-        async def redraw(image, mask, prompt, s):
+        async def redraw(image, mask, prompt, s, **kw):
             buf = io.BytesIO()
             Image.new("RGB", (32, 32), (1, 2, 3)).save(buf, "PNG")
             return buf.getvalue()
@@ -202,7 +202,7 @@ class TestThePipeline:
         async def find(image, s):
             return []
 
-        async def redraw(image, mask, prompt, s):
+        async def redraw(image, mask, prompt, s, **kw):
             asked.append(prompt)
             buf = io.BytesIO()
             Image.new("RGB", (8, 8)).save(buf, "PNG")
@@ -213,7 +213,10 @@ class TestThePipeline:
 
         buf = io.BytesIO()
         Image.new("RGB", (100, 100)).save(buf, "PNG")
-        await run_pipeline(buf.getvalue(), "japandi", settings(), variants=3)
+        # A paid tier, because free is capped at two and this is about the
+        # instructions differing, not about the cap.
+        await run_pipeline(buf.getvalue(), "japandi", settings(tier="room"),
+                           variants=3)
         assert len(set(asked)) == 3
 
     @pytest.mark.asyncio
@@ -230,7 +233,7 @@ class TestThePipeline:
         async def find(image, s):
             return []
 
-        async def redraw(image, mask, prompt, s):
+        async def redraw(image, mask, prompt, s, **kw):
             asked.append(prompt)
             buf = io.BytesIO()
             Image.new("RGB", (8, 8)).save(buf, "PNG")
@@ -269,7 +272,7 @@ class TestThePipeline:
         async def find(image, s):
             return []
 
-        async def redraw(image, mask, prompt, s):
+        async def redraw(image, mask, prompt, s, **kw):
             asked.append(prompt)
             buf = io.BytesIO()
             Image.new("RGB", (8, 8)).save(buf, "PNG")
@@ -315,3 +318,133 @@ class TestHealth:
             body = c.get("/api/health").json()
         assert body["engine"] == "openai"
         assert body["locks_are_enforced"] is True
+
+
+class TestTheTierDecides:
+    """Quality was never sent, so every render used OpenAI's default — the
+    expensive end of a range spanning roughly thirty-five to one. And every
+    plan handed out the same number of designs, which is not a plan."""
+
+    @pytest.mark.asyncio
+    async def test_quality_is_always_sent(self, monkeypatch):
+        from app import openai_images
+
+        sent = {}
+
+        class FakeImages:
+            @staticmethod
+            async def edit(**kw):
+                sent.update(kw)
+                buf = io.BytesIO()
+                Image.new("RGB", (8, 8)).save(buf, "PNG")
+                import base64
+                return type("R", (), {"data": [type("D", (), {
+                    "b64_json": base64.b64encode(buf.getvalue()).decode()})()]})()
+
+        monkeypatch.setattr(openai_images, "_client",
+                            lambda s: type("C", (), {"images": FakeImages})())
+        await openai_images.redraw(Image.new("RGB", (200, 150)), None,
+                                   "redesign", settings())
+        assert "quality" in sent and sent["quality"]
+
+    @pytest.mark.parametrize("tier,quality,variants", [
+        ("free", "medium", 2),
+        ("room", "high", 3),
+        ("studio", "xhigh", 4),
+    ])
+    def test_each_tier_gets_something_different(self, tier, quality, variants):
+        from app.config import Settings, tier_of
+
+        got = tier_of(Settings(tier=tier))
+        assert got["quality"] == quality
+        assert got["variants"] == variants
+
+    def test_an_unknown_tier_is_the_cheap_one(self):
+        """Failing open on a paid tier bills somebody for a plan they do not
+        have."""
+        from app.config import Settings, tier_of
+
+        assert tier_of(Settings(tier="gold"))["quality"] == "medium"
+        assert tier_of(Settings())["quality"] == "medium"
+
+    @pytest.mark.asyncio
+    async def test_the_free_tier_cannot_be_asked_for_four(self, monkeypatch):
+        from app.pipeline import run_pipeline
+
+        drawn = []
+
+        async def find(image, s):
+            return []
+
+        async def redraw(image, mask, prompt, s, **kw):
+            drawn.append(prompt)
+            buf = io.BytesIO()
+            Image.new("RGB", (8, 8)).save(buf, "PNG")
+            return buf.getvalue()
+
+        monkeypatch.setattr("app.openai_images.find_structure", find)
+        monkeypatch.setattr("app.openai_images.redraw", redraw)
+
+        buf = io.BytesIO()
+        Image.new("RGB", (100, 100)).save(buf, "PNG")
+        await run_pipeline(buf.getvalue(), "japandi", settings(tier="free"),
+                           variants=4)
+        assert len(drawn) == 2
+
+
+class TestExtraViews:
+    """A full redesign changes the ceiling, the floor and the furniture, then
+    has to invent whatever one frame could not show. The edit endpoint takes
+    up to sixteen reference images; it was being sent one."""
+
+    @pytest.mark.asyncio
+    async def test_other_views_are_sent_alongside(self, monkeypatch):
+        from app import openai_images
+
+        sent = {}
+
+        class FakeImages:
+            @staticmethod
+            async def edit(**kw):
+                sent.update(kw)
+                buf = io.BytesIO()
+                Image.new("RGB", (8, 8)).save(buf, "PNG")
+                import base64
+                return type("R", (), {"data": [type("D", (), {
+                    "b64_json": base64.b64encode(buf.getvalue()).decode()})()]})()
+
+        monkeypatch.setattr(openai_images, "_client",
+                            lambda s: type("C", (), {"images": FakeImages})())
+
+        other = io.BytesIO()
+        Image.new("RGB", (50, 50)).save(other, "PNG")
+        await openai_images.redraw(Image.new("RGB", (200, 150)), None,
+                                   "redesign", settings(),
+                                   references=[other.getvalue()])
+
+        assert isinstance(sent["image"], list)
+        assert len(sent["image"]) == 2
+
+    @pytest.mark.asyncio
+    async def test_one_view_is_still_sent_on_its_own(self, monkeypatch):
+        """Not wrapped in a list of one — a light restyle needs no second
+        view and the shape should not change under it."""
+        from app import openai_images
+
+        sent = {}
+
+        class FakeImages:
+            @staticmethod
+            async def edit(**kw):
+                sent.update(kw)
+                buf = io.BytesIO()
+                Image.new("RGB", (8, 8)).save(buf, "PNG")
+                import base64
+                return type("R", (), {"data": [type("D", (), {
+                    "b64_json": base64.b64encode(buf.getvalue()).decode()})()]})()
+
+        monkeypatch.setattr(openai_images, "_client",
+                            lambda s: type("C", (), {"images": FakeImages})())
+        await openai_images.redraw(Image.new("RGB", (200, 150)), None,
+                                   "redesign", settings())
+        assert not isinstance(sent["image"], list)

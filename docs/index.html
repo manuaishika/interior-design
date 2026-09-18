@@ -155,6 +155,26 @@
     font-weight: 600; font-size: 1.2rem; letter-spacing: -.01em; }
   .drop span { font-size: .74rem; color: var(--muted); }
   .drop img { max-height: 116px; border-radius: 6px; margin-bottom: .4rem; }
+
+  /* The strip of photographs. The first is the view that gets redrawn, so it
+     is labelled — otherwise people upload their best angle second and wonder
+     why the design ignored it. */
+  .shots-in { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+    gap: .4rem; margin-bottom: .5rem; }
+  .shots-in:empty { display: none; }
+  .shot-in { position: relative; aspect-ratio: 4/3; border: 1px solid var(--line);
+    border-radius: 2px; overflow: hidden; background: var(--card); }
+  .shot-in img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .shot-in .tag { position: absolute; left: 0; bottom: 0; right: 0;
+    background: rgba(20,19,15,.78); color: #F5F2EA; font-size: .58rem;
+    letter-spacing: .06em; text-transform: uppercase; text-align: center;
+    padding: .12rem 0; }
+  .shot-in .x { position: absolute; top: 2px; right: 2px; width: 18px; height: 18px;
+    border: 0; border-radius: 2px; background: rgba(20,19,15,.78); color: #F5F2EA;
+    font-size: .7rem; line-height: 1; cursor: pointer; padding: 0; }
+  .need { font-size: .78rem; margin: .1rem 0 0; line-height: 1.45; }
+  .need.short { color: var(--bad); }
+  .need.ok { color: var(--muted); }
   .lab { font-size: .66rem; letter-spacing: .18em; text-transform: uppercase;
     color: var(--muted); font-weight: 600; margin: 1.2rem 0 .5rem; }
   .pills { display: flex; flex-wrap: wrap; gap: .35rem; }
@@ -506,11 +526,20 @@
       </div>
       <div class="panel-body">
         <div class="controls">
+          <!-- How far to go comes first, because it decides how many
+               photographs are needed and there is no point asking for them
+               before we know. -->
+          <p class="lab">How far are we going?</p>
+          <div class="pills" id="depthPills"></div>
+          <p class="hint" id="depthNote"></p>
+
+          <p class="lab" id="photoLab">Photographs</p>
+          <div class="shots-in" id="shotsIn"></div>
           <button class="drop" id="plus" type="button">
-            <img id="thumb" class="hidden" alt="">
-            <b id="dropTitle">Drop a room photo</b>
+            <b id="dropTitle">Add a room photo</b>
             <span id="dropNote">JPG or PNG &middot; a phone snapshot is plenty</span>
           </button>
+          <p class="need" id="need"></p>
 
           <p class="lab">Extra comments</p>
           <p class="hint">Anything you want kept, changed or avoided. Written
@@ -524,9 +553,6 @@
           <p class="lab">Look</p>
           <p class="hint">Hover any look to see what it means.</p>
           <div class="pills" id="stylePills"></div>
-
-          <p class="lab">How far to go</p>
-          <div class="pills" id="depthPills"></div>
 
           <p class="lab">Options</p>
           <div class="count">
@@ -738,7 +764,7 @@
   </div>
 </footer>
 
-<input type="file" id="photo" accept="image/*" class="hidden">
+<input type="file" id="photo" accept="image/*" multiple class="hidden">
 
 <div class="peek hidden" id="peek">
   <div class="peek-head">
@@ -1145,7 +1171,71 @@
   // script, so a fetched blob stands in for photo.files[0] everywhere that
   // matters, and currentPhoto() is the one place that decides which wins.
   var convId = null, currentPhotoBlob = null;
-  function currentPhoto() { return photo.files[0] || currentPhotoBlob; }
+
+  /* Every photograph added, in order. The first is the view that gets
+     redrawn; the rest are reference, which is what lets a full redesign know
+     what is round the corner instead of inventing it. */
+  var shots = [];
+  function currentPhoto() { return shots[0] || currentPhotoBlob; }
+
+  /* A full redesign changes the ceiling, the floor and the furniture, and then
+     has to invent everything one frame could not show. Two views from
+     different corners is the difference between redesigning a room and
+     redesigning a photograph. */
+  function photosNeeded() { return depth.id === 'renovate' ? 2 : 1; }
+
+  function haveEnough() {
+    return (shots.length || (currentPhotoBlob ? 1 : 0)) >= photosNeeded();
+  }
+
+  function drawShots() {
+    var strip = $('shotsIn');
+    strip.innerHTML = '';
+    shots.forEach(function (file, i) {
+      var box = document.createElement('div');
+      box.className = 'shot-in';
+      var img = document.createElement('img');
+      img.src = URL.createObjectURL(file);
+      img.alt = 'Photo ' + (i + 1);
+      box.appendChild(img);
+      if (i === 0) {
+        var tag = document.createElement('span');
+        tag.className = 'tag';
+        tag.textContent = 'Redrawn';
+        box.appendChild(tag);
+      }
+      var x = document.createElement('button');
+      x.className = 'x';
+      x.type = 'button';
+      x.textContent = '×';
+      x.title = 'Remove';
+      x.onclick = function () { shots.splice(i, 1); drawShots(); refresh(); };
+      box.appendChild(x);
+      strip.appendChild(box);
+    });
+
+    var need = $('need'), short = photosNeeded() - shots.length;
+    $('dropTitle').textContent = shots.length ? 'Add another photo'
+                                              : 'Add a room photo';
+    $('dropNote').textContent = shots.length
+      ? 'Another corner of the same room'
+      : 'JPG or PNG · a phone snapshot is plenty';
+
+    if (shots.length && short > 0) {
+      need.className = 'need short';
+      need.textContent = 'A full redesign needs one more photograph, from '
+        + 'another corner of the room. It changes things a single frame cannot '
+        + 'show — the ceiling, the far wall, the corner behind you. Or switch '
+        + 'to Light restyle above.';
+    } else if (shots.length > 1) {
+      need.className = 'need ok';
+      need.textContent = shots.length + ' views. The first is the one redrawn; '
+        + 'the rest tell it what is round the corner.';
+    } else {
+      need.className = 'need ok';
+      need.textContent = '';
+    }
+  }
 
   function pillRow(el, items, current, onPick, clay) {
     el.innerHTML = items.map(function (it) {
@@ -1173,7 +1263,11 @@
   };
 
   pillRow($('stylePills'), LOOKS, style, function (x) { style = x; peek(x); }, true);
-  pillRow($('depthPills'), DEPTHS, depth, function (x) { depth = x; }, false);
+  pillRow($('depthPills'), DEPTHS, depth, function (x) {
+    depth = x;
+    drawShots();
+    refresh();
+  }, false);
 
   /* A look popup, not a look page.
      "Japandi" is a word until you have seen three rooms that are Japandi. It
@@ -1704,7 +1798,7 @@
   var photo = $('photo');
   $('plus').onclick = function () { photo.click(); };
   photo.onchange = function () {
-    if (!photo.files[0]) return;
+    if (!photo.files.length) return;
     // A deliberate new upload always means a new room, even if a history
     // thread was open a moment ago — carrying its id forward would file the
     // next chat and any kept design under the wrong photo.
@@ -1714,20 +1808,22 @@
     turns = [];
     $('thread').innerHTML = '';
     hideResults();
-    var url = URL.createObjectURL(photo.files[0]);
-    $('thumb').src = url;
-    $('thumb').classList.remove('hidden');
-    $('dropTitle').textContent = 'Photo added';
-    $('dropNote').textContent = 'Click to choose a different one';
+    Array.prototype.forEach.call(photo.files, function (f) { shots.push(f); });
+    photo.value = '';        // so the same file can be picked again later
+    drawShots();
     refresh();
   };
 
   function refresh() {
-    var has = Boolean(currentPhoto());
     var barred = needsCode && !signedIn;
-    $('go').disabled = barred || !has || (!live && !sampler);
+    var enough = haveEnough();
+    $('go').disabled = barred || !enough || (!live && !sampler);
     if (barred) { say('Sign in to use the studio.'); }
     $('go').textContent = reading ? 'Draw it again' : 'Reimagine this room';
+
+    $('depthNote').textContent = depth.id === 'renovate'
+      ? 'New furniture, new finishes, a new ceiling if it needs one. Needs two photographs.'
+      : 'Keeps the furniture and changes how it is finished. One photograph is enough.';
   }
   function say(t, bad) {
     $('msg').textContent = t || '';
@@ -2074,6 +2170,9 @@
     // What a room is *for* governs what it should become. Collecting this and
     // then not sending it is how "nursery" used to draw a generic bedroom.
     f.append('room_type', room.id);
+    // The extra views go as references. Without them a full redesign invents
+    // whatever the first frame could not see.
+    shots.slice(1).forEach(function (extra) { f.append('extras', extra); });
     f.append('profile', depth.id);
     f.append('variants', '1');
     f.append('variant_offset', String(i));

@@ -43,7 +43,7 @@ import numpy as np
 from openai import AsyncOpenAI
 from PIL import Image
 
-from .config import Settings
+from .config import Settings, tier_of
 from .imaging import Mask
 
 log = logging.getLogger(__name__)
@@ -341,7 +341,8 @@ def looks_inverted(original: Image.Image, drawn: bytes,
 
 
 async def redraw(image: Image.Image, inpaint_mask: Image.Image | None,
-                 prompt: str, settings: Settings) -> bytes:
+                 prompt: str, settings: Settings,
+                 references: list[bytes] | None = None) -> bytes:
     """Redraw the room.
 
     With no mask — the default, and what ChatGPT does — the model edits the
@@ -354,6 +355,15 @@ async def redraw(image: Image.Image, inpaint_mask: Image.Image | None,
     image.convert("RGB").save(photo, format="PNG")
     photo.seek(0)
 
+    # Other views of the same room. The endpoint takes up to sixteen, and they
+    # are what stop a full redesign inventing the wall the camera could not
+    # see. One view is sent on its own rather than as a list of one, because a
+    # light restyle needs no second view and the shape should not change
+    # under it.
+    views = [("room.png", photo, "image/png")]
+    for index, extra in enumerate(references or [], start=1):
+        views.append((f"view{index}.png", io.BytesIO(extra), "image/png"))
+
     mask = None
     if inpaint_mask is not None:
         mask = io.BytesIO(to_openai_mask(inpaint_mask,
@@ -363,12 +373,15 @@ async def redraw(image: Image.Image, inpaint_mask: Image.Image | None,
     last: Exception | None = None
 
     for model in image_models(settings):
-        photo.seek(0)
+        for _name, stream, _type in views:
+            stream.seek(0)
         call = {
             "model": model,
-            "image": ("room.png", photo, "image/png"),
+            "image": views if len(views) > 1 else views[0],
             "prompt": prompt[:4000],
             "size": _edit_size(image.size),
+            # Never left to the default. The default is the expensive end.
+            "quality": tier_of(settings)["quality"],
             "n": 1,
         }
         if mask is not None:

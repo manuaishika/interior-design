@@ -498,3 +498,34 @@ class TestHowItWorksIsTrue:
         the four passes."""
         html = client.get("/").text
         assert 'id="howArt"' not in html
+
+
+class TestTheStudioAsksInTheRightOrder:
+    """How far to go decides how many photographs are needed, so asking for
+    photographs first was asking before we knew what to ask for."""
+
+    def test_depth_comes_before_photographs(self, client):
+        html = client.get("/").text
+        assert html.index("How far are we going?") < html.index('id="shotsIn"')
+
+    def test_it_says_how_many_photos_each_depth_needs(self, client):
+        html = client.get("/").text
+        assert "function photosNeeded()" in html
+        assert "Needs two photographs" in html
+        assert "One photograph is enough" in html
+
+    def test_a_short_full_redesign_is_blocked_with_both_ways_out(self, client):
+        """Never a dead end: add a photo, or change the depth."""
+        html = client.get("/").text
+        assert "needs one more photograph" in html
+        assert "switch" in html and "Light restyle" in html
+
+    def test_the_first_photo_is_labelled_as_the_one_redrawn(self, client):
+        """Otherwise people upload their best angle second and wonder why the
+        design ignored it."""
+        html = client.get("/").text
+        assert "'Redrawn'" in html
+
+    def test_the_extra_views_are_sent(self, client):
+        html = client.get("/").text
+        assert "f.append('extras'" in html

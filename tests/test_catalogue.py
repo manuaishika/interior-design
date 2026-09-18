@@ -220,7 +220,7 @@ class TestSteeringARender:
 
         asked = []
 
-        async def redraw(image, mask, prompt, s):
+        async def redraw(image, mask, prompt, s, **kw):
             asked.append(prompt)
             return self._png()
 
@@ -258,7 +258,7 @@ class TestSteeringARender:
 
         asked = []
 
-        async def redraw(image, mask, prompt, s):
+        async def redraw(image, mask, prompt, s, **kw):
             asked.append(prompt)
             return self._png()
 
@@ -291,7 +291,7 @@ class TestSteeringARender:
 
         asked = []
 
-        async def redraw(image, mask, prompt, s):
+        async def redraw(image, mask, prompt, s, **kw):
             asked.append(prompt)
             return self._png()
 
