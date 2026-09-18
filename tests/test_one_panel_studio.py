@@ -67,13 +67,20 @@ class TestThePaneHoldsAllThreeTabs:
 
 class TestTheConversationIsPinnedToTheBottom:
     def test_a_single_convo_bar_holds_thread_and_input(self):
+        """Asking and applying are two different acts now — TODO.md #2 put
+        "Apply this change" on its own row above "Draw it again" rather
+        than in the single row #ask and #askGo already shared — so the
+        block under test has to run to the end of the *last* control
+        (#redraw), not stop at the first </div> after #askGo the way a
+        single shared row let it."""
         source = page()
         start = source.index('id="convoBar"')
-        end = source.index("</div>", source.index('id="askGo"'))
+        end = source.index("</div>", source.index('id="redraw"'))
         block = source[start:end]
         assert 'id="thread"' in block
         assert 'id="ask"' in block
         assert 'id="askGo"' in block
+        assert 'id="apply"' in block
         assert 'id="redraw"' in block
 
     def test_it_renders_last_despite_reading_first_in_source(self):

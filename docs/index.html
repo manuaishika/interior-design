@@ -309,8 +309,10 @@
   .turn .said { font-size: .89rem; white-space: pre-wrap; }
   .turn.me .said { color: var(--muted); }
   .askrow { display: flex; gap: .5rem; }
+  .askrow + .askrow { margin-top: .5rem; }
   .askrow input { flex: 1; border: 1px solid var(--line); border-radius: 2px;
     padding: .5rem .9rem; font-size: .86rem; background: var(--raise); }
+  .askrow.actions .cta { flex: 1; }
 
   /* ---------- explore ---------- */
   .filters { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: 1.6rem; }
@@ -578,7 +580,15 @@
             <div class="chip-row" id="quick"></div>
             <div class="askrow">
               <input id="ask" placeholder="Ask for a change, or ask why&hellip;">
-              <button class="cta" id="askGo" type="button">Ask</button>
+              <button class="cta ghost" id="askGo" type="button">Ask</button>
+            </div>
+            <!-- Two different acts, and the styling says so: applying a change
+                 edits the design already on screen (primary — this is what
+                 "change the wall colour" should do); drawing again goes back
+                 to the original photograph and may move everything
+                 (secondary — the old, and much bigger, hammer). -->
+            <div class="askrow actions">
+              <button class="cta" id="apply" type="button">Apply this change</button>
               <button class="cta ghost" id="redraw" type="button">Draw it again</button>
             </div>
           </div>
@@ -2125,14 +2135,14 @@
      first one to land appears immediately and the rest fill in around it;
      variant_offset is what keeps three separate variants=1 calls from all
      drawing the identical option (see pipeline.run_pipeline's docstring). */
-  function appendDesign(g, i, saving) {
+  function appendDesign(g, i, saving, caption) {
     var figure = document.createElement('figure');
     var img = document.createElement('img');
     img.src = 'data:image/png;base64,' + g.image_base64;
-    img.alt = 'Design ' + (i + 1);
+    img.alt = caption || ('Design ' + (i + 1));
 
     var cap = document.createElement('figcaption');
-    cap.textContent = 'Design ' + (i + 1) + ' · ' + style.name;
+    cap.textContent = caption || ('Design ' + (i + 1) + ' · ' + style.name);
 
     var row = document.createElement('div');
     row.className = 'shot-row';
@@ -2290,6 +2300,45 @@
     // The conversation is only worth having if it ends in a new picture.
     $('redraw').textContent = 'Draw it again with this';
   }
+
+  /* "Change the wall colour" used to be handed to #redraw, which reruns the
+     whole pipeline from the original photograph — a different room comes
+     back and the one thing asked for is lost among fifty others it was not.
+     This edits the design actually on screen instead: same endpoint,
+     gpt-image-2.5, the generated design as the subject and the instruction
+     as the whole prompt. appendDesign already sets lastDesign to whatever it
+     just added, so a second call to this chains onto the first edit rather
+     than the original room. */
+  async function applyChange(instruction) {
+    addTurn('user', instruction);
+    turns.push({ role: 'user', content: instruction });
+    var into = addTurn('assistant', 'Applying…');
+    if (!lastDesign) {
+      into.textContent = 'Draw a design first.';
+      return;
+    }
+    try {
+      var raw = atob(lastDesign), buf = new Uint8Array(raw.length);
+      for (var b = 0; b < raw.length; b++) { buf[b] = raw.charCodeAt(b); }
+      var f = new FormData();
+      f.append('design', new Blob([buf], { type: 'image/png' }), 'design.png');
+      f.append('instruction', instruction);
+      var r = await fetch(api('/api/edit'), { method: 'POST', body: f, credentials: 'include' });
+      var d = await r.json();
+      if (!r.ok) throw new Error(d.detail || 'Could not apply that change');
+      into.textContent = 'Applied — see the new design.';
+      appendDesign({ image_base64: d.image_base64 },
+                   $('shots').children.length, [], 'Edited · ' + instruction);
+    } catch (e) {
+      into.textContent = (e && e.message) || 'Could not apply that change.';
+    }
+  }
+  $('apply').onclick = function () {
+    var t = $('ask').value.trim();
+    if (!t) { return; }
+    $('ask').value = '';
+    applyChange(t);
+  };
 
   /* One button. It reads the room first, then draws. Nobody should have to
      know which step they are on. */

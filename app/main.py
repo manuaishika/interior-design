@@ -10,6 +10,7 @@ Endpoints:
 
 from __future__ import annotations
 
+import base64
 import hmac
 import json
 import logging
@@ -28,7 +29,7 @@ from urllib.parse import quote
 from .config import LOCK_PROFILES, Settings, get_settings, resolve_backend
 from .generation import STYLES, GenerationError
 from .models import AnalyzeResponse, GenerateResponse
-from .pipeline import analyze_room, prepare_image, run_pipeline
+from .pipeline import analyze_room, edit_design, prepare_image, run_pipeline
 from .reading import NotARoomError, ReadingError, discuss, read_room
 from .segmentation import SegmentationError
 
@@ -657,3 +658,29 @@ async def generate_endpoint(
     except RuntimeError as exc:
         raise HTTPException(502, str(exc)) from exc
     return GenerateResponse(analysis=analysis, generations=generations)
+
+
+@app.post("/api/edit")
+async def edit_endpoint(
+    request: Request,
+    design: UploadFile = File(...),
+    instruction: str = Form(...),
+):
+    """A follow-up edits the design already on screen — see
+    pipeline.edit_design for why this is not just another /api/generate
+    call. Guarded like /api/generate and /api/chat: it costs money the
+    moment it runs.
+    """
+    settings = get_settings()
+    auth.guard(request, settings)
+    instruction = instruction.strip()
+    if not instruction:
+        raise HTTPException(400, "Say what to change.")
+    data = await _read_upload(design, settings)
+    try:
+        result = await edit_design(data, instruction, settings)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(502, str(exc)) from exc
+    return {"image_base64": base64.b64encode(result).decode("ascii")}

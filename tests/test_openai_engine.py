@@ -448,3 +448,162 @@ class TestExtraViews:
         await openai_images.redraw(Image.new("RGB", (200, 150)), None,
                                    "redesign", settings())
         assert not isinstance(sent["image"], list)
+
+
+class TestApplyThisChange:
+    """TODO.md #2: a follow-up edits the design on screen, not the room.
+
+    "Draw it again" already reran the whole pipeline from the original
+    photograph — this pins the other verb, pipeline.edit_design, which the
+    /api/edit endpoint calls: the generated design has to be the subject
+    handed to the image model, the style preset must not be silently
+    reapplied, PRESERVE has to still ride along, and a chain of edits has to
+    each build on the previous result rather than all reaching back to the
+    first design.
+    """
+
+    def _png(self, colour=(10, 20, 30)):
+        buf = io.BytesIO()
+        Image.new("RGB", (32, 32), colour).save(buf, "PNG")
+        return buf.getvalue()
+
+    @pytest.mark.asyncio
+    async def test_the_design_is_the_subject_not_the_room_photo(self, monkeypatch):
+        from app.pipeline import edit_design
+
+        seen = {}
+
+        async def redraw(image, mask, prompt, s, **kw):
+            seen["image"] = image
+            seen["mask"] = mask
+            return self._png()
+
+        monkeypatch.setattr("app.openai_images.redraw", redraw)
+
+        design = self._png(colour=(200, 100, 50))
+        await edit_design(design, "make the wall deep olive", settings())
+
+        expected = Image.open(io.BytesIO(design)).convert("RGB").tobytes()
+        assert seen["image"].convert("RGB").tobytes() == expected
+        assert seen["mask"] is None
+
+    @pytest.mark.asyncio
+    async def test_the_style_preset_is_not_reapplied(self, monkeypatch):
+        from app.pipeline import edit_design
+
+        seen = {}
+
+        async def redraw(image, mask, prompt, s, **kw):
+            seen["prompt"] = prompt
+            return self._png()
+
+        monkeypatch.setattr("app.openai_images.redraw", redraw)
+        await edit_design(self._png(), "make the wall deep olive", settings())
+
+        assert "make the wall deep olive" in seen["prompt"]
+        assert "Redesign this room as" not in seen["prompt"]
+        assert "japandi" not in seen["prompt"].lower()
+
+    @pytest.mark.asyncio
+    async def test_preserve_still_rides_along(self, monkeypatch):
+        """Or the second edit reintroduces the doorway the first avoided."""
+        from app.generation import PRESERVE
+        from app.pipeline import edit_design
+
+        seen = {}
+
+        async def redraw(image, mask, prompt, s, **kw):
+            seen["prompt"] = prompt
+            return self._png()
+
+        monkeypatch.setattr("app.openai_images.redraw", redraw)
+        await edit_design(self._png(), "make the wall deep olive", settings())
+        assert PRESERVE in seen["prompt"]
+
+    @pytest.mark.asyncio
+    async def test_three_edits_chain(self, monkeypatch):
+        """A third instruction edits the second result, not the first."""
+        from app.pipeline import edit_design
+
+        seen_images = []
+
+        async def redraw(image, mask, prompt, s, **kw):
+            seen_images.append(image.tobytes())
+            # A different colour each time, so the next call's input is
+            # provably this output and not some earlier one.
+            return self._png(colour=(10 * (len(seen_images) + 1), 0, 0))
+
+        monkeypatch.setattr("app.openai_images.redraw", redraw)
+
+        design = self._png(colour=(1, 1, 1))
+        first = await edit_design(design, "a", settings())
+        second = await edit_design(first, "b", settings())
+        await edit_design(second, "c", settings())
+
+        assert seen_images[1] == Image.open(io.BytesIO(first)).convert("RGB").tobytes()
+        assert seen_images[2] == Image.open(io.BytesIO(second)).convert("RGB").tobytes()
+
+    @pytest.mark.asyncio
+    async def test_needs_the_openai_engine(self):
+        from app.config import Settings
+        from app.pipeline import edit_design
+
+        with pytest.raises(ValueError, match="OpenAI"):
+            await edit_design(self._png(), "make it warmer",
+                              Settings(google_api_key="g"))
+
+
+class TestApplyThisChangeEndpoint:
+    def _png(self):
+        buf = io.BytesIO()
+        Image.new("RGB", (32, 32)).save(buf, "PNG")
+        return buf.getvalue()
+
+    def test_it_edits_and_returns_an_image(self, monkeypatch):
+        from fastapi.testclient import TestClient
+
+        import app.main as main
+        from app.main import app
+
+        async def redraw(image, mask, prompt, s, **kw):
+            return self._png()
+
+        monkeypatch.setattr(main, "get_settings", settings)
+        monkeypatch.setattr("app.openai_images.redraw", redraw)
+
+        with TestClient(app) as c:
+            r = c.post("/api/edit",
+                      files={"design": ("d.png", self._png(), "image/png")},
+                      data={"instruction": "make the wall deep olive"})
+        assert r.status_code == 200
+        assert r.json()["image_base64"]
+
+    def test_an_empty_instruction_is_refused(self, monkeypatch):
+        from fastapi.testclient import TestClient
+
+        import app.main as main
+        from app.main import app
+
+        monkeypatch.setattr(main, "get_settings", settings)
+
+        with TestClient(app) as c:
+            r = c.post("/api/edit",
+                      files={"design": ("d.png", self._png(), "image/png")},
+                      data={"instruction": "   "})
+        assert r.status_code == 400
+
+    def test_the_wrong_engine_is_refused_not_500d(self, monkeypatch):
+        from fastapi.testclient import TestClient
+
+        import app.main as main
+        from app.config import Settings
+        from app.main import app
+
+        monkeypatch.setattr(main, "get_settings",
+                            lambda: Settings(google_api_key="g"))
+
+        with TestClient(app) as c:
+            r = c.post("/api/edit",
+                      files={"design": ("d.png", self._png(), "image/png")},
+                      data={"instruction": "make it warmer"})
+        assert r.status_code == 400

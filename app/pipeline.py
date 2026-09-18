@@ -17,7 +17,7 @@ from . import store
 from .config import (DEFAULT_PROFILE, Settings, is_locked, resolve_backend,
                      tier_of)
 from .describe import count_instances, describe_room, keep_clause
-from .generation import GenerationError, build_prompt, encode_mask
+from .generation import PRESERVE, GenerationError, build_prompt, encode_mask
 from .imaging import (
     build_inpaint_mask,
     image_to_png_bytes,
@@ -45,6 +45,35 @@ def _is_free(settings: Settings) -> bool:
 
 def _is_openai(settings: Settings) -> bool:
     return resolve_backend(settings) == "openai"
+
+
+async def edit_design(design: bytes, instruction: str, settings: Settings) -> bytes:
+    """A follow-up edits the design that is on screen, not the room it came
+    from.
+
+    "Draw it again" reruns the whole pipeline from the original photograph,
+    so a request as small as "change the wall colour" comes back as a
+    different room with the one thing asked for lost among fifty others
+    that were not. This is the other verb: the generated design is the
+    subject, the instruction is the whole prompt, no style preset is
+    re-applied, and PRESERVE still rides along so the edit cannot undo what
+    the original render already protected — a second edit reintroducing the
+    doorway the first one avoided would be worse than not editing at all.
+
+    Chaining ("a third instruction edits the second result") is the
+    caller's job, not this function's: it always edits exactly the bytes it
+    is given, so a caller that keeps carrying the latest result forward
+    gets a chain, and one that keeps passing the same bytes gets three
+    independent edits of the same design.
+    """
+    if not _is_openai(settings):
+        raise ValueError("Apply this change needs the OpenAI engine.")
+
+    from . import openai_images
+
+    image = load_image(design)
+    prompt = f"{instruction.strip()}\n\n{PRESERVE}"
+    return await openai_images.redraw(image, None, prompt, settings)
 
 
 async def _furnish_contents(
