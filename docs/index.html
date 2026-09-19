@@ -255,6 +255,81 @@
   .product-card .p-price { font-size: .84rem; color: #EFEAE0; }
   .product-card a { font-size: .76rem; color: var(--clay); }
 
+  /* ---------- motion ----------------------------------------------------
+     This is a design tool. A surface where nothing answers back reads as
+     broken software, not as restraint. Everything here is short, physical
+     and triggered by something the person did — no ambient drifting, no
+     scroll reveals, nothing that delays the content.
+
+     One curve does almost all of it: an overshoot that settles, which is
+     what makes a press feel like a real object rather than a state change.  */
+  :root { --spring: cubic-bezier(.34, 1.56, .64, 1); }
+
+  .cta, .pill, .chip.pick, .chip-row button, nav button, .filters .pill {
+    transition: transform .18s var(--spring), background-color .15s ease,
+                border-color .15s ease, color .15s ease;
+  }
+  .cta:active, .pill:active, .chip.pick:active, .chip-row button:active {
+    transform: scale(.955);
+  }
+  .cta:not([disabled]):hover { transform: translateY(-1px); }
+  .pill:hover, .chip-row button:hover { transform: translateY(-1px); }
+
+  /* A look that was just chosen should acknowledge it. */
+  .pill.on { animation: picked .32s var(--spring); }
+  @keyframes picked {
+    0%   { transform: scale(.9); }
+    60%  { transform: scale(1.04); }
+    100% { transform: scale(1); }
+  }
+
+  /* Designs land, one after another, rather than blinking into place. */
+  .shots figure { animation: land .42s var(--spring) both; }
+  .shots figure:nth-child(2) { animation-delay: .06s; }
+  .shots figure:nth-child(3) { animation-delay: .12s; }
+  .shots figure:nth-child(4) { animation-delay: .18s; }
+  @keyframes land {
+    from { opacity: 0; transform: translateY(14px) scale(.985); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  /* The room drawings on the gallery lift toward the pointer. */
+  .plate { transition: transform .22s var(--spring), box-shadow .22s ease; }
+  .plate:hover { transform: translateY(-3px);
+    box-shadow: 0 10px 24px rgba(20,19,15,.10); }
+
+  /* Tiers: the one you would pick should feel like the one you would pick. */
+  .tier { transition: transform .24s var(--spring), box-shadow .24s ease; }
+  .tier:hover { transform: translateY(-5px);
+    box-shadow: 0 16px 34px rgba(20,19,15,.13); }
+  .tier.pick:hover { box-shadow: 0 18px 38px rgba(20,19,15,.3); }
+  .tier .price { display: inline-block; transition: transform .24s var(--spring); }
+  .tier:hover .price { transform: scale(1.06); }
+
+  /* A new message arrives rather than appearing. */
+  .turn { animation: arrive .3s ease both; }
+  @keyframes arrive {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  /* The dot beside the engine name breathes, so the panel reads as awake. */
+  .panel-top .dot { animation: pulse 2.6s ease-in-out infinite; }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: .45; transform: scale(.82); }
+  }
+
+  /* Everything above is decoration. None of it may cost somebody motion
+     sickness, and none of it hides content when switched off. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .001ms !important;
+    }
+  }
+
   /* The comparison, drawn over the design itself. */
   .shots figure { position: relative; }
   .shots figure .overlay { position: absolute; inset: 0; overflow: hidden;
@@ -383,11 +458,17 @@
     color: var(--muted); font-weight: 600; }
   .turn .said { font-size: .89rem; white-space: pre-wrap; }
   .turn.me .said { color: var(--muted); }
-  .askrow { display: flex; gap: .5rem; }
-  .askrow + .askrow { margin-top: .5rem; }
-  .askrow input { flex: 1; border: 1px solid var(--line); border-radius: 2px;
-    padding: .5rem .9rem; font-size: .86rem; background: var(--raise); }
-  .askrow.actions .cta { flex: 1; }
+  /* One row: the field, then the three things you can do with it, all the
+     same height and each sized to its own words. They were full-width slabs
+     stacked under a full-width field, which is three identical rectangles
+     saying three different things. */
+  .askrow { display: flex; gap: .4rem; align-items: stretch; flex-wrap: wrap; }
+  .askrow input { flex: 1 1 12rem; min-width: 0; border: 1px solid var(--line);
+    border-radius: 2px; padding: .5rem .9rem; font-size: .86rem;
+    background: var(--raise); }
+  .askrow .cta { flex: 0 0 auto; padding: .5rem .95rem; font-size: .82rem;
+    border-radius: 2px; white-space: nowrap; }
+  .askrow .cta.wide { flex: 1 1 auto; }
 
   /* ---------- explore ---------- */
   .filters { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: 1.6rem; }
@@ -653,18 +734,16 @@
             <span class="convo-label">Talk it through</span>
             <div class="thread" id="thread"></div>
             <div class="chip-row" id="quick"></div>
+            <!-- Two different acts, and the styling says so: applying a
+                 change edits the design already on screen (primary — this is
+                 what "change the wall colour" should do); drawing again goes
+                 back to the original photograph and may move everything
+                 (secondary — the old, and much bigger, hammer). -->
             <div class="askrow">
               <input id="ask" placeholder="Ask for a change, or ask why&hellip;">
               <button class="cta ghost" id="askGo" type="button">Ask</button>
-            </div>
-            <!-- Two different acts, and the styling says so: applying a change
-                 edits the design already on screen (primary — this is what
-                 "change the wall colour" should do); drawing again goes back
-                 to the original photograph and may move everything
-                 (secondary — the old, and much bigger, hammer). -->
-            <div class="askrow actions">
-              <button class="cta" id="apply" type="button">Apply this change</button>
-              <button class="cta ghost" id="redraw" type="button">Draw it again</button>
+              <button class="cta" id="apply" type="button">Apply</button>
+              <button class="cta ghost" id="redraw" type="button">Redraw all</button>
             </div>
           </div>
 

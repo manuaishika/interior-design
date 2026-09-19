@@ -577,3 +577,51 @@ class TestComparingHappensOnThePicture:
     def test_the_two_sides_are_labelled(self, client):
         html = client.get("/").text
         assert "'Before'" in html and "'After'" in html
+
+
+class TestTheSurfaceAnswersBack:
+    """A design tool where nothing responds to a press reads as broken
+    software, not as restraint. All of it is short, physical, and triggered by
+    something the person did — no ambient drift, no scroll reveals."""
+
+    def test_pressing_something_moves_it(self, client):
+        html = client.get("/").text
+        assert "--spring:" in html
+        assert ".cta:active" in html
+
+    def test_designs_land_rather_than_blink(self, client):
+        html = client.get("/").text
+        assert "@keyframes land" in html
+        assert ".shots figure { animation: land" in html
+
+    def test_the_tiers_respond(self, client):
+        html = client.get("/").text
+        assert ".tier:hover" in html
+        assert ".tier:hover .price" in html
+
+    def test_nothing_is_hidden_behind_an_animation(self, client):
+        """Everything meant to be read is visible at rest. No element parked
+        at opacity 0 waiting for a scroll observer."""
+        html = client.get("/").text
+        assert "IntersectionObserver" not in html
+
+    def test_motion_can_be_switched_off(self, client):
+        """Decoration must never cost somebody motion sickness."""
+        html = client.get("/").text
+        assert "prefers-reduced-motion" in html
+        assert "animation-duration: .001ms !important" in html
+
+
+class TestTheConversationRowLinesUp:
+    def test_the_field_and_its_buttons_share_one_row(self, client):
+        """They were full-width slabs stacked under a full-width field —
+        three identical rectangles saying three different things."""
+        html = client.get("/").text
+        assert 'class="askrow actions"' not in html
+        row = html[html.index('<div class="askrow">'):][:600]
+        for control in ("id=\"ask\"", "id=\"askGo\"", "id=\"apply\"", "id=\"redraw\""):
+            assert control in row
+
+    def test_the_buttons_are_sized_to_their_words(self, client):
+        html = client.get("/").text
+        assert ".askrow .cta { flex: 0 0 auto;" in html
