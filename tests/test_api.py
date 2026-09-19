@@ -509,16 +509,21 @@ class TestTheStudioAsksInTheRightOrder:
         assert html.index("How far are we going?") < html.index('id="shotsIn"')
 
     def test_it_says_how_many_photos_each_depth_needs(self, client):
+        """Asserted on meaning, not on wording — the copy gets tightened and
+        the requirement does not."""
         html = client.get("/").text
         assert "function photosNeeded()" in html
-        assert "Needs two photographs" in html
-        assert "One photograph is enough" in html
+        note = html[html.index("$('depthNote').textContent"):][:400]
+        assert "Two photos" in note
+        assert "One photo" in note
 
     def test_a_short_full_redesign_is_blocked_with_both_ways_out(self, client):
-        """Never a dead end: add a photo, or change the depth."""
+        """Never a dead end: add a photo, or change the depth. Both escapes
+        have to be named, however the sentence is phrased."""
         html = client.get("/").text
-        assert "needs one more photograph" in html
-        assert "switch" in html and "Light restyle" in html
+        short = html[html.index("photosNeeded() - shots.length"):][:700]
+        assert "another corner" in short          # add one
+        assert "Light restyle" in short           # or change depth
 
     def test_the_first_photo_is_labelled_as_the_one_redrawn(self, client):
         """Otherwise people upload their best angle second and wonder why the
@@ -529,3 +534,46 @@ class TestTheStudioAsksInTheRightOrder:
     def test_the_extra_views_are_sent(self, client):
         html = client.get("/").text
         assert "f.append('extras'" in html
+
+
+class TestTheStudioDoesNotSitStill:
+    """Three designs take the better part of a minute. A black panel that does
+    not move reads as a hang, and people press the button again."""
+
+    def test_there_is_something_to_watch_while_it_draws(self, client):
+        html = client.get("/").text
+        assert "function working(" in html
+        assert "@keyframes fill" in html
+
+    def test_it_survives_reduced_motion(self, client):
+        html = client.get("/").text
+        assert "prefers-reduced-motion" in html
+
+    def test_the_waiting_panel_is_cleared_by_the_first_design(self, client):
+        """Not at the start of the batch, which left an empty black rectangle
+        for the whole minute."""
+        html = client.get("/").text
+        draw = html[html.index("async function draw()"):][:400]
+        assert "$('paneEmpty').classList.add('hidden')" not in draw
+
+
+class TestComparingHappensOnThePicture:
+    """It used to open a second copy of the same design further down the page,
+    pushing everything else below the fold to show what was already on screen."""
+
+    def test_the_overlay_is_built_on_the_design(self, client):
+        html = client.get("/").text
+        assert "function openCompare(designBase64, figure)" in html
+        assert "figure.appendChild(overlay)" in html
+
+    def test_it_toggles_off_again(self, client):
+        html = client.get("/").text
+        assert "figure.classList.contains('comparing')" in html
+
+    def test_only_one_design_compares_at_a_time(self, client):
+        html = client.get("/").text
+        assert "other.classList.remove('comparing')" in html
+
+    def test_the_two_sides_are_labelled(self, client):
+        html = client.get("/").text
+        assert "'Before'" in html and "'After'" in html

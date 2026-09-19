@@ -150,9 +150,9 @@
   @media (min-width: 860px) { .panel-body { grid-template-columns: 290px minmax(0,1fr); } }
   .controls { padding: 1rem; border-right: 1px solid var(--line); }
   .drop { border: 1px dashed var(--line); border-radius: 2px; background: var(--card);
-    padding: 1.5rem 1rem; text-align: center; cursor: pointer; width: 100%; }
+    padding: .7rem 1rem; text-align: center; cursor: pointer; width: 100%; }
   .drop b { display: block; font-family: var(--display);
-    font-weight: 600; font-size: 1.2rem; letter-spacing: -.01em; }
+    font-weight: 600; font-size: .95rem; letter-spacing: -.01em; }
   .drop span { font-size: .74rem; color: var(--muted); }
   .drop img { max-height: 116px; border-radius: 6px; margin-bottom: .4rem; }
 
@@ -254,6 +254,47 @@
   .product-card .p-size { font-size: .74rem; color: #A79E90; }
   .product-card .p-price { font-size: .84rem; color: #EFEAE0; }
   .product-card a { font-size: .76rem; color: var(--clay); }
+
+  /* The comparison, drawn over the design itself. */
+  .shots figure { position: relative; }
+  .shots figure .overlay { position: absolute; inset: 0; overflow: hidden;
+    border-radius: 2px; }
+  .shots figure .overlay .before { position: absolute; inset: 0; width: 100%;
+    height: 100%; object-fit: cover; display: block; }
+  .shots figure .overlay .line { position: absolute; top: 0; bottom: 0;
+    width: 2px; background: #F5F2EA; box-shadow: 0 0 0 1px rgba(20,19,15,.35);
+    pointer-events: none; }
+  .shots figure .overlay .line::after { content: ''; position: absolute;
+    top: 50%; left: 50%; width: 30px; height: 30px; transform: translate(-50%,-50%);
+    border-radius: 50%; background: #F5F2EA; box-shadow: 0 1px 6px rgba(20,19,15,.4); }
+  .shots figure .overlay input[type=range] { position: absolute; inset: 0;
+    width: 100%; height: 100%; margin: 0; opacity: 0; cursor: ew-resize; }
+  .shots figure .overlay .edge { position: absolute; top: .5rem;
+    font-size: .6rem; letter-spacing: .1em; text-transform: uppercase;
+    background: rgba(20,19,15,.72); color: #F5F2EA; padding: .15rem .45rem;
+    border-radius: 2px; pointer-events: none; }
+  .shots figure .overlay .edge.left { left: .5rem; }
+  .shots figure .overlay .edge.right { right: .5rem; }
+  .shots figure.comparing .cmp { border-color: var(--clay); color: var(--clay); }
+
+  /* Something to watch while it draws. Three rooms take the better part of a
+     minute and a motionless black panel reads as a hang. */
+  .working { display: grid; place-items: center; gap: 1rem; text-align: center; }
+  .working .bars { display: flex; gap: .45rem; }
+  .working .bars i { width: 34px; height: 46px; border-radius: 2px;
+    background: #2E2A24; animation: fill 1.6s ease-in-out infinite; }
+  .working .bars i:nth-child(2) { animation-delay: .22s; }
+  .working .bars i:nth-child(3) { animation-delay: .44s; }
+  .working p { font-size: .85rem; color: #A79E90; margin: 0; }
+  .working b { display: block; font-family: var(--display); font-size: 1.15rem;
+    color: #F5F2EA; font-weight: 600; }
+  @keyframes fill {
+    0%, 100% { background: #2E2A24; transform: translateY(0); }
+    50%      { background: var(--clay); transform: translateY(-5px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .working .bars i { animation: none; background: var(--clay); opacity: .55; }
+  }
 
   /* Before & after — TODO.md #3. A plain range input sits transparent over
      the two stacked images so the whole picture is draggable, not just a
@@ -384,8 +425,8 @@
   .tier.pick li { border-color: #2E2C26; }
   .tier .cta { margin-top: auto; width: 100%; border-radius: 2px; padding: .65rem; }
 
-  .hint { font-size: .76rem; color: var(--muted); margin: -.25rem 0 .5rem;
-    line-height: 1.45; }
+  .hint { font-size: .76rem; color: var(--muted); margin: .45rem 0 .5rem;
+    line-height: 1.5; }
   .drop-sel { width: 100%; border: 1px solid var(--line); border-radius: 2px;
     padding: .5rem .6rem; background: var(--raise); font-size: .86rem; }
 
@@ -578,8 +619,7 @@
           <p class="need" id="need"></p>
 
           <p class="lab">Extra comments</p>
-          <p class="hint">Anything you want kept, changed or avoided. Written
-             in plain words — it is read alongside the photograph.</p>
+          <p class="hint">Anything to keep, change or avoid.</p>
           <textarea class="brief" id="text"
             placeholder="Keep the window, add a reading corner, warmer light&hellip;"></textarea>
 
@@ -587,7 +627,7 @@
           <select class="drop-sel" id="roomSel"></select>
 
           <p class="lab">Look</p>
-          <p class="hint">Hover any look to see what it means.</p>
+          <p class="hint">Hover to see one.</p>
           <div class="pills" id="stylePills"></div>
 
           <p class="lab">Options</p>
@@ -644,7 +684,7 @@
               <div class="shots hidden" id="shots"></div>
               <div class="products hidden" id="products"></div>
 
-              <div class="compare hidden" id="compare">
+              <div class="compare hidden" id="compare" aria-hidden="true">
                 <div class="compare-head">
                   <h3>Before &amp; after</h3>
                   <button class="cta ghost" id="compareDownload" type="button">Download both</button>
@@ -1286,20 +1326,17 @@
     var need = $('need'), short = photosNeeded() - shots.length;
     $('dropTitle').textContent = shots.length ? 'Add another photo'
                                               : 'Add a room photo';
-    $('dropNote').textContent = shots.length
-      ? 'Another corner of the same room'
-      : 'JPG or PNG · a phone snapshot is plenty';
+    $('dropNote').textContent = shots.length ? 'Another corner'
+                                              : 'A phone photo is fine';
 
     if (shots.length && short > 0) {
       need.className = 'need short';
-      need.textContent = 'A full redesign needs one more photograph, from '
-        + 'another corner of the room. It changes things a single frame cannot '
-        + 'show — the ceiling, the far wall, the corner behind you. Or switch '
-        + 'to Light restyle above.';
+      need.textContent = 'One more, from another corner — or switch to '
+        + 'Light restyle.';
     } else if (shots.length > 1) {
       need.className = 'need ok';
-      need.textContent = shots.length + ' views. The first is the one redrawn; '
-        + 'the rest tell it what is round the corner.';
+      need.textContent = 'Designs come back from the first photo. The others '
+        + 'show it the rest of the room.';
     } else {
       need.className = 'need ok';
       need.textContent = '';
@@ -1918,8 +1955,8 @@
     $('go').textContent = reading ? 'Draw it again' : 'Reimagine this room';
 
     $('depthNote').textContent = depth.id === 'renovate'
-      ? 'New furniture, new finishes, a new ceiling if it needs one. Needs two photographs.'
-      : 'Keeps the furniture and changes how it is finished. One photograph is enough.';
+      ? 'New furniture and finishes. Two photos.'
+      : 'Same furniture, new finish. One photo.';
   }
   function say(t, bad) {
     $('msg').textContent = t || '';
@@ -2230,6 +2267,9 @@
      drawing the identical option (see pipeline.run_pipeline's docstring). */
   function appendDesign(g, i, saving, caption) {
     var figure = document.createElement('figure');
+    working(false);
+    $('shots').classList.remove('hidden');
+
     var img = document.createElement('img');
     img.src = 'data:image/png;base64,' + g.image_base64;
     img.alt = caption || ('Design ' + (i + 1));
@@ -2257,10 +2297,10 @@
     down.href = img.src;
 
     var compare = document.createElement('button');
-    compare.className = 'cta ghost keep';
+    compare.className = 'cta ghost keep cmp';
     compare.type = 'button';
     compare.textContent = 'Compare';
-    compare.onclick = function () { openCompare(g.image_base64); };
+    compare.onclick = function () { openCompare(g.image_base64, figure); };
 
     row.appendChild(keep);
     row.appendChild(down);
@@ -2308,21 +2348,75 @@
     $('compareLine').style.left = value + '%';
   }
 
-  function openCompare(designBase64) {
+  /* Comparing happens on the design itself. It used to open a second copy
+     of the same picture further down the page, which pushed everything else
+     below the fold to show something already on screen. */
+  function openCompare(designBase64, figure) {
     var photo = currentPhoto();
-    if (!photo) { return; }
-    $('compareBefore').src = URL.createObjectURL(photo);
+    if (!photo || !figure) { return; }
+
+    if (figure.classList.contains('comparing')) {
+      figure.classList.remove('comparing');
+      var gone = figure.querySelector('.overlay');
+      if (gone) { gone.remove(); }
+      return;
+    }
+
+    Array.prototype.forEach.call($('shots').children, function (other) {
+      other.classList.remove('comparing');
+      var o = other.querySelector('.overlay');
+      if (o) { o.remove(); }
+    });
+
+    var overlay = document.createElement('div');
+    overlay.className = 'overlay';
+
+    var before = document.createElement('img');
+    before.className = 'before';
+    before.alt = 'The room as it was';
+    before.src = URL.createObjectURL(photo);
+
+    var line = document.createElement('div');
+    line.className = 'line';
+
+    var range = document.createElement('input');
+    range.type = 'range';
+    range.min = 0;
+    range.max = 100;
+    range.value = 50;
+    range.setAttribute('aria-label', 'Reveal more of the original photograph');
+
+    function split(value) {
+      // The original is revealed from the left; the design stays put beneath.
+      before.style.clipPath = 'inset(0 ' + (100 - value) + '% 0 0)';
+      line.style.left = value + '%';
+    }
+    range.addEventListener('input', function () { split(Number(this.value)); });
+    split(50);
+
+    var tagB = document.createElement('span');
+    tagB.className = 'edge left';
+    tagB.textContent = 'Before';
+    var tagA = document.createElement('span');
+    tagA.className = 'edge right';
+    tagA.textContent = 'After';
+
+    overlay.appendChild(before);
+    overlay.appendChild(line);
+    overlay.appendChild(tagB);
+    overlay.appendChild(tagA);
+    overlay.appendChild(range);
+    figure.appendChild(overlay);
+    figure.classList.add('comparing');
+
+    // The download and the lists still read from the hidden pair.
+    $('compareBefore').src = before.src;
     $('compareAfter').src = 'data:image/png;base64,' + designBase64;
-    $('compareRange').value = 50;
-    setCompareSplit(50);
 
     var lists = compareLists();
     fillList('compareKept', lists.kept, 'Nothing was ticked to stay.');
     fillList('compareReplaced', lists.replaced,
             'Nothing was left free to change.');
-
-    $('compare').classList.remove('hidden');
-    $('compare').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
   $('compareRange').addEventListener('input', function () {
@@ -2416,8 +2510,8 @@
 
   async function draw() {
     $('shots').innerHTML = '';
-    $('paneEmpty').classList.add('hidden');
-    $('shots').classList.remove('hidden');
+    // The waiting panel stays up until the first design lands. Clearing it
+    // here left an empty black rectangle for the minute it takes.
     $('compare').classList.add('hidden');
 
     var saving = [];
@@ -2529,16 +2623,41 @@
     applyChange(t);
   };
 
+  /* Three designs take the better part of a minute. A black panel that does
+     not move reads as a hang, and people press the button again. */
+  function working(on, note) {
+    var pane = $('paneEmpty');
+    if (!on) { pane.classList.add('hidden'); return; }
+    pane.classList.remove('hidden');
+    pane.innerHTML = '';
+    var box = document.createElement('div');
+    box.className = 'working';
+    var bars = document.createElement('div');
+    bars.className = 'bars';
+    bars.innerHTML = '<i></i><i></i><i></i>';
+    var title = document.createElement('b');
+    title.textContent = note || 'Drawing your room';
+    var sub = document.createElement('p');
+    sub.textContent = 'About twenty seconds each. They appear as they finish.';
+    box.appendChild(bars);
+    box.appendChild(title);
+    box.appendChild(sub);
+    pane.appendChild(box);
+    $('shots').classList.add('hidden');
+  }
+
   /* One button. It reads the room first, then draws. Nobody should have to
      know which step they are on. */
   $('go').onclick = async function () {
     $('go').disabled = true;
     try {
       if (!reading) {
+        working(true, 'Reading the room');
         say('Reading the room…');
         paint(await readRoom());
         say('');
       }
+      working(true, 'Drawing your room');
       // draw() reports its own progress — "Drawn 1 of 3…" — as each design
       // actually lands, rather than one static line for however long the
       // slowest of the batch takes.
@@ -2546,6 +2665,7 @@
       else { say('Read done. Pictures need the drawing engine switched on.'); }
     } catch (e) {
       if (e && e.name === 'NotARoom') { reading = null; }
+      working(false);
       say((e && e.message) || 'Something went wrong.', true);
     } finally { refresh(); }
   };
