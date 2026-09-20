@@ -2,19 +2,28 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Rubik:wght@300;400;500&display=swap">
+<!-- NEW SPIRIT lives here. It is a Newlyn typeface, licensed for web use
+     through Adobe Fonts. Anyone with a Creative Cloud plan already has the
+     right to it: fonts.adobe.com/fonts/new-spirit -> Add to Web Project ->
+     copy the kit id out of the stylesheet link Adobe gives back. Then
+     delete the two comment markers on the line below and put the id in
+     place of KITID.
+     Nothing else changes; the CSS already asks for new-spirit first. -->
+<!-- <link rel="stylesheet" href="https://use.typekit.net/KITID.css"> -->
 
 <style>
   /* One committed light palette. The room drawings supply the colour; the
      page around them stays out of the way. */
   :root {
     /* One place to change the display face.
-       New Spirit, which this is drawn after, is a commercial typeface from
-       Newlyn and cannot be embedded without a licence. Fraunces is the closest
-       thing that is free to use — a warm contemporary serif with the same
-       generous curves — and its SOFT and WONK axes are set below to lean it
-       further that way. Buy the New Spirit webfont and this single line, plus
-       an @font-face block, is the whole swap. */
-    --display: "Fraunces", "New Spirit", Georgia, "Times New Roman", serif;
+       new-spirit is the name Adobe Fonts serves the family under; "New Spirit"
+       catches a machine that has the desktop font installed. Fraunces stands
+       in until the kit id is pasted into the head -- a warm contemporary serif
+       with the same generous curves, and its SOFT and WONK axes are set below
+       to lean it further that way. Those axes do nothing to New Spirit, so
+       this stack is safe either way. */
+    --display: "new-spirit", "New Spirit", "Fraunces", Georgia,
+               "Times New Roman", serif;
 
     --bg:     #F2EFE6;   /* bone */
     --raise:  #FAF8F2;
