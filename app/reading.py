@@ -71,7 +71,7 @@ Otherwise return JSON only, exactly this shape:
   "room": "one sentence on the room and its condition",
   "items": [{{"name": "bed", "count": 2, "treatment": "keep"}}],
   "directions": [{{"title": "", "palette": "", "pieces": ["", ""], "why": ""}}],
-  "budget": {{"currency": "INR",
+  "budget": {{"currency": "{currency}",
              "lines": [{{"item": "", "low": 0, "high": 0, "note": ""}}],
              "assumes": ""}}}}
 
@@ -144,7 +144,7 @@ def _client(settings: Settings) -> AsyncOpenAI:
 
 
 async def read_room(photo: bytes, room_type: str, settings: Settings,
-                    currency: str = "INR") -> dict:
+                    currency: str = "", market: str = "") -> dict:
     """Look at the photograph and describe what is in the room.
 
     Two readers, one prompt. The free one is a different company's model on a
@@ -152,7 +152,11 @@ async def read_room(photo: bytes, room_type: str, settings: Settings,
     two cannot quietly drift into reading rooms differently.
     """
     prompt = SURVEY.format(room=room_type or "room",
-                           currency=(currency or "INR").upper())
+                           currency=(currency or settings.currency).upper())
+    market = market or settings.market
+    if market:
+        prompt += (f"\nPrice everything at {market} rates — local materials, "
+                   "local labour, local retail — and name it in assumes.\n")
 
     if resolve_backend(settings) == "free":
         from . import google_ai

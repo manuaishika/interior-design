@@ -245,7 +245,17 @@ async def session_state(request: Request):
         "account": account,
         "google_available": google_login.configured(settings),
         "tier": _tier_card(tier),
+        "contact": _contact(settings),
     }
+
+
+def _contact(settings) -> dict | None:
+    """Where a finished design sends people, or nothing if nobody is set to
+    answer. Digits only: wa.me takes 971501234567, not +971 50 123 4567."""
+    number = "".join(ch for ch in settings.whatsapp_number if ch.isdigit())
+    if not number:
+        return None
+    return {"whatsapp": number, "business": settings.business_name}
 
 
 @app.post("/api/signup")
@@ -564,7 +574,7 @@ async def read_endpoint(
     request: Request,
     photo: UploadFile = File(...),
     room_type: str = Form("room"),
-    currency: str = Form("INR"),
+    currency: str = Form(""),
 ):
     """Look at a room and say what is in it, plus three directions.
 
@@ -574,7 +584,8 @@ async def read_endpoint(
     auth.guard(request, settings)
     data = await _read_upload(photo, settings)
     try:
-        return await read_room(data, room_type, settings, currency=currency)
+        return await read_room(data, room_type, settings,
+                               currency=currency or settings.currency)
     except NotARoomError as exc:
         # 422, not 502: nothing is broken, the picture is just not a room.
         raise HTTPException(422, str(exc)) from exc

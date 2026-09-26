@@ -110,7 +110,10 @@ class TestReading:
         await read_room(png(), "kitchen", settings())
 
         sent = seen["json"]["contents"][0]["parts"][0]["text"]
-        assert sent == SURVEY.format(room="kitchen", currency="INR")
+        # Priced in the deployment's currency, at its market's rates — the
+        # same prompt object either engine would receive.
+        assert sent.startswith(SURVEY.format(room="kitchen", currency="AED"))
+        assert "Dubai, UAE rates" in sent
 
 
 class TestDrawing:

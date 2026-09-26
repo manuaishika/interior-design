@@ -121,6 +121,20 @@ class Settings(BaseSettings):
     google_client_id: str = ""
     google_client_secret: str = ""
 
+    # --- the business behind it -------------------------------------------
+    # Where a finished design sends people: a WhatsApp number in
+    # international form (971501234567 — any spaces or "+" are stripped).
+    # Blank and the button does not appear.
+    whatsapp_number: str = ""
+    # Named in the message WhatsApp opens with, nowhere else.
+    business_name: str = "Eleganza Interiors"
+    # What the cost estimate is priced in, and for where. A budget in rupees
+    # at Indian labour rates is not an estimate for a flat in Dubai; it is a
+    # wrong number that looks like a right one. The page never names the
+    # city — this only steers the figures.
+    currency: str = "AED"
+    market: str = "Dubai, UAE"
+
     # --- the door ----------------------------------------------------------
     # Set a code and the studio asks for it before spending anything. Leave it
     # blank and there is no door, which is what local development wants.

@@ -39,7 +39,18 @@ services:
         sync: false
       - key: SESSION_SECRET
         generateValue: true    # so nobody is signed out by a restart
+      # "Talk to a designer" under finished designs. International form,
+      # digits only, e.g. 971501234567. Blank hides the button.
+      - key: WHATSAPP_NUMBER
+        sync: false
+      - key: BUSINESS_NAME
+        value: "Eleganza Interiors"
+      # What the cost estimate is priced in, and at which market's rates.
+      - key: CURRENCY
+        value: "AED"
+      - key: MARKET
+        value: "Dubai, UAE"
 
 databases:
   - name: second-draft-db
-    plan: free             # free Postgres expires after 90 days; upgrade before then
+    plan: free             # free Postgres is DELETED 30 days after creation, data and all. basic-256mb ($6/mo) before real users.
