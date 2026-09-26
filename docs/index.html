@@ -1,7 +1,7 @@
 <title>Second Draft</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Rubik:wght@300;400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Gloock&family=Rubik:wght@300;400;500&display=swap">
 <!-- NEW SPIRIT lives here. It is a Newlyn typeface, licensed for web use
      through Adobe Fonts. Anyone with a Creative Cloud plan already has the
      right to it: fonts.adobe.com/fonts/new-spirit -> Add to Web Project ->
@@ -16,14 +16,21 @@
      page around them stays out of the way. */
   :root {
     /* One place to change the display face.
-       new-spirit is the name Adobe Fonts serves the family under; "New Spirit"
-       catches a machine that has the desktop font installed. Fraunces stands
-       in until the kit id is pasted into the head -- a warm contemporary serif
-       with the same generous curves, and its SOFT and WONK axes are set below
-       to lean it further that way. Those axes do nothing to New Spirit, so
-       this stack is safe either way. */
-    --display: "new-spirit", "New Spirit", "Fraunces", Georgia,
+       Gloock is the live pick for headings — high-contrast, tall, reads as
+       a premium interiors brand rather than a warm one. new-spirit and
+       "New Spirit" sit ahead of it, so an Adobe Fonts kit id (see the
+       commented link in the head) or the desktop font takes over the
+       moment either exists, no other change needed. Fraunces trails as
+       the last fallback, from before Gloock was chosen.
+
+       Gloock ships one weight. --display-weight lets every heading ask
+       for it in one place: 400 while Gloock is what actually renders,
+       600 for New Spirit or Fraunces, which both carry a real 600 —
+       hardcoding 600 on each heading would have the browser fake it
+       (synthetic bold), which smudges a serif this fine. */
+    --display: "new-spirit", "New Spirit", "Gloock", "Fraunces", Georgia,
                "Times New Roman", serif;
+    --display-weight: 400;
 
     --bg:     #F2EFE6;   /* bone */
     --raise:  #FAF8F2;
@@ -42,10 +49,8 @@
     font-family: "Rubik", ui-sans-serif, system-ui, sans-serif; font-size: 15px;
     line-height: 1.6; -webkit-font-smoothing: antialiased; }
   h1, h2, h3, .serif { font-family: var(--display);
-    font-weight: 600; margin: 0; line-height: 1.12; letter-spacing: -.012em;
-    /* SOFT rounds the terminals, WONK lets the italicised forms lean —
-       together they are what stop Fraunces reading as a newspaper. */
-    font-variation-settings: "SOFT" 40, "WONK" 1; }
+    font-weight: var(--display-weight); margin: 0; line-height: 1.12;
+    letter-spacing: -.012em; }
   button, input, select, textarea { font: inherit; color: inherit; }
   :focus-visible { outline: 2px solid var(--clay); outline-offset: 2px; }
   .hidden { display: none !important; }
@@ -65,7 +70,7 @@
     border-bottom: 1px solid var(--line); }
   .top-in { display: flex; align-items: center; gap: 1.4rem; height: 62px; }
   .brand { font-family: var(--display);
-    font-size: 1.45rem; font-weight: 600; letter-spacing: -.015em;
+    font-size: 1.45rem; font-weight: var(--display-weight); letter-spacing: -.015em;
     background: none; border: 0; cursor: pointer; padding: 0; }
   nav { display: flex; gap: .3rem; margin: 0 auto; }
   nav button { background: none; border: 0; cursor: pointer; padding: .4rem .7rem;
@@ -122,7 +127,7 @@
     align-items: baseline; justify-content: space-between; gap: .6rem;
     flex-wrap: wrap; }
   .plate figcaption b { font-family: var(--display);
-    font-weight: 600; font-size: 1.15rem; letter-spacing: -.01em; }
+    font-weight: var(--display-weight); font-size: 1.15rem; letter-spacing: -.01em; }
   .plate figcaption span { font-size: .74rem; color: var(--clay); }
   .plate .made { display: block; padding: 0 .8rem .8rem; font-size: .76rem;
     color: var(--muted); margin-top: -.4rem; }
@@ -161,7 +166,7 @@
   .drop { border: 1px dashed var(--line); border-radius: 2px; background: var(--card);
     padding: .7rem 1rem; text-align: center; cursor: pointer; width: 100%; }
   .drop b { display: block; font-family: var(--display);
-    font-weight: 600; font-size: .95rem; letter-spacing: -.01em; }
+    font-weight: var(--display-weight); font-size: .95rem; letter-spacing: -.01em; }
   .drop span { font-size: .74rem; color: var(--muted); }
   .drop img { max-height: 116px; border-radius: 6px; margin-bottom: .4rem; }
 
@@ -252,7 +257,7 @@
     border: 1px solid rgba(239,234,224,.16); border-radius: 2px;
     display: flex; align-items: center; justify-content: space-between;
     gap: .8rem 1.2rem; flex-wrap: wrap; align-self: start; }
-  .contact b { display: block; font-family: var(--display); font-weight: 600;
+  .contact b { display: block; font-family: var(--display); font-weight: var(--display-weight);
     font-size: 1.05rem; color: #F5F2EA; }
   .contact span { font-size: .78rem; color: #A79E90; }
   .contact .cta { display: inline-flex; align-items: center; gap: .5rem;
@@ -384,7 +389,7 @@
   .working .bars i:nth-child(3) { animation-delay: .44s; }
   .working p { font-size: .85rem; color: #A79E90; margin: 0; }
   .working b { display: block; font-family: var(--display); font-size: 1.15rem;
-    color: #F5F2EA; font-weight: 600; }
+    color: #F5F2EA; font-weight: var(--display-weight); }
   @keyframes fill {
     0%, 100% { background: #2E2A24; transform: translateY(0); }
     50%      { background: var(--clay); transform: translateY(-5px); }
@@ -403,7 +408,7 @@
   .compare-head { display: flex; align-items: center; justify-content: space-between;
     gap: .8rem; margin-bottom: .7rem; flex-wrap: wrap; }
   .compare-head h3 { margin: 0; font-family: var(--display); font-size: 1.05rem;
-    color: #EFEAE0; font-weight: 600; }
+    color: #EFEAE0; font-weight: var(--display-weight); }
   .compare-slider { position: relative; overflow: hidden; border-radius: 2px;
     line-height: 0; }
   .compare-slider img { display: block; width: 100%; height: auto;
@@ -450,7 +455,7 @@
   .dcard { border-top: 1px solid var(--line); padding: .8rem 0 .2rem; }
   .dcard:first-child { border-top: 0; padding-top: 0; }
   .dcard h4 { font-family: var(--display);
-    font-weight: 600; font-size: 1.15rem; letter-spacing: -.01em; margin: 0; }
+    font-weight: var(--display-weight); font-size: 1.15rem; letter-spacing: -.01em; margin: 0; }
   .dcard .pal { font-size: .68rem; letter-spacing: .1em; text-transform: uppercase;
     color: var(--clay); font-weight: 600; }
   .dcard p { margin: .35rem 0 0; font-size: .84rem; color: var(--muted); }
@@ -518,7 +523,7 @@
   .tier.pick { background: var(--dark); border-color: var(--dark); color: #EFEAE0; }
   .tier h3 { font-size: 1.35rem; }
   .tier .price { font-family: var(--display);
-    font-weight: 600; font-size: 2.6rem; letter-spacing: -.02em;
+    font-weight: var(--display-weight); font-size: 2.6rem; letter-spacing: -.02em;
     line-height: 1.1; margin-top: .5rem; }
   .tier .per { font-size: .82rem; color: var(--muted); }
   .tier.pick .per, .tier.pick li { color: #B8AFA1; }
@@ -540,7 +545,7 @@
   .peek-head { display: flex; align-items: baseline; justify-content: space-between;
     gap: .6rem; margin-bottom: .6rem; flex-wrap: wrap; }
   .peek-head b { font-family: var(--display);
-    font-weight: 600; font-size: 1.15rem; letter-spacing: -.01em; }
+    font-weight: var(--display-weight); font-size: 1.15rem; letter-spacing: -.01em; }
   .peek-head span { font-size: .72rem; color: var(--clay); }
   .peek-shots { display: grid; grid-template-columns: repeat(3, 1fr); gap: .4rem; }
   .peek-shots figure { margin: 0; border: 1px solid var(--line); overflow: hidden; }
@@ -603,7 +608,7 @@
   .foot { display: grid; gap: 1.8rem; }
   @media (min-width: 780px) { .foot { grid-template-columns: 2fr 1fr 1fr; } }
   .foot h4 { font-family: var(--display);
-    font-weight: 600; font-size: 1.3rem; letter-spacing: -.01em; margin: 0 0 .5rem; }
+    font-weight: var(--display-weight); font-size: 1.3rem; letter-spacing: -.01em; margin: 0 0 .5rem; }
   .foot p, .foot li { font-size: .84rem; color: var(--muted); margin: 0; }
   .foot .cap { font-size: .66rem; letter-spacing: .18em; text-transform: uppercase;
     font-weight: 600; color: var(--ink); margin-bottom: .6rem; }
