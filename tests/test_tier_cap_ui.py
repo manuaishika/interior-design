@@ -47,9 +47,16 @@ class TestTheCapComesFromTheAccount:
         assert "Math.min(4," not in body
 
     def test_hitting_the_cap_disables_the_button_with_a_reason(self):
+        """The disabling itself now lives in updateCountUI, which every path
+        that can change the count (the two buttons, a fresh tier, a second
+        angle added) calls through — applyTierCap still reaches it, and
+        still sets the reason text."""
         body = function_body(page(), "function applyTierCap(")
-        assert "$('more').disabled" in body
+        assert "updateCountUI()" in body
         assert "$('tierNote').textContent" in body
+
+        ui_body = function_body(page(), "function updateCountUI(")
+        assert "$('more').disabled" in ui_body
 
 
 class TestTheMarkupExists:

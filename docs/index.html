@@ -725,7 +725,7 @@
             <button id="less" type="button" aria-label="Fewer">&minus;</button>
             <b id="countN">3</b>
             <button id="more" type="button" aria-label="More">+</button>
-            <span>designs per run</span>
+            <span id="countLabel">designs per run</span>
           </div>
           <p class="hint" id="tierNote"></p>
 
@@ -1385,8 +1385,27 @@
     return (shots.length || (currentPhotoBlob ? 1 : 0)) >= photosNeeded();
   }
 
+  /* One photo: the stepper decides how many takes come back, all of the
+     same view. Two or more: every photo IS a take — each comes back
+     redrawn to the one design, seen from where it was stood, and the
+     others ride along as that shot's references. The stepper stops
+     meaning anything once there is a second angle to draw instead. */
+  function optionCount() {
+    var max = (tier && tier.variants) || 4;
+    return shots.length > 1 ? Math.min(shots.length, max) : count;
+  }
+
+  function updateCountUI() {
+    var max = (tier && tier.variants) || 4, multi = shots.length > 1;
+    $('countN').textContent = optionCount();
+    $('less').disabled = multi;
+    $('more').disabled = multi || count >= max;
+    $('countLabel').textContent = multi ? 'angles, each redrawn'
+                                        : 'designs per run';
+  }
+
   function drawShots() {
-    var strip = $('shotsIn');
+    var strip = $('shotsIn'), redrawn = optionCount();
     strip.innerHTML = '';
     shots.forEach(function (file, i) {
       var box = document.createElement('div');
@@ -1395,12 +1414,10 @@
       img.src = URL.createObjectURL(file);
       img.alt = 'Photo ' + (i + 1);
       box.appendChild(img);
-      if (i === 0) {
-        var tag = document.createElement('span');
-        tag.className = 'tag';
-        tag.textContent = 'Redrawn';
-        box.appendChild(tag);
-      }
+      var tag = document.createElement('span');
+      tag.className = 'tag';
+      tag.textContent = i < redrawn ? 'Redrawn' : 'Reference';
+      box.appendChild(tag);
       var x = document.createElement('button');
       x.className = 'x';
       x.type = 'button';
@@ -1423,12 +1440,13 @@
         + 'Light restyle.';
     } else if (shots.length > 1) {
       need.className = 'need ok';
-      need.textContent = 'Designs come back from the first photo. The others '
-        + 'show it the rest of the room.';
+      need.textContent = 'Every photo comes back redesigned, drawn to '
+        + 'match the others.';
     } else {
       need.className = 'need ok';
       need.textContent = '';
     }
+    updateCountUI();
   }
 
   function pillRow(el, items, current, onPick, clay) {
@@ -1563,14 +1581,12 @@
 
   $('less').onclick = function () {
     count = Math.max(1, count - 1);
-    $('countN').textContent = count;
-    $('more').disabled = count >= ((tier && tier.variants) || 4);
+    updateCountUI();
   };
   $('more').onclick = function () {
     var max = (tier && tier.variants) || 4;
     count = Math.min(max, count + 1);
-    $('countN').textContent = count;
-    $('more').disabled = count >= max;
+    updateCountUI();
   };
 
   /* Where the work happens. Deployed, that is this same site, so there is
@@ -1661,8 +1677,8 @@
      that reads as broken, not as a limit. */
   function applyTierCap() {
     var max = (tier && tier.variants) || 4;
-    if (count > max) { count = max; $('countN').textContent = count; }
-    $('more').disabled = count >= max;
+    if (count > max) { count = max; }
+    updateCountUI();
     $('tierNote').textContent = tier
       ? tier.label + ' plan — up to ' + max + ' design' +
         (max === 1 ? '' : 's') + ' per run.'
@@ -2353,8 +2369,12 @@
      first one to land appears immediately and the rest fill in around it;
      variant_offset is what keeps three separate variants=1 calls from all
      drawing the identical option (see pipeline.run_pipeline's docstring). */
-  function appendDesign(g, i, saving, caption) {
+  function appendDesign(g, i, saving, caption, beforeBlob) {
     var figure = document.createElement('figure');
+    // Each design remembers the photo it was actually drawn from — shot 0
+    // for a single-photo run, but its own angle once there is more than
+    // one, so Compare shows that view's own before, not always the first.
+    figure.beforePhoto = beforeBlob || currentPhoto();
     working(false);
     $('shots').classList.remove('hidden');
 
@@ -2440,7 +2460,7 @@
      of the same picture further down the page, which pushed everything else
      below the fold to show something already on screen. */
   function openCompare(designBase64, figure) {
-    var photo = currentPhoto();
+    var photo = (figure && figure.beforePhoto) || currentPhoto();
     if (!photo || !figure) { return; }
 
     if (figure.classList.contains('comparing')) {
@@ -2543,19 +2563,24 @@
     after.src = $('compareAfter').src;
   };
 
-  async function drawOne(i, saving, progress) {
+  async function drawOne(i, saving, progress, primary, refs, variantOffset, caption) {
     var f = new FormData();
-    f.append('photo', currentPhoto());
+    f.append('photo', primary);
     f.append('style', style.id);
     // What a room is *for* governs what it should become. Collecting this and
     // then not sending it is how "nursery" used to draw a generic bedroom.
     f.append('room_type', room.id);
-    // The extra views go as references. Without them a full redesign invents
-    // whatever the first frame could not see.
-    shots.slice(1).forEach(function (extra) { f.append('extras', extra); });
+    // The rest of the photos go as references, so whichever one is being
+    // redrawn here still knows what the others already show — the piece
+    // round the corner this frame can't see, or, in multi-angle mode, the
+    // same design as it was drawn from the other angles.
+    refs.forEach(function (extra) { f.append('extras', extra); });
     f.append('profile', depth.id);
     f.append('variants', '1');
-    f.append('variant_offset', String(i));
+    // A fixed offset across every angle keeps them the same design shown
+    // from different places; a rising one (single-photo mode) is what
+    // makes each option an actual alternative instead of a repeat.
+    f.append('variant_offset', String(variantOffset));
     /* The generator was being told to draw "a bedroom" and drawing the
        average one — the desk and the television it was never told about
        simply were not in the picture it painted. */
@@ -2579,7 +2604,7 @@
       var r = await fetch(api('/api/generate'), { method: 'POST', body: f, credentials: 'include' });
       var d = await r.json();
       if (!r.ok) throw new Error(d.detail || 'Could not draw');
-      appendDesign(d.generations[0], i, saving);
+      appendDesign(d.generations[0], i, saving, caption, primary);
       if (d.analysis && d.analysis.products && d.analysis.products.length) {
         catalogueProducts = d.analysis.products;
         drawProducts();
@@ -2603,9 +2628,24 @@
     $('compare').classList.add('hidden');
 
     var saving = [];
-    var progress = { done: 0, failed: 0, total: count, lastError: null };
+    var multi = shots.length > 1, n = optionCount();
+    var progress = { done: 0, failed: 0, total: n, lastError: null };
     var requests = [];
-    for (var i = 0; i < count; i++) { requests.push(drawOne(i, saving, progress)); }
+    for (var i = 0; i < n; i++) {
+      if (multi) {
+        // Every uploaded angle is its own take, drawn against the same
+        // instruction and cross-referenced against the rest — one design,
+        // shown from where each photo actually stood. variant_offset stays
+        // at 0 for all of them so nothing nudges the angles apart.
+        var primary = shots[i];
+        var refs = shots.filter(function (_, j) { return j !== i; });
+        requests.push(drawOne(i, saving, progress, primary, refs, 0,
+                              'Angle ' + (i + 1)));
+      } else {
+        requests.push(drawOne(i, saving, progress, currentPhoto(),
+                              shots.slice(1), i));
+      }
+    }
     await Promise.all(requests);
 
     if (progress.done === 0) {

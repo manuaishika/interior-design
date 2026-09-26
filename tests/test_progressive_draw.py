@@ -37,10 +37,16 @@ def function_body(source: str, signature: str) -> str:
 class TestOneRequestPerDesign:
     def test_draw_sends_variants_equal_to_one(self):
         """The whole point — a batch request would ask for `variants=count`;
-        one request per design asks for one each."""
+        one request per design asks for one each. The offset used to be
+        computed inside drawOne as `i`; it is now passed in, so a multi-angle
+        run can hold it at 0 across every request and keep one design."""
         body = function_body(page(), "async function drawOne(")
         assert "f.append('variants', '1')" in body
-        assert "f.append('variant_offset', String(i))" in body
+        assert "f.append('variant_offset', String(variantOffset))" in body
+
+        draw_body = function_body(page(), "async function draw()")
+        assert "drawOne(i, saving, progress, currentPhoto()," in draw_body
+        assert "drawOne(i, saving, progress, primary, refs, 0," in draw_body
 
     def test_the_requests_are_fired_together_not_awaited_one_by_one(self):
         """A for-loop that `await`s each request in turn would be no faster
