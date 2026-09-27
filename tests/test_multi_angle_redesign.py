@@ -58,11 +58,15 @@ class TestEveryAngleIsItsOwnRequest:
 
 
 class TestOptionCountFollowsThePhotos:
-    def test_option_count_switches_on_shot_count(self):
+    def test_every_uploaded_angle_counts_not_just_a_capped_share(self):
+        """This used to cap the multi-angle count at tier.variants — the
+        design-variety number — which meant an uploaded photo could go in
+        and quietly not come back redrawn. The only cap left is MAX_SHOTS,
+        a flat ceiling on one run that has nothing to do with a plan."""
         body = function_body(page(), "function optionCount(")
         assert "shots.length > 1" in body
-        assert "Math.min(shots.length, max)" in body
-        assert ": count" in body
+        assert "shots.length : count" in body
+        assert "tier.variants" not in body
 
     def test_the_stepper_disables_itself_once_there_is_a_second_angle(self):
         body = function_body(page(), "function updateCountUI(")
@@ -84,13 +88,29 @@ class TestCompareUsesTheRightBeforePhoto:
         assert "currentPhoto()" in body  # still the fallback
 
 
-class TestTheStripSaysWhichShotsAreRedrawn:
+class TestEveryShotIsRedrawnNoneIsJustAReference:
+    """A photo tagged "Reference" was never asked for as a feature — it was
+    a plan cap wearing a label that made it sound deliberate. Every shot in
+    the strip is redrawn now, so every tag says the one true thing."""
+
     def test_the_old_first_photo_only_claim_is_gone(self):
         assert "Designs come back from the first photo" not in page()
 
-    def test_shots_are_tagged_by_whether_they_will_be_drawn(self):
+    def test_no_shot_is_labelled_reference(self):
+        assert "'Reference'" not in page()
+
+    def test_every_shot_gets_the_same_honest_tag(self):
         body = function_body(page(), "function drawShots(")
-        assert "i < redrawn ? 'Redrawn' : 'Reference'" in body
+        assert "tag.textContent = 'Redrawn';" in body
+
+    def test_a_flat_ceiling_exists_and_says_so_upfront(self):
+        """MAX_SHOTS, not a per-tier number, and the person is told before
+        they hit it, not after — via a disabled button and a straight
+        sentence, not a relabelled photo."""
+        assert "var MAX_SHOTS = 8;" in page()
+        body = function_body(page(), "function drawShots(")
+        assert "$('plus').disabled = atMax;" in body
+        assert "Up to ' + MAX_SHOTS" in body
 
 
 class TestDocsCopyMatches:

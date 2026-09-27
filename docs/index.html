@@ -165,6 +165,7 @@
   .controls { padding: 1rem; border-right: 1px solid var(--line); }
   .drop { border: 1px dashed var(--line); border-radius: 2px; background: var(--card);
     padding: .7rem 1rem; text-align: center; cursor: pointer; width: 100%; }
+  .drop:disabled { opacity: .55; cursor: default; }
   .drop b { display: block; font-family: var(--display);
     font-weight: var(--display-weight); font-size: .95rem; letter-spacing: -.01em; }
   .drop span { font-size: .74rem; color: var(--muted); }
@@ -1397,10 +1398,19 @@
   // matters, and currentPhoto() is the one place that decides which wins.
   var convId = null, currentPhotoBlob = null;
 
-  /* Every photograph added, in order. The first is the view that gets
-     redrawn; the rest are reference, which is what lets a full redesign know
-     what is round the corner instead of inventing it. */
+  /* Every photograph added, in order. With one, it is the view that gets
+     redrawn and there is nothing else to say. With more than one, every
+     photograph comes back redrawn — each one is drawn against the whole
+     set, which is what lets a full redesign know what is round the corner
+     instead of inventing it, rather than one photo standing in as the only
+     thing actually redesigned and the rest quietly relegated to context
+     nobody asked to have invented for them. */
   var shots = [];
+  // A ceiling on one run, not on a plan — the same number for a free
+  // visitor and a Studio account, because the reason for it (a batch this
+  // size stops being "a room from a few angles" and starts being a job for
+  // someone, not a button) has nothing to do with what anyone is paying.
+  var MAX_SHOTS = 8;
   function currentPhoto() { return shots[0] || currentPhotoBlob; }
 
   /* A full redesign changes the ceiling, the floor and the furniture, and then
@@ -1414,13 +1424,15 @@
   }
 
   /* One photo: the stepper decides how many takes come back, all of the
-     same view. Two or more: every photo IS a take — each comes back
-     redrawn to the one design, seen from where it was stood, and the
-     others ride along as that shot's references. The stepper stops
-     meaning anything once there is a second angle to draw instead. */
+     same view — that number is the plan's, capped by tier.variants, because
+     it is buying design variety. Two or more: every photo IS a take, one
+     each, full stop — that number belongs to how many corners of the room
+     were actually photographed, which a plan has no opinion on. Capping it
+     by tier.variants used to mean a photo could go in and quietly not come
+     back redrawn, quietly relabelled to explain why; MAX_SHOTS is the only
+     ceiling left, and it says so upfront rather than after the fact. */
   function optionCount() {
-    var max = (tier && tier.variants) || 4;
-    return shots.length > 1 ? Math.min(shots.length, max) : count;
+    return shots.length > 1 ? shots.length : count;
   }
 
   function updateCountUI() {
@@ -1433,7 +1445,7 @@
   }
 
   function drawShots() {
-    var strip = $('shotsIn'), redrawn = optionCount();
+    var strip = $('shotsIn');
     strip.innerHTML = '';
     shots.forEach(function (file, i) {
       var box = document.createElement('div');
@@ -1442,9 +1454,11 @@
       img.src = URL.createObjectURL(file);
       img.alt = 'Photo ' + (i + 1);
       box.appendChild(img);
+      // Every photo in the strip is redrawn — there is nothing left to
+      // distinguish, so the tag says the one true thing about all of them.
       var tag = document.createElement('span');
       tag.className = 'tag';
-      tag.textContent = i < redrawn ? 'Redrawn' : 'Reference';
+      tag.textContent = 'Redrawn';
       box.appendChild(tag);
       var x = document.createElement('button');
       x.className = 'x';
@@ -1456,11 +1470,18 @@
       strip.appendChild(box);
     });
 
+    var atMax = shots.length >= MAX_SHOTS;
+    $('plus').disabled = atMax;
     var need = $('need'), short = photosNeeded() - shots.length;
-    $('dropTitle').textContent = shots.length ? 'Add another photo'
-                                              : 'Add a room photo';
-    $('dropNote').textContent = shots.length ? 'Another corner'
-                                              : 'A phone photo is fine';
+    if (atMax) {
+      $('dropTitle').textContent = 'That is plenty';
+      $('dropNote').textContent = 'Up to ' + MAX_SHOTS + ' photos in one run';
+    } else {
+      $('dropTitle').textContent = shots.length ? 'Add another photo'
+                                                : 'Add a room photo';
+      $('dropNote').textContent = shots.length ? 'Another corner'
+                                                : 'A phone photo is fine';
+    }
 
     if (shots.length && short > 0) {
       need.className = 'need short';
@@ -2093,10 +2114,16 @@
     turns = [];
     $('thread').innerHTML = '';
     hideResults();
-    Array.prototype.forEach.call(photo.files, function (f) { shots.push(f); });
+    var picked = photo.files.length, before = shots.length;
+    Array.prototype.forEach.call(photo.files, function (f) {
+      if (shots.length < MAX_SHOTS) { shots.push(f); }
+    });
     photo.value = '';        // so the same file can be picked again later
     drawShots();
     refresh();
+    if (shots.length - before < picked) {
+      say('Only added up to ' + MAX_SHOTS + ' — that is the most in one run.');
+    }
   };
 
   function refresh() {
