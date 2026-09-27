@@ -170,6 +170,40 @@ class Usage(Base):
     count: Mapped[int] = mapped_column(Integer, default=0)
 
 
+class Feedback(Base):
+    """Whether one design was close to what was actually asked for — and, if
+    not, why not, in the person's own words.
+
+    This exists because "why isn't the agent getting better" has no honest
+    answer from inside one session: a room, a brief and a result that reads
+    as barely-touched to the person who asked for it is a data point, not a
+    verdict, and one data point is what a prompt has been getting tuned
+    against so far. `prompt` is the exact text sent for this design, not a
+    reconstruction of it after the fact — so a pattern across a run of
+    "not quite"s (a depth, a room type, a phrase in the brief) is something
+    that can actually be read back later, not re-guessed.
+
+    No image is kept here. The prompt that produced it, and what someone
+    thought of the result, are the two things worth keeping; the picture
+    itself already lives wherever it was saved, if it was.
+    """
+    __tablename__ = "feedback"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    # Null for a visitor with no account — feedback from someone who never
+    # signed in is still real feedback.
+    user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), index=True, default=None)
+    good: Mapped[bool] = mapped_column()
+    note: Mapped[str] = mapped_column(Text, default="")
+    room: Mapped[str] = mapped_column(String(60), default="")
+    style: Mapped[str] = mapped_column(String(60), default="")
+    depth: Mapped[str] = mapped_column(String(20), default="")
+    prompt: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True),
+                                                    default=now, index=True)
+
+
 # ---------------------------------------------------------------------------
 # Engine
 # ---------------------------------------------------------------------------
@@ -541,3 +575,27 @@ async def bump_usage(db: AsyncSession, key: str, by: int) -> None:
         db.add(row)
     row.count += by
     await db.commit()
+
+
+# ---------------------------------------------------------------------------
+# Feedback
+# ---------------------------------------------------------------------------
+
+async def add_feedback(db: AsyncSession, *, user_id: int | None, good: bool,
+                       note: str, room: str, style: str, depth: str,
+                       prompt: str) -> Feedback:
+    row = Feedback(user_id=user_id, good=good, note=note.strip(),
+                   room=room, style=style, depth=depth, prompt=prompt)
+    db.add(row)
+    await db.commit()
+    return row
+
+
+async def recent_feedback(db: AsyncSession, limit: int = 200) -> list[Feedback]:
+    """Newest first — reading a run of "not quite"s in the order they
+    happened is how a pattern (a depth, a room, a phrase) actually shows
+    up, rather than in whatever order the database felt like."""
+    result = await db.scalars(
+        select(Feedback).order_by(Feedback.created_at.desc()).limit(limit)
+    )
+    return list(result)

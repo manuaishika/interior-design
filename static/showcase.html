@@ -180,10 +180,15 @@
   .shot-in { position: relative; aspect-ratio: 4/3; border: 1px solid var(--line);
     border-radius: 2px; overflow: hidden; background: var(--card); }
   .shot-in img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  /* Small, light text on a photo — the one place on the page where
+     contrast is fighting whatever the photo itself is doing underneath,
+     and where a chat app's own recompression of a screenshot hits hardest.
+     Near-opaque rather than the .78 this was, bold rather than the body's
+     ordinary weight, and a size that survives being shrunk again. */
   .shot-in .tag { position: absolute; left: 0; bottom: 0; right: 0;
-    background: rgba(20,19,15,.78); color: #F5F2EA; font-size: .58rem;
-    letter-spacing: .06em; text-transform: uppercase; text-align: center;
-    padding: .12rem 0; }
+    background: rgba(15,14,11,.94); color: #FFFDF8; font-size: .66rem;
+    font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    text-align: center; padding: .2rem 0; }
   .shot-in .x { position: absolute; top: 2px; right: 2px; width: 18px; height: 18px;
     border: 0; border-radius: 2px; background: rgba(20,19,15,.78); color: #F5F2EA;
     font-size: .7rem; line-height: 1; cursor: pointer; padding: 0; }
@@ -251,6 +256,25 @@
   .shots figure { margin: 0; }
   .shots img { width: 100%; border-radius: 2px; display: block; }
   .shots figcaption { font-size: .72rem; color: #A79E90; margin-top: .35rem; }
+
+  /* Quieter than the Save/Download/Compare row on purpose — this is an
+     aside the design offers to ask, not a control anyone came here for. */
+  .feedback { margin-top: .55rem; padding-top: .55rem;
+    border-top: 1px solid rgba(239,234,224,.14); display: flex;
+    align-items: center; flex-wrap: wrap; gap: .45rem; min-height: 1.6rem; }
+  .fb-ask { font-size: .74rem; color: #8B8377; margin-right: .1rem; }
+  .fb-btn { background: none; border: 1px solid rgba(239,234,224,.22);
+    color: #C9C2B4; border-radius: 2px; font-size: .72rem;
+    padding: .22rem .55rem; cursor: pointer; }
+  .fb-btn:hover { border-color: var(--clay); color: #F5F2EA; }
+  .fb-send { background: var(--clay); border-color: var(--clay); color: #fff; }
+  .fb-note { display: flex; gap: .4rem; flex: 1; min-width: 180px; }
+  .fb-note.hidden { display: none; }
+  .fb-note input { flex: 1; min-width: 0; border: 1px solid rgba(239,234,224,.22);
+    background: rgba(255,255,255,.05); border-radius: 2px; padding: .3rem .55rem;
+    font-size: .78rem; color: #F5F2EA; }
+  .fb-note input::placeholder { color: #8B8377; }
+  .fb-said { font-size: .74rem; color: #8B8377; }
 
   /* The point of the whole exercise, for the people who built it: a design
      somebody likes is a conversation waiting to start. */
@@ -373,9 +397,10 @@
   .shots figure .overlay input[type=range] { position: absolute; inset: 0;
     width: 100%; height: 100%; margin: 0; opacity: 0; cursor: ew-resize; }
   .shots figure .overlay .edge { position: absolute; top: .5rem;
-    font-size: .6rem; letter-spacing: .1em; text-transform: uppercase;
-    background: rgba(20,19,15,.72); color: #F5F2EA; padding: .15rem .45rem;
-    border-radius: 2px; pointer-events: none; }
+    font-size: .68rem; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; background: rgba(15,14,11,.94);
+    color: #FFFDF8; padding: .2rem .5rem; border-radius: 2px;
+    pointer-events: none; }
   .shots figure .overlay .edge.left { left: .5rem; }
   .shots figure .overlay .edge.right { right: .5rem; }
   .shots figure.comparing .cmp { border-color: var(--clay); color: var(--clay); }
@@ -2133,7 +2158,8 @@
     $('go').textContent = reading ? 'Draw it again' : 'Reimagine this room';
 
     $('depthNote').textContent = depth.id === 'renovate'
-      ? 'New furniture and finishes. Two photos.'
+      ? 'New furniture and finishes. Two photos, wide and from a corner — '
+        + 'it can only redesign what is actually in frame.'
       : 'Same furniture, new finish. One photo.';
   }
   function say(t, bad) {
@@ -2444,6 +2470,83 @@
      first one to land appears immediately and the rest fill in around it;
      variant_offset is what keeps three separate variants=1 calls from all
      drawing the identical option (see pipeline.run_pipeline's docstring). */
+  /* "Why isn't the agent getting better" has no honest answer from inside
+     one session — one person's read of one result is a data point, the
+     prompt got tuned against exactly one of those so far. This is the
+     mechanism for gathering more than one, tied to the exact prompt that
+     produced the design it sits under rather than a guess reconstructed
+     from memory later. */
+  function designFeedback(g) {
+    var box = document.createElement('div');
+    box.className = 'feedback';
+
+    function send(good, note) {
+      var f = new FormData();
+      f.append('good', good ? 'true' : 'false');
+      f.append('note', note || '');
+      f.append('room', room.id);
+      f.append('style', style.id);
+      f.append('depth', depth.id);
+      f.append('prompt', g.prompt || '');
+      fetch(api('/api/feedback'), { method: 'POST', body: f, credentials: 'include' })
+        .catch(function () {});   // opinion is a courtesy, not the task — a
+                                  // dropped one is not worth surfacing an error for
+    }
+
+    function thanks() {
+      box.innerHTML = '';
+      var said = document.createElement('span');
+      said.className = 'fb-said';
+      said.textContent = 'Thanks — noted.';
+      box.appendChild(said);
+    }
+
+    var ask = document.createElement('span');
+    ask.className = 'fb-ask';
+    ask.textContent = 'Close to what you asked for?';
+
+    var good = document.createElement('button');
+    good.className = 'fb-btn';
+    good.type = 'button';
+    good.textContent = 'Yes';
+    good.onclick = function () { send(true, ''); thanks(); };
+
+    var bad = document.createElement('button');
+    bad.className = 'fb-btn';
+    bad.type = 'button';
+    bad.textContent = 'Not quite';
+
+    var note = document.createElement('div');
+    note.className = 'fb-note hidden';
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = 'What would you change?';
+    var go = document.createElement('button');
+    go.className = 'fb-btn fb-send';
+    go.type = 'button';
+    go.textContent = 'Send';
+    go.onclick = function () { send(false, input.value); thanks(); };
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { go.click(); }
+    });
+    note.appendChild(input);
+    note.appendChild(go);
+
+    bad.onclick = function () {
+      ask.classList.add('hidden');
+      good.classList.add('hidden');
+      bad.classList.add('hidden');
+      note.classList.remove('hidden');
+      input.focus();
+    };
+
+    box.appendChild(ask);
+    box.appendChild(good);
+    box.appendChild(bad);
+    box.appendChild(note);
+    return box;
+  }
+
   function appendDesign(g, i, saving, caption, beforeBlob) {
     var figure = document.createElement('figure');
     // Each design remembers the photo it was actually drawn from — shot 0
@@ -2492,6 +2595,7 @@
     figure.appendChild(img);
     figure.appendChild(cap);
     figure.appendChild(row);
+    figure.appendChild(designFeedback(g));
     $('shots').appendChild(figure);
     lastDesign = g.image_base64;
   }

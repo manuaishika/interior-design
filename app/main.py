@@ -779,3 +779,56 @@ async def edit_endpoint(
     except RuntimeError as exc:
         raise HTTPException(502, str(exc)) from exc
     return {"image_base64": base64.b64encode(result).decode("ascii")}
+
+
+@app.post("/api/feedback")
+async def feedback_endpoint(
+    request: Request,
+    good: bool = Form(...),
+    note: str = Form(""),
+    room: str = Form(""),
+    style: str = Form(""),
+    depth: str = Form(""),
+    prompt: str = Form(""),
+):
+    """"Why isn't the agent getting better" has no honest answer from
+    inside one session — this collects the actual signal it needs instead:
+    was this design close, and if not, why not, tied to the exact prompt
+    that produced it rather than a guess reconstructed later. Same door as
+    everything else (auth.guard); no sign-in required, because feedback
+    from a visitor who never made an account is still real feedback.
+    """
+    settings = get_settings()
+    auth.guard(request, settings)
+    who = auth.current_user_id(request, settings)
+    if not store.is_configured():
+        raise HTTPException(503, "Feedback can't be saved right now.")
+    async with store.session() as db:
+        await store.add_feedback(
+            db, user_id=who, good=good, note=note, room=room, style=style,
+            depth=depth, prompt=prompt,
+        )
+    return {"saved": True}
+
+
+@app.get("/api/feedback")
+async def feedback_review(request: Request, key: str = ""):
+    """What people actually said. Locked behind FEEDBACK_KEY, checked
+    against a query param rather than the sign-in cookie, because reading
+    this has nothing to do with which account happens to be signed in on
+    this browser — it is a separate key, held by whoever is allowed to see
+    what real rooms and real people said about their own designs.
+    """
+    settings = get_settings()
+    if not settings.feedback_key or not hmac.compare_digest(key, settings.feedback_key):
+        raise HTTPException(404)
+    if not store.is_configured():
+        return {"feedback": []}
+    async with store.session() as db:
+        rows = await store.recent_feedback(db)
+    return {"feedback": [
+        {"good": r.good, "note": r.note, "room": r.room, "style": r.style,
+         "depth": r.depth, "prompt": r.prompt,
+         "created_at": r.created_at.isoformat()}
+        for r in rows
+    ]}

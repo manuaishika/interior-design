@@ -145,6 +145,11 @@ class Settings(BaseSettings):
     # Identified by IP, the only thing an anonymous request carries; see
     # store.Usage. A signed-in account's own limit is TIERS[...]["daily"].
     anon_daily_designs: int = 2
+    # Reading /api/feedback needs this exact value as ?key=. Blank — the
+    # default — means the endpoint always 404s: unlike studio_access_code,
+    # where blank opens the door, blank here keeps it shut, because what it
+    # guards is what real people said about their own rooms.
+    feedback_key: str = ""
     # Set this and sessions survive a restart. Leave it and they do not, which
     # is the safe direction to fail.
     session_secret: str = ""
