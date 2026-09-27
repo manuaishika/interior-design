@@ -153,10 +153,16 @@ PRESERVE = (
     "- fixed services exactly where they are mounted: the air conditioner, "
     "the ceiling fan, lights, switches and sockets. An air conditioner "
     "cannot move to a different wall, and there is only ever one of it\n\n"
-    "Do not add furniture this room does not already have. If the "
-    "photograph shows one bed, the result shows one bed — never invent a "
-    "second bed, a second door or a second window. Do not turn a private "
-    "room into a hotel room.\n\n"
+    "Never change how many of anything there already is. If the photograph "
+    "shows one bed, the result shows one bed — never invent a second bed, "
+    "a second door or a second window. Do not turn a private room into a "
+    "hotel room, all matching pairs and decorative clutter.\n\n"
+    "This is about count, not about the room staying exactly as furnished. "
+    "Whether a genuinely new piece — a wardrobe where there was none, a "
+    "reading chair a brief asked for — belongs here is the redesign "
+    "instruction's call, below, not this one's: a full redesign is allowed "
+    "to add what the room actually needs; a light restyle is not, and says "
+    "so itself.\n\n"
     "None of this freezes finish, only structure. The wall surfaces, the "
     "ceiling's own treatment — a false ceiling, cove lighting, coving, a "
     "different colour — and the floor covering are all fair game; only "
@@ -178,7 +184,13 @@ DEPTHS: dict[str, str] = {
         "simply a different colour are all genuine options, not just a flat "
         "repaint of what was there. Every function the room has now it must "
         "still have, and everything fixed stays exactly where it is, but the "
-        "loose pieces themselves should be visibly new."
+        "loose pieces themselves should be visibly new.\n\n"
+        "This also covers what the room is missing, not only what it "
+        "already owns: if there is nowhere to put things away, add real "
+        "storage — a wardrobe, shelving, a chest, whatever actually suits "
+        "the room — sized and placed for the space shown, not squeezed in "
+        "as an afterthought. A full redesign that leaves a genuine gap like "
+        "that unaddressed has not gone the whole way."
     ),
     "restyle": (
         "Keep the furniture that is there and change how it is finished: new "
@@ -200,9 +212,19 @@ def build_prompt(
 ) -> str:
     """Compose the generation prompt.
 
-    `contents` and `keep` come from the analysis — what is actually in the room
-    and what there is more than one of. Without them the model draws an average
-    room of that type, which is how two single beds come back as one double.
+    `contents` and `keep` come from the analysis, and used to say the same
+    thing twice: `contents` is what there is more than one of, so the model
+    does not invent an average room of that type — two single beds come
+    back as two, not folded into one double. `keep` is what the *person*
+    ticked as must-stay. Only `keep` is a preservation instruction; `contents`
+    used to say "none of them may be removed" unconditionally, which meant
+    unticking an item's "must stay" chip did nothing — the model was still
+    told, in the very next sentence, that it could not be removed. A full
+    redesign that promised "genuinely different and better pieces" a few
+    lines later was fighting its own prompt, which is the shape of "it just
+    tidied the room" and "where's the storage I asked for": everything the
+    reader had already seen was still off-limits before the redesign
+    instruction or the person's own words ever got a say.
 
     `room` says what the room is *for*. It is separate from the style on
     purpose: a nursery is not a look, it is a set of requirements, and it needs
@@ -219,11 +241,13 @@ def build_prompt(
         prompt += f" It must work as {brief}."
 
     if contents.strip():
+        # Descriptive, not prescriptive: this is what a plain photograph of
+        # the room would show a designer, including how many of each thing
+        # — not an instruction that any of it survives the redesign. What
+        # must survive is `keep`, below, and only `keep`.
         prompt += (
-            f"\nWhat is in the room now: {contents.strip()}. Every one of these "
-            "stays. You may restyle them, re-upholster them, change their "
-            "finish or swap one for a better version of the same thing in the "
-            "same place — but none of them may be removed from the room."
+            f"\nA plain description of the room as it is now, so nothing "
+            f"here is invented or miscounted: {contents.strip()}."
         )
     if keep.strip():
         # "Keep" means the thing is still there and still works, not that it

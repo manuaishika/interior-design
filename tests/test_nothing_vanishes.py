@@ -133,25 +133,56 @@ class TestTheWordsDoTheWork:
         assert "never invent a second bed" in PRESERVE
         assert "hotel room" in PRESERVE
 
-    def test_nothing_is_added_that_was_not_there(self):
-        assert "Do not add furniture this room does not already have" in PRESERVE
+    def test_count_is_frozen_but_new_pieces_are_not_banned_outright(self):
+        """"it just tidied the room" / "what did it add in terms of storage —
+        nothing." PRESERVE used to say, unconditionally, "do not add
+        furniture this room does not already have" — which meant a full
+        redesign asked to add storage a room genuinely lacked was refusing
+        its own brief before the brief was ever read. The count guarantee
+        (no invented second bed) is real and stays; whether a new piece
+        belongs is now the redesign instruction's call, not a blanket ban
+        baked into every request regardless of depth."""
+        assert "Do not add furniture this room does not already have" not in PRESERVE
+        assert "redesign instruction's call" in PRESERVE
+        assert "never invent a second bed" in PRESERVE   # the guarantee that survives
+
+    def test_a_full_redesign_is_explicitly_told_it_may_add_storage(self):
+        prompt = build_prompt("none", depth="renovate")
+        assert "add real storage" in prompt
+
+    def test_a_light_restyle_still_bans_new_furniture_on_its_own_terms(self):
+        """restyle's own clause already said this unconditionally — removing
+        the blanket ban from PRESERVE must not weaken restyle's."""
+        prompt = build_prompt("none", depth="restyle")
+        assert "Do not replace the pieces themselves" in prompt
 
     def test_every_style_carries_it(self):
         """Including "None", which is what was selected when this went wrong."""
         for style in ("none", "brief", "japandi", "industrial"):
             assert "recognisably the same room" in build_prompt(style)
 
-    def test_contents_are_required_to_survive(self):
+    def test_contents_describes_but_does_not_command_survival(self):
+        """`contents` used to say "Every one of these stays... none of them
+        may be removed" for anything the reader detected, ticked or not —
+        so unticking an item's "must stay" chip did nothing, because this
+        unconditional line still forbade removing it. It is now what it was
+        always documented as: a description, for accurate counting, not a
+        second, stronger copy of `keep`."""
         prompt = build_prompt("none", contents="a desk, a television and a chair")
-        assert "Every one of these stays" in prompt
-        assert "none of them may be removed" in prompt
+        assert "a desk, a television and a chair" in prompt
+        assert "Every one of these stays" not in prompt
+        assert "none of them may be removed" not in prompt
 
-    def test_restyling_is_still_allowed(self):
+    def test_keep_not_contents_is_what_makes_something_survive(self):
+        prompt = build_prompt("none", keep="a desk")
+        assert "must still contain a desk" in prompt
+        assert "Do not remove or substitute them" in prompt
+
+    def test_restyling_a_kept_item_is_still_allowed(self):
         """"we can also change the desk, we can change the quality of the chair
         — but eradicating it does not serve our purpose." """
-        prompt = build_prompt("none", contents="a desk")
-        assert "You may restyle them" in prompt
-        assert "better version of the same thing" in prompt
+        prompt = build_prompt("none", keep="a desk")
+        assert "restyled, replaced with better versions of the same thing" in prompt
 
     def test_ceiling_height_is_structure_not_finish(self):
         """Freezing the ceiling's height is right. Freezing its appearance —
