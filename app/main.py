@@ -228,6 +228,44 @@ async def _tier_for(request: Request, settings: Settings) -> str:
         return (user.tier if user else None) or settings.tier
 
 
+async def _usage_gate(request: Request, settings: Settings, tier: str) -> str:
+    """Refuses a request once its identity has spent today's designs.
+
+    auth.guard only asks "is this deployment open" — with no access code
+    set, that is anyone, no account required, which is the point of a free
+    demo. Without a daily cap behind it, "free demo" and "unmetered key" are
+    the same sentence. A signed-in account is metered against its own tier
+    (TIERS[...]["daily"]); a stranger with none is metered by IP, the only
+    identity an anonymous request carries, at settings.anon_daily_designs.
+    Returns the identity key, for the caller to credit after a real design
+    actually comes back — a request that fails before drawing anything must
+    not cost the person any of their quota.
+    """
+    who = auth.current_user_id(request, settings)
+    if who is None:
+        key, limit, plan = f"ip:{auth.client_ip(request)}", settings.anon_daily_designs, None
+    else:
+        key, plan = f"user:{who}", _tier_card(tier)
+        limit = TIERS.get(plan["id"], TIERS[DEFAULT_TIER])["daily"]
+    # Nothing to check it against: fail open rather than 500 every design
+    # because the meter itself is unreachable. Same call store.catalogue
+    # makes when it is not configured — a soft limit should not become a
+    # hard outage.
+    if limit is None or not store.is_configured():
+        return key
+    async with store.session() as db:
+        used = await store.usage_today(db, key)
+    if used < limit:
+        return key
+    if plan is None:
+        raise HTTPException(
+            429, f"That's today's {limit} free designs without an account. "
+                 "Sign in for more a day, free — or come back tomorrow.")
+    raise HTTPException(
+        429, f"That's today's {limit} designs on the {plan['label']} plan. "
+             "Upgrade for more, or come back tomorrow.")
+
+
 @app.get("/api/session")
 async def session_state(request: Request):
     """Who is signed in, and what this deployment lets a stranger do."""
@@ -674,6 +712,7 @@ async def generate_endpoint(
     settings = get_settings()
     auth.guard(request, settings)
     tier = await _tier_for(request, settings)
+    usage_key = await _usage_gate(request, settings, tier)
     data = await _read_upload(photo, settings)
     try:
         parsed_items = json.loads(items) if items else None
@@ -709,6 +748,9 @@ async def generate_endpoint(
         raise HTTPException(502, f"Generation failed: {exc}") from exc
     except RuntimeError as exc:
         raise HTTPException(502, str(exc)) from exc
+    if generations and store.is_configured():
+        async with store.session() as db:
+            await store.bump_usage(db, usage_key, len(generations))
     return GenerateResponse(analysis=analysis, generations=generations)
 
 

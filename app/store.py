@@ -30,8 +30,8 @@ import logging
 import secrets
 
 from sqlalchemy import (
-    DateTime, ForeignKey, Integer, LargeBinary, String, Text, inspect, select,
-    text,
+    DateTime, ForeignKey, Integer, LargeBinary, String, Text, func, inspect,
+    select, text,
 )
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -148,6 +148,26 @@ class Message(Base):
     content: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True),
                                                     default=now)
+
+
+class Usage(Base):
+    """How many designs one identity has drawn today, so a free path can be
+    offered to a stranger without one script draining the OpenAI key.
+
+    `key` is "user:<id>" for a signed-in account, or "ip:<address>" for a
+    visitor with no account — the only identity an anonymous request
+    carries. Coarse (an office sharing one IP shares a quota) but that is
+    the honest tradeoff for a free path nobody has to sign up for; the
+    alternative is requiring an account before anyone gets to try it at
+    all. `day` is a UTC date, so the reset is at a fixed clock time rather
+    than a rolling window nobody could predict.
+    """
+    __tablename__ = "usage"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    key: Mapped[str] = mapped_column(String(80), index=True)
+    day: Mapped[str] = mapped_column(String(10))            # "2026-09-27"
+    count: Mapped[int] = mapped_column(Integer, default=0)
 
 
 # ---------------------------------------------------------------------------
@@ -485,3 +505,39 @@ async def delete_conversation(db: AsyncSession, user_id: int,
     await db.delete(conv)
     await db.commit()
     return True
+
+
+# ---------------------------------------------------------------------------
+# Daily usage
+# ---------------------------------------------------------------------------
+
+def today() -> str:
+    return now().date().isoformat()
+
+
+async def usage_today(db: AsyncSession, key: str) -> int:
+    """How many designs this identity has already drawn today. Summed rather
+    than read off one row, so a rare race that inserts two rows for the same
+    key and day still adds up to the true count instead of losing one."""
+    total = await db.scalar(
+        select(func.coalesce(func.sum(Usage.count), 0))
+        .where(Usage.key == key, Usage.day == today())
+    )
+    return int(total or 0)
+
+
+async def bump_usage(db: AsyncSession, key: str, by: int) -> None:
+    """Credits `by` more designs to this identity's count for today. Called
+    after generation succeeds, with however many designs actually came back
+    — a request that fails before drawing anything must not cost the
+    person any of their quota."""
+    if by <= 0:
+        return
+    row = await db.scalar(
+        select(Usage).where(Usage.key == key, Usage.day == today())
+    )
+    if row is None:
+        row = Usage(key=key, day=today(), count=0)
+        db.add(row)
+    row.count += by
+    await db.commit()

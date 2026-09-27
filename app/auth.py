@@ -135,6 +135,19 @@ def over_https(request: Request) -> bool:
     return scheme == "https"
 
 
+def client_ip(request: Request) -> str:
+    """The visitor's real address, for the one thing an anonymous request
+    can be identified by (see store.Usage). Same reasoning as over_https:
+    behind Render's proxy, request.client.host is the proxy, not the
+    visitor, and the forwarded header is the one telling the truth. The
+    first address in it is the original client even when other proxies
+    have appended their own further down the chain."""
+    forwarded = request.headers.get("x-forwarded-for", "")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
 def set_cookie(response: Response, token: str, max_age: int,
                secure: bool = True) -> None:
     response.set_cookie(

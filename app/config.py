@@ -139,6 +139,12 @@ class Settings(BaseSettings):
     # Set a code and the studio asks for it before spending anything. Leave it
     # blank and there is no door, which is what local development wants.
     studio_access_code: str = ""
+    # A stranger with no account at all and nothing set above walks straight
+    # through auth.guard — that is the point of a free demo. Without a cap
+    # here, though, "free demo" and "unmetered key" are the same sentence.
+    # Identified by IP, the only thing an anonymous request carries; see
+    # store.Usage. A signed-in account's own limit is TIERS[...]["daily"].
+    anon_daily_designs: int = 2
     # Set this and sessions survive a restart. Leave it and they do not, which
     # is the safe direction to fail.
     session_secret: str = ""
@@ -249,11 +255,18 @@ class Settings(BaseSettings):
 # What each tier gets. The names match the pricing page, because a plan that
 # promises "better designs" and delivers identical ones is a refund waiting to
 # happen.
+
+# "daily" is how many designs the account can draw in a UTC day, checked
+# against store.Usage — None means uncapped, which is the paid tiers today:
+# their cost per run is already bounded by quality and variants above, and
+# nobody is on one without a card behind it. Free is the tier a stranger
+# reaches with no card at all, which is exactly where an unmetered key
+# turns into an open bill.
 TIERS: dict[str, dict] = {
-    "free":     {"quality": "medium", "variants": 2, "label": "Free"},
-    "room":     {"quality": "high",   "variants": 3, "label": "One Room"},
-    "home":     {"quality": "high",   "variants": 4, "label": "Whole Home"},
-    "studio":   {"quality": "xhigh",  "variants": 4, "label": "Studio"},
+    "free":     {"quality": "medium", "variants": 2, "label": "Free", "daily": 5},
+    "room":     {"quality": "high",   "variants": 3, "label": "One Room", "daily": None},
+    "home":     {"quality": "high",   "variants": 4, "label": "Whole Home", "daily": None},
+    "studio":   {"quality": "xhigh",  "variants": 4, "label": "Studio", "daily": None},
 }
 DEFAULT_TIER = "free"
 
