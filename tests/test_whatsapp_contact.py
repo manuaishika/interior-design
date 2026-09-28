@@ -61,3 +61,20 @@ class TestThePage:
 
     def test_docs_copy_matches(self):
         assert 'id="waGo"' in page("docs/index.html")
+
+
+class TestTheBuildMarker:
+    """The one thing that ends "did it actually deploy" as a guessing game:
+    the footer reads back whichever commit Render says it built, straight
+    from /api/health, no separate lookup."""
+
+    def test_the_footer_has_somewhere_to_put_it(self):
+        assert 'id="build"' in page()
+
+    def test_the_health_check_writes_it_there(self):
+        source = page()
+        start = source.index("function check()")
+        end = source.index("\n  }", start)
+        body = source[start:end]
+        assert "$('build').textContent" in body
+        assert "h.build" in body

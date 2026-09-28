@@ -1018,7 +1018,7 @@
     </div>
     <div>
       <p class="cap">Studio</p>
-      <ul><li><span id="year"></span></li></ul>
+      <ul><li><span id="year"></span> <span id="build"></span></li></ul>
     </div>
   </div>
 </footer>
@@ -1713,6 +1713,10 @@
         $('state').textContent = canDraw
           ? engineLine(h)
           : 'Reading only — pictures are not switched on yet';
+        // "Is what I just pushed actually live" used to be a question
+        // nobody could answer except by trusting a deploy happened. Render
+        // sets this itself — no env var to add — so it can be checked.
+        $('build').textContent = h.build ? '· build ' + h.build : '';
         refresh();
       })
       .catch(function () {

@@ -14,6 +14,7 @@ import base64
 import hmac
 import json
 import logging
+import os
 from pathlib import Path
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, Response, UploadFile
@@ -131,6 +132,18 @@ def _media_type(data: bytes) -> str:
     return "application/octet-stream"
 
 
+def _build_marker() -> str:
+    """The short commit hash actually running, or "" if there is no way to
+    know one. RENDER_GIT_COMMIT is set by Render itself, with no
+    configuration — the full SHA of whatever commit this build was built
+    from. This exists because "is the thing I just pushed actually live"
+    was, until now, a question nobody could answer except by trusting that
+    a deploy happened — checked here instead of guessed at.
+    """
+    commit = os.environ.get("RENDER_GIT_COMMIT", "")
+    return commit[:7]
+
+
 @app.get("/api/health")
 async def health():
     """What this deployment can actually do, right now.
@@ -187,6 +200,7 @@ async def health():
         "can_read": can_read,
         "can_draw": can_draw,
         "models": models,
+        "build": _build_marker(),
     }
 
 

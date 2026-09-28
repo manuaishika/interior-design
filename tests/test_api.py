@@ -58,6 +58,19 @@ class TestMetaEndpoints:
         body = client.get("/api/health").json()
         assert body["status"] == "ok" and "segmentation" in body["models"]
 
+    def test_the_build_marker_reads_renders_own_env_var(self, client, monkeypatch):
+        """"Is what I just pushed actually live" used to be answerable only
+        by trusting a deploy happened. RENDER_GIT_COMMIT is set by Render
+        itself, no configuration needed — this just has to read it."""
+        monkeypatch.setenv("RENDER_GIT_COMMIT", "abcdef0123456789")
+        body = client.get("/api/health").json()
+        assert body["build"] == "abcdef0"
+
+    def test_no_render_env_var_locally_is_an_empty_marker_not_an_error(self, client, monkeypatch):
+        monkeypatch.delenv("RENDER_GIT_COMMIT", raising=False)
+        body = client.get("/api/health").json()
+        assert body["build"] == ""
+
     def test_styles_include_lock_policy(self, client):
         body = client.get("/api/styles").json()
         assert any(s["id"] == "japandi" for s in body["styles"])
