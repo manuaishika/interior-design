@@ -69,12 +69,20 @@
   .top { position: sticky; top: 0; z-index: 40; background: var(--bg);
     border-bottom: 1px solid var(--line); }
   .top-in { display: flex; align-items: center; gap: 1.4rem; height: 62px; }
+  /* flex-shrink defaults to 1 — without stopping it, .brand and every nav
+     button are free to be squeezed narrower than their own text, and the
+     text wraps inside them instead: "Second Draft." on two lines, "How it
+     works" on three, inside a bar fixed at 62px tall, which is what
+     actually broke. nav already scrolls sideways on mobile (below) once
+     its buttons are told to hold their width rather than fold it. */
   .brand { font-family: var(--display);
     font-size: 1.45rem; font-weight: var(--display-weight); letter-spacing: -.015em;
-    background: none; border: 0; cursor: pointer; padding: 0; }
-  nav { display: flex; gap: .3rem; margin: 0 auto; }
+    background: none; border: 0; cursor: pointer; padding: 0;
+    white-space: nowrap; flex-shrink: 0; }
+  nav { display: flex; gap: .3rem; margin: 0 auto; min-width: 0; }
   nav button { background: none; border: 0; cursor: pointer; padding: .4rem .7rem;
-    border-radius: 2px; font-size: .9rem; color: var(--muted); }
+    border-radius: 2px; font-size: .9rem; color: var(--muted);
+    white-space: nowrap; flex-shrink: 0; }
   nav button:hover { color: var(--ink); }
   nav button.on { color: var(--ink); font-weight: 500; }
   .cta { background: var(--green); color: #fff; border: 0; border-radius: 2px;
