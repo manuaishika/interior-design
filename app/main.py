@@ -30,6 +30,7 @@ from urllib.parse import quote
 from .config import (DEFAULT_TIER, LOCK_PROFILES, Settings, TIERS,
                      get_settings, resolve_backend)
 from .generation import STYLES, GenerationError
+from .imaging import load_mask
 from .models import AnalyzeResponse, GenerateResponse
 from .pipeline import analyze_room, edit_design, prepare_image, run_pipeline
 from .reading import NotARoomError, ReadingError, discuss, read_room
@@ -773,6 +774,7 @@ async def edit_endpoint(
     request: Request,
     design: UploadFile = File(...),
     instruction: str = Form(...),
+    mask: UploadFile | None = File(None),
     x: float | None = Form(None),
     y: float | None = Form(None),
     w: float | None = Form(None),
@@ -786,9 +788,14 @@ async def edit_endpoint(
     money did not, which someone hitting a limit on /api/generate could
     simply have called instead.
 
-    x, y, w, h: a rectangle someone marked directly on the design, as
-    fractions of it (0-1). All four or none — a partial rectangle is not
-    a smaller one, it is a broken request.
+    mask: a real drawing someone made directly on the design — a brush,
+    any shape, not a box — white where it should change, black
+    everywhere else. Takes priority over x/y/w/h below when both somehow
+    arrive, since a drawing says more than four numbers can.
+
+    x, y, w, h: the coarser fallback, a rectangle as fractions of the
+    design (0-1). All four or none — a partial rectangle is not a
+    smaller one, it is a broken request.
     """
     settings = get_settings()
     auth.guard(request, settings)
@@ -808,10 +815,18 @@ async def edit_endpoint(
             raise HTTPException(400, "That marked area is outside the photograph.")
         region = (x, y, w, h)
 
+    mask_image = None
+    if mask is not None and mask.filename:
+        mask_data = await _read_upload(mask, settings)
+        try:
+            mask_image = load_mask(mask_data)
+        except Exception as exc:
+            raise HTTPException(400, "Could not read that marked area.") from exc
+
     data = await _read_upload(design, settings)
     try:
         result = await edit_design(data, instruction, settings, tier=tier,
-                                   region=region)
+                                   region=region, mask_image=mask_image)
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
     except RuntimeError as exc:

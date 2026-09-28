@@ -49,7 +49,8 @@ def _is_openai(settings: Settings) -> bool:
 
 async def edit_design(design: bytes, instruction: str, settings: Settings,
                       tier: str = "",
-                      region: tuple[float, float, float, float] | None = None) -> bytes:
+                      region: tuple[float, float, float, float] | None = None,
+                      mask_image: Image.Image | None = None) -> bytes:
     """A follow-up edits the design that is on screen, not the room it came
     from.
 
@@ -62,15 +63,23 @@ async def edit_design(design: bytes, instruction: str, settings: Settings,
     the original render already protected — a second edit reintroducing the
     doorway the first one avoided would be worse than not editing at all.
 
-    `region` narrows it further: a rectangle someone marked directly on the
-    design, (x, y, w, h) as fractions of the image. This is the one place
-    in the whole app a mask is the right tool rather than the wrong one —
-    everywhere else it would be a demolition order for whatever a strong
-    editing model decided the rest of the room should become, because the
-    "everywhere except this" it protects is a door frame or two against an
-    entire redesign. Here the model is being told to touch nothing BUT a
-    rectangle a person drew on purpose, which is exactly what a mask is
-    for. Left at None, the edit is the whole photograph, same as before.
+    `mask_image` or `region` narrow it further to a specific part of the
+    design. This is the one place in the whole app a mask is the right
+    tool rather than the wrong one — everywhere else it would be a
+    demolition order for whatever a strong editing model decided the rest
+    of the room should become, because the "everywhere except this" it
+    protects is a door frame or two against an entire redesign. Here the
+    model is told to touch nothing BUT the shape a person actually marked,
+    which is exactly what a mask is for.
+
+    `mask_image` is a real drawing — a person's own brush strokes, any
+    shape, not limited to a box — already decoded to our convention
+    (white = editable, black = preserved) and resized to match `design`
+    if it did not arrive at the same resolution the canvas it was drawn on
+    happened to be. `region` is the coarser (x, y, w, h) fallback, still
+    exposed for a caller with no drawing surface to draw on. If both
+    arrive, the actual drawing wins — it says more than four numbers can.
+    Left at neither, the edit is the whole photograph, same as before.
 
     Chaining ("a third instruction edits the second result") is the
     caller's job, not this function's: it always edits exactly the bytes it
@@ -85,8 +94,13 @@ async def edit_design(design: bytes, instruction: str, settings: Settings,
 
     image = load_image(design)
     mask = None
-    if region is not None:
+    if mask_image is not None:
+        mask = (mask_image if mask_image.size == image.size
+                else mask_image.resize(image.size))
+    elif region is not None:
         mask = build_region_mask(image.size, region)
+
+    if mask is not None:
         prompt = (
             f"{instruction.strip()}\n\nOnly change what is inside the "
             "marked area. Blend it naturally with what is around it — "

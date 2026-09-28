@@ -625,6 +625,58 @@ class TestMarkingAnAreaToEdit:
         assert "Only change what is inside the marked area" in seen["prompt"]
         assert PRESERVE in seen["prompt"]     # still rides along, region or not
 
+    @pytest.mark.asyncio
+    async def test_a_real_drawing_is_used_as_is(self, monkeypatch):
+        """A freehand mask has already been decided by the person who drew
+        it — an arbitrary shape, not a box the code has to construct."""
+        from app.pipeline import edit_design
+        seen = {}
+
+        async def redraw(image, mask, prompt, s, **kw):
+            seen["mask"] = mask
+            return self._png()
+
+        monkeypatch.setattr("app.openai_images.redraw", redraw)
+        drawn = Image.new("L", (40, 20), 0)
+        drawn.paste(255, (5, 5, 15, 15))    # a blob, not a rectangle spanning either half
+        await edit_design(self._png(), "add a lamp", settings(), mask_image=drawn)
+
+        assert seen["mask"] is drawn
+
+    @pytest.mark.asyncio
+    async def test_a_drawing_the_wrong_size_is_resized_to_match(self, monkeypatch):
+        """The canvas it was drawn on is sized to the image the browser
+        already has, which is not guaranteed to be the exact pixel
+        dimensions this function decodes the design to."""
+        from app.pipeline import edit_design
+        seen = {}
+
+        async def redraw(image, mask, prompt, s, **kw):
+            seen["mask"] = mask
+            return self._png()
+
+        monkeypatch.setattr("app.openai_images.redraw", redraw)
+        drawn = Image.new("L", (400, 200), 0)   # 10x the design's actual size
+        await edit_design(self._png(), "add a lamp", settings(), mask_image=drawn)
+
+        assert seen["mask"].size == (40, 20)
+
+    @pytest.mark.asyncio
+    async def test_a_drawing_wins_over_a_region_if_both_somehow_arrive(self, monkeypatch):
+        from app.pipeline import edit_design
+        seen = {}
+
+        async def redraw(image, mask, prompt, s, **kw):
+            seen["mask"] = mask
+            return self._png()
+
+        monkeypatch.setattr("app.openai_images.redraw", redraw)
+        drawn = Image.new("L", (40, 20), 128)   # distinguishable from a region mask
+        await edit_design(self._png(), "add a lamp", settings(),
+                          region=(0.5, 0.0, 0.5, 1.0), mask_image=drawn)
+
+        assert seen["mask"] is drawn
+
 
 def _isolated(tmp_path, **kw):
     """/api/edit now spends from the same daily quota as /api/generate
@@ -767,4 +819,58 @@ class TestMarkingAnAreaEndpoint:
             r = c.post("/api/edit",
                       files={"design": ("d.png", self._png(), "image/png")},
                       data={"instruction": "make it warmer"})
+        assert r.status_code == 200
+
+    def _mask(self, size=(32, 32)):
+        buf = io.BytesIO()
+        m = Image.new("L", size, 0)
+        m.paste(255, (5, 5, 20, 20))
+        m.save(buf, "PNG")
+        return buf.getvalue()
+
+    def test_a_drawn_mask_is_accepted(self, monkeypatch, tmp_path):
+        from fastapi.testclient import TestClient
+
+        import app.main as main
+        from app.main import app
+
+        async def redraw(image, mask, prompt, s, **kw):
+            assert mask is not None
+            assert mask.size == (32, 32)
+            return self._png()
+
+        monkeypatch.setattr(main, "get_settings", lambda: _isolated(tmp_path))
+        monkeypatch.setattr("app.openai_images.redraw", redraw)
+
+        with TestClient(app) as c:
+            r = c.post("/api/edit",
+                      files={"design": ("d.png", self._png(), "image/png"),
+                             "mask": ("m.png", self._mask(), "image/png")},
+                      data={"instruction": "add a lamp"})
+        assert r.status_code == 200
+
+    def test_a_drawn_mask_wins_over_a_rectangle(self, monkeypatch, tmp_path):
+        """A person marked an actual shape — the coarser x/y/w/h fields
+        should never override it, even if a caller sends both."""
+        from fastapi.testclient import TestClient
+
+        import app.main as main
+        from app.main import app
+
+        async def redraw(image, mask, prompt, s, **kw):
+            import numpy as np
+            arr = np.array(mask)
+            # The mask's own drawn blob, not the rectangle's, decided this.
+            assert arr[0, 0] == 0        # rectangle would have covered here
+            return self._png()
+
+        monkeypatch.setattr(main, "get_settings", lambda: _isolated(tmp_path))
+        monkeypatch.setattr("app.openai_images.redraw", redraw)
+
+        with TestClient(app) as c:
+            r = c.post("/api/edit",
+                      files={"design": ("d.png", self._png(), "image/png"),
+                             "mask": ("m.png", self._mask(), "image/png")},
+                      data={"instruction": "add a lamp",
+                            "x": "0.0", "y": "0.0", "w": "1.0", "h": "1.0"})
         assert r.status_code == 200

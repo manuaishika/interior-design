@@ -266,22 +266,24 @@
   .shots img { width: 100%; border-radius: 2px; display: block; }
   .shots figcaption { font-size: .72rem; color: #A79E90; margin-top: .35rem; }
 
-  /* Marking one spot on a design, rather than describing the whole photo
-     in words to change one thing in it. .marking swaps the cursor for a
-     crosshair the moment the mode is on, before anyone has dragged
-     anything, so the mode itself is visible. */
-  .frame.marking img { cursor: crosshair; }
-  .mark-rect { position: absolute; border: 2px dashed var(--clay);
-    background: rgba(176,74,36,.16); pointer-events: none; }
-  .mark-ask { position: absolute; z-index: 5; background: #14130F;
-    border: 1px solid rgba(239,234,224,.25); border-radius: 2px;
-    padding: .55rem; display: flex; gap: .4rem; box-shadow: 0 6px 18px rgba(0,0,0,.35);
-    width: min(240px, 90%); }
-  .mark-ask input { flex: 1; min-width: 0; border: 1px solid rgba(239,234,224,.25);
-    background: rgba(255,255,255,.06); border-radius: 2px; padding: .3rem .5rem;
+  /* Marking a spot on a design with an actual brush, rather than either
+     describing the whole photo in words or being limited to a box. The
+     canvas sits over the image at the image's own resolution (set from
+     JS, not CSS, so a stroke is exactly as precise as the design itself)
+     and takes the pointer directly — cursor:crosshair the moment marking
+     is on, before a single stroke exists, so the mode itself is visible. */
+  .mark-canvas { position: absolute; inset: 0; width: 100%; height: 100%;
+    border-radius: 2px; touch-action: none; cursor: crosshair; }
+  .mark-toolbar { margin-top: .55rem; padding: .55rem .6rem;
+    background: #14130F; border: 1px solid rgba(239,234,224,.2);
+    border-radius: 2px; display: flex; gap: .4rem; align-items: center;
+    flex-wrap: wrap; }
+  .mark-toolbar span { font-size: .74rem; color: #8B8377; flex: none; }
+  .mark-toolbar input { flex: 1; min-width: 120px; border: 1px solid rgba(239,234,224,.25);
+    background: rgba(255,255,255,.06); border-radius: 2px; padding: .35rem .55rem;
     font-size: .78rem; color: #F5F2EA; }
-  .mark-ask input::placeholder { color: #8B8377; }
-  .mark-ask button { flex: none; }
+  .mark-toolbar input::placeholder { color: #8B8377; }
+  .mark-toolbar button { flex: none; }
   .mark-toggle.on { border-color: var(--clay); color: #F5F2EA; }
 
   /* Quieter than the Save/Download/Compare row on purpose — this is an
@@ -2507,135 +2509,146 @@
     return new Blob([buf], { type: type || 'image/png' });
   }
 
-  /* Marking one spot on a design and saying what should change there,
-     rather than describing the whole photograph in words to change one
-     thing in it — the same shape as ChatGPT's own image markup, aimed at
-     a design already on screen instead of the room photo it came from.
-     The mask this builds (imaging.build_region_mask) is the one place in
-     the whole app a mask is the right tool: everywhere else it would be a
-     demolition order for whatever the model decided the rest of the room
-     should become; here the model is told to touch nothing BUT the
-     rectangle someone drew on purpose. Only one frame is ever in marking
-     mode — starting a second cancels whichever was already open. */
+  /* Marking a spot on a design with an actual brush and saying what should
+     change there, rather than describing the whole photograph in words —
+     the same shape as ChatGPT's own image markup, a pencil that goes
+     wherever the person drags it rather than a box. The mask this paints
+     is the one place in the whole app a mask is the right tool:
+     everywhere else it would be a demolition order for whatever the model
+     decided the rest of the room should become; here the model is told to
+     touch nothing BUT the shape someone drew on purpose. Only one frame is
+     ever in marking mode — starting a second cancels whichever was open. */
   var activeMarking = null;
+  var BRUSH_FRAC = 0.045;   // stroke width as a share of the image's own width
 
   function toggleMarking(frame, img, button, g) {
     if (activeMarking) {
       var was = activeMarking.frame;
       activeMarking.cancel();
-      if (was === frame) { return; }   // toggled off, not switched
+      if (was === frame) { return; }   // toggled off, not switched to a new one
     }
     startMarking(frame, img, button, g);
   }
 
   function startMarking(frame, img, button, g) {
     frame.classList.add('marking');
-    frame.style.touchAction = 'none';
     button.classList.add('on');
     button.textContent = 'Cancel marking';
 
-    var rectEl = null, startX = 0, startY = 0, dragging = false;
+    // Two canvases, same strokes, different jobs. paint is what the person
+    // sees — translucent, so the design underneath still reads. mask is
+    // what actually goes to the server: pure white on black, at the
+    // design's own resolution, which is what makes a stroke exactly as
+    // precise as the picture it was drawn on rather than downsampled to
+    // whatever size the browser happened to render the card at.
+    var w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+    var paint = document.createElement('canvas');
+    paint.className = 'mark-canvas';
+    paint.width = w; paint.height = h;
+    frame.appendChild(paint);
+    var pctx = paint.getContext('2d');
+    pctx.strokeStyle = 'rgba(176,74,36,.55)';
+    pctx.lineCap = 'round'; pctx.lineJoin = 'round';
+    pctx.lineWidth = w * BRUSH_FRAC;
+
+    var mask = document.createElement('canvas');
+    mask.width = w; mask.height = h;
+    var mctx = mask.getContext('2d');
+    mctx.fillStyle = 'black'; mctx.fillRect(0, 0, w, h);
+    mctx.strokeStyle = 'white';
+    mctx.lineCap = 'round'; mctx.lineJoin = 'round';
+    mctx.lineWidth = w * BRUSH_FRAC;
+
+    var toolbar = document.createElement('div');
+    toolbar.className = 'mark-toolbar';
+    var label = document.createElement('span');
+    label.textContent = 'Draw on the spot to change, then say what.';
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = 'What should change here?';
+    var clearBtn = document.createElement('button');
+    clearBtn.className = 'cta ghost';
+    clearBtn.type = 'button';
+    clearBtn.textContent = 'Clear';
+    var go = document.createElement('button');
+    go.className = 'cta clay';
+    go.type = 'button';
+    go.textContent = 'Change';
+    go.disabled = true;
+    var no = document.createElement('button');
+    no.className = 'cta ghost';
+    no.type = 'button';
+    no.textContent = '×';
+    toolbar.appendChild(label);
+    toolbar.appendChild(input);
+    toolbar.appendChild(clearBtn);
+    toolbar.appendChild(go);
+    toolbar.appendChild(no);
+    frame.parentNode.insertBefore(toolbar, frame.nextSibling);
+
+    var painted = false, drawing = false, lastX = 0, lastY = 0;
 
     function point(e) {
-      var box = frame.getBoundingClientRect();
+      var box = paint.getBoundingClientRect();
       return {
-        x: Math.max(0, Math.min(1, (e.clientX - box.left) / box.width)),
-        y: Math.max(0, Math.min(1, (e.clientY - box.top) / box.height)),
+        x: Math.max(0, Math.min(w, (e.clientX - box.left) / box.width * w)),
+        y: Math.max(0, Math.min(h, (e.clientY - box.top) / box.height * h)),
       };
     }
 
-    function draw(p) {
-      var x = Math.min(startX, p.x), y = Math.min(startY, p.y);
-      var w = Math.abs(p.x - startX), h = Math.abs(p.y - startY);
-      rectEl.style.left = (x * 100) + '%';
-      rectEl.style.top = (y * 100) + '%';
-      rectEl.style.width = (w * 100) + '%';
-      rectEl.style.height = (h * 100) + '%';
-      rectEl.box = [x, y, w, h];
+    function dab(p) {
+      pctx.beginPath(); pctx.moveTo(lastX, lastY); pctx.lineTo(p.x, p.y); pctx.stroke();
+      mctx.beginPath(); mctx.moveTo(lastX, lastY); mctx.lineTo(p.x, p.y); mctx.stroke();
+      lastX = p.x; lastY = p.y;
+      if (!painted) { painted = true; go.disabled = !input.value.trim(); }
     }
 
     function down(e) {
-      if (e.button) { return; }   // a right- or middle-click is not a mark
+      if (e.button) { return; }   // a right- or middle-click is not a stroke
       var p = point(e);
-      startX = p.x; startY = p.y; dragging = true;
-      rectEl = document.createElement('div');
-      rectEl.className = 'mark-rect';
-      frame.appendChild(rectEl);
-      draw(p);
+      drawing = true; lastX = p.x; lastY = p.y;
+      dab({ x: p.x + 0.01, y: p.y });   // a tap alone leaves a dot, not nothing
       e.preventDefault();
     }
 
     function move(e) {
-      if (!dragging) { return; }
-      draw(point(e));
+      if (!drawing) { return; }
+      dab(point(e));
       e.preventDefault();
     }
 
-    function up() {
-      if (!dragging) { return; }
-      dragging = false;
-      var box = rectEl && rectEl.box;
-      // Under 3% of the image in either direction reads as a stray tap,
-      // not a marked area — cancel rather than ask about a sliver.
-      if (!box || box[2] < 0.03 || box[3] < 0.03) { cancel(); return; }
-      askAbout(box);
-    }
+    function up() { drawing = false; }
 
-    function askAbout(box) {
-      frame.removeEventListener('pointerdown', down);
-      frame.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', up);
+    input.addEventListener('input', function () {
+      go.disabled = !(painted && input.value.trim());
+    });
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && !go.disabled) { go.click(); }
+      if (e.key === 'Escape') { cancel(); }
+    });
+    clearBtn.onclick = function () {
+      pctx.clearRect(0, 0, w, h);
+      mctx.fillStyle = 'black'; mctx.fillRect(0, 0, w, h);
+      painted = false;
+      go.disabled = true;
+    };
+    go.onclick = function () { submit(input.value); };
+    no.onclick = cancel;
 
-      var ask = document.createElement('div');
-      ask.className = 'mark-ask';
-      ask.style.left = ((box[0] + box[2] / 2) * 100) + '%';
-      ask.style.top = 'calc(' + ((box[1] + box[3]) * 100) + '% + .4rem)';
-      ask.style.transform = 'translateX(-50%)';
-
-      var input = document.createElement('input');
-      input.type = 'text';
-      input.placeholder = 'What should change here?';
-
-      var go = document.createElement('button');
-      go.className = 'cta clay';
-      go.type = 'button';
-      go.textContent = 'Change';
-      go.onclick = function () { submit(box, input.value); };
-
-      var no = document.createElement('button');
-      no.className = 'cta ghost';
-      no.type = 'button';
-      no.textContent = '×';
-      no.onclick = cancel;
-
-      input.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') { go.click(); }
-        if (e.key === 'Escape') { cancel(); }
-      });
-
-      ask.appendChild(input);
-      ask.appendChild(go);
-      ask.appendChild(no);
-      frame.appendChild(ask);
-      input.focus();
-    }
-
-    async function submit(box, instruction) {
+    async function submit(instruction) {
       instruction = (instruction || '').trim();
-      if (!instruction) { return; }
+      if (!instruction || !painted) { return; }
       finish();
       var note = document.createElement('p');
       note.className = 'need ok';
       note.textContent = 'Changing that spot…';
       frame.parentNode.insertBefore(note, frame.nextSibling);
-      var f = new FormData();
-      f.append('design', b64ToBlob(g.image_base64), 'design.png');
-      f.append('instruction', instruction);
-      f.append('x', String(box[0]));
-      f.append('y', String(box[1]));
-      f.append('w', String(box[2]));
-      f.append('h', String(box[3]));
       try {
+        var maskBlob = await new Promise(function (res) { mask.toBlob(res, 'image/png'); });
+        var f = new FormData();
+        f.append('design', b64ToBlob(g.image_base64), 'design.png');
+        f.append('instruction', instruction);
+        f.append('mask', maskBlob, 'mask.png');
         var r = await fetch(api('/api/edit'), { method: 'POST', body: f, credentials: 'include' });
         var d = await r.json();
         if (!r.ok) throw new Error(d.detail || 'Could not change that.');
@@ -2652,19 +2665,18 @@
 
     function finish() {
       frame.classList.remove('marking');
-      frame.style.touchAction = '';
       button.classList.remove('on');
       button.textContent = 'Mark an area';
-      frame.removeEventListener('pointerdown', down);
-      frame.removeEventListener('pointermove', move);
+      paint.removeEventListener('pointerdown', down);
+      paint.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
-      var old = frame.querySelector('.mark-rect'); if (old) { old.remove(); }
-      var oldAsk = frame.querySelector('.mark-ask'); if (oldAsk) { oldAsk.remove(); }
+      paint.remove();
+      toolbar.remove();
       if (activeMarking && activeMarking.frame === frame) { activeMarking = null; }
     }
 
-    frame.addEventListener('pointerdown', down);
-    frame.addEventListener('pointermove', move);
+    paint.addEventListener('pointerdown', down);
+    paint.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
     activeMarking = { frame: frame, cancel: cancel };
   }

@@ -67,6 +67,14 @@ def load_image(data: bytes) -> Image.Image:
     return image.convert("RGB")
 
 
+def load_mask(data: bytes) -> Image.Image:
+    """Decode a mask drawn by a person — a canvas export, not a photograph,
+    so no EXIF to honour. Single channel: white = editable, black =
+    preserved, our convention throughout.
+    """
+    return Image.open(io.BytesIO(data)).convert("L")
+
+
 def fit_to_max_edge(image: Image.Image, max_edge: int) -> Image.Image:
     """Downscale so the longest edge is `max_edge`. Never upscales."""
     w, h = image.size
