@@ -246,6 +246,33 @@ def build_inpaint_mask(
     return img
 
 
+def build_region_mask(
+    size: tuple[int, int], box: tuple[float, float, float, float],
+) -> Image.Image:
+    """A mask for one rectangle someone marked directly on a design, in our
+    convention: white = editable, black = preserved — the opposite job to
+    build_inpaint_mask, whose locked regions are what must survive. Here
+    the mark itself is the only thing allowed to change; everything the
+    person did not touch is what must survive.
+
+    `box` is (x, y, w, h) as fractions of the image (0-1), which is what a
+    browser hands back after someone drags a selection on a picture whose
+    real pixel dimensions it never needed to know — the same shape as the
+    JS event, converted to real pixels exactly once, here.
+    """
+    width, height = size
+    x, y, w, h = box
+    left = max(0, min(width, round(x * width)))
+    top = max(0, min(height, round(y * height)))
+    right = max(0, min(width, round((x + w) * width)))
+    bottom = max(0, min(height, round((y + h) * height)))
+
+    mask = Image.new("L", (width, height), 0)
+    if right > left and bottom > top:
+        ImageDraw.Draw(mask).rectangle([left, top, right, bottom], fill=255)
+    return mask
+
+
 def editable_fraction(inpaint_mask: Image.Image, *, inverted: bool = False) -> float:
     """Share of the frame the generator is allowed to repaint."""
     arr = np.array(inpaint_mask.convert("L")) > 127

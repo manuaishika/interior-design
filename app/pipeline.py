@@ -20,9 +20,9 @@ from .describe import count_instances, describe_room, keep_clause
 from .generation import PRESERVE, GenerationError, build_prompt, encode_mask
 from .imaging import (
     build_inpaint_mask,
+    build_region_mask,
     image_to_png_bytes,
     Mask,
-    build_inpaint_mask,
     editable_fraction,
     fit_to_max_edge,
     filter_masks,
@@ -48,7 +48,8 @@ def _is_openai(settings: Settings) -> bool:
 
 
 async def edit_design(design: bytes, instruction: str, settings: Settings,
-                      tier: str = "") -> bytes:
+                      tier: str = "",
+                      region: tuple[float, float, float, float] | None = None) -> bytes:
     """A follow-up edits the design that is on screen, not the room it came
     from.
 
@@ -60,6 +61,16 @@ async def edit_design(design: bytes, instruction: str, settings: Settings,
     re-applied, and PRESERVE still rides along so the edit cannot undo what
     the original render already protected — a second edit reintroducing the
     doorway the first one avoided would be worse than not editing at all.
+
+    `region` narrows it further: a rectangle someone marked directly on the
+    design, (x, y, w, h) as fractions of the image. This is the one place
+    in the whole app a mask is the right tool rather than the wrong one —
+    everywhere else it would be a demolition order for whatever a strong
+    editing model decided the rest of the room should become, because the
+    "everywhere except this" it protects is a door frame or two against an
+    entire redesign. Here the model is being told to touch nothing BUT a
+    rectangle a person drew on purpose, which is exactly what a mask is
+    for. Left at None, the edit is the whole photograph, same as before.
 
     Chaining ("a third instruction edits the second result") is the
     caller's job, not this function's: it always edits exactly the bytes it
@@ -73,8 +84,18 @@ async def edit_design(design: bytes, instruction: str, settings: Settings,
     from . import openai_images
 
     image = load_image(design)
-    prompt = f"{instruction.strip()}\n\n{PRESERVE}"
-    return await openai_images.redraw(image, None, prompt, settings,
+    mask = None
+    if region is not None:
+        mask = build_region_mask(image.size, region)
+        prompt = (
+            f"{instruction.strip()}\n\nOnly change what is inside the "
+            "marked area. Blend it naturally with what is around it — "
+            "matching light, perspective and material — rather than "
+            f"leaving a visible seam at its edge.\n\n{PRESERVE}"
+        )
+    else:
+        prompt = f"{instruction.strip()}\n\n{PRESERVE}"
+    return await openai_images.redraw(image, mask, prompt, settings,
                                       quality=tier_of(tier)["quality"])
 
 

@@ -559,13 +559,92 @@ class TestApplyThisChange:
                               Settings(google_api_key="g"))
 
 
+class TestMarkingAnAreaToEdit:
+    """Everywhere else in this app, a mask is a demolition order — it tells
+    a strong editing model to repaint everything it leaves open, which is
+    how a full redesign erased furniture nobody asked to lose. A region
+    someone marked on purpose is the one place that is exactly backwards:
+    the mask IS the ask, and the model should touch nothing else."""
+
+    def _png(self, size=(40, 20), colour=(10, 20, 30)):
+        buf = io.BytesIO()
+        Image.new("RGB", size, colour).save(buf, "PNG")
+        return buf.getvalue()
+
+    @pytest.mark.asyncio
+    async def test_no_region_means_no_mask_same_as_before(self, monkeypatch):
+        from app.pipeline import edit_design
+
+        seen = {}
+
+        async def redraw(image, mask, prompt, s, **kw):
+            seen["mask"] = mask
+            return self._png()
+
+        monkeypatch.setattr("app.openai_images.redraw", redraw)
+        await edit_design(self._png(), "make it warmer", settings())
+        assert seen["mask"] is None
+
+    @pytest.mark.asyncio
+    async def test_a_region_becomes_a_mask_white_inside_black_outside(self, monkeypatch):
+        import numpy as np
+        from app.pipeline import edit_design
+
+        seen = {}
+
+        async def redraw(image, mask, prompt, s, **kw):
+            seen["mask"] = mask
+            return self._png()
+
+        monkeypatch.setattr("app.openai_images.redraw", redraw)
+        # Right half of a 40x20 image.
+        await edit_design(self._png(), "add a window", settings(),
+                          region=(0.5, 0.0, 0.5, 1.0))
+
+        arr = np.array(seen["mask"])
+        assert arr.shape == (20, 40)
+        assert (arr[:, :20] == 0).all()      # left half: preserved
+        assert (arr[:, 20:] == 255).all()    # right half: editable
+
+    @pytest.mark.asyncio
+    async def test_the_prompt_says_to_blend_and_touch_nothing_else(self, monkeypatch):
+        from app.generation import PRESERVE
+        from app.pipeline import edit_design
+
+        seen = {}
+
+        async def redraw(image, mask, prompt, s, **kw):
+            seen["prompt"] = prompt
+            return self._png()
+
+        monkeypatch.setattr("app.openai_images.redraw", redraw)
+        await edit_design(self._png(), "add a window", settings(),
+                          region=(0.1, 0.1, 0.2, 0.2))
+
+        assert "add a window" in seen["prompt"]
+        assert "Only change what is inside the marked area" in seen["prompt"]
+        assert PRESERVE in seen["prompt"]     # still rides along, region or not
+
+
+def _isolated(tmp_path, **kw):
+    """/api/edit now spends from the same daily quota as /api/generate
+    (store.Usage), so a test that hits it for real goes through the app's
+    actual startup and, with no database_url given, would fall back to
+    ./second-draft.db — a file that persists on disk between tests and
+    even between separate pytest runs. Every test below that posts to
+    /api/edit gets its own tmp_path database instead, or an early one's
+    successful edit silently spends a later, unrelated test's quota."""
+    kw.setdefault("database_url", f"sqlite+aiosqlite:///{tmp_path}/t.db")
+    return settings(**kw)
+
+
 class TestApplyThisChangeEndpoint:
     def _png(self):
         buf = io.BytesIO()
         Image.new("RGB", (32, 32)).save(buf, "PNG")
         return buf.getvalue()
 
-    def test_it_edits_and_returns_an_image(self, monkeypatch):
+    def test_it_edits_and_returns_an_image(self, monkeypatch, tmp_path):
         from fastapi.testclient import TestClient
 
         import app.main as main
@@ -574,7 +653,7 @@ class TestApplyThisChangeEndpoint:
         async def redraw(image, mask, prompt, s, **kw):
             return self._png()
 
-        monkeypatch.setattr(main, "get_settings", settings)
+        monkeypatch.setattr(main, "get_settings", lambda: _isolated(tmp_path))
         monkeypatch.setattr("app.openai_images.redraw", redraw)
 
         with TestClient(app) as c:
@@ -584,13 +663,13 @@ class TestApplyThisChangeEndpoint:
         assert r.status_code == 200
         assert r.json()["image_base64"]
 
-    def test_an_empty_instruction_is_refused(self, monkeypatch):
+    def test_an_empty_instruction_is_refused(self, monkeypatch, tmp_path):
         from fastapi.testclient import TestClient
 
         import app.main as main
         from app.main import app
 
-        monkeypatch.setattr(main, "get_settings", settings)
+        monkeypatch.setattr(main, "get_settings", lambda: _isolated(tmp_path))
 
         with TestClient(app) as c:
             r = c.post("/api/edit",
@@ -598,18 +677,94 @@ class TestApplyThisChangeEndpoint:
                       data={"instruction": "   "})
         assert r.status_code == 400
 
-    def test_the_wrong_engine_is_refused_not_500d(self, monkeypatch):
+    def test_the_wrong_engine_is_refused_not_500d(self, monkeypatch, tmp_path):
         from fastapi.testclient import TestClient
 
         import app.main as main
-        from app.config import Settings
         from app.main import app
 
         monkeypatch.setattr(main, "get_settings",
-                            lambda: Settings(google_api_key="g"))
+                            lambda: _isolated(tmp_path, google_api_key="g",
+                                              openai_api_key=""))
 
         with TestClient(app) as c:
             r = c.post("/api/edit",
                       files={"design": ("d.png", self._png(), "image/png")},
                       data={"instruction": "make it warmer"})
         assert r.status_code == 400
+
+
+class TestMarkingAnAreaEndpoint:
+    def _png(self):
+        buf = io.BytesIO()
+        Image.new("RGB", (32, 32)).save(buf, "PNG")
+        return buf.getvalue()
+
+    def test_a_full_rectangle_is_accepted(self, monkeypatch, tmp_path):
+        from fastapi.testclient import TestClient
+
+        import app.main as main
+        from app.main import app
+
+        async def redraw(image, mask, prompt, s, **kw):
+            assert mask is not None
+            return self._png()
+
+        monkeypatch.setattr(main, "get_settings", lambda: _isolated(tmp_path))
+        monkeypatch.setattr("app.openai_images.redraw", redraw)
+
+        with TestClient(app) as c:
+            r = c.post("/api/edit",
+                      files={"design": ("d.png", self._png(), "image/png")},
+                      data={"instruction": "add a window",
+                            "x": "0.1", "y": "0.1", "w": "0.3", "h": "0.2"})
+        assert r.status_code == 200
+
+    def test_a_partial_rectangle_is_refused(self, monkeypatch, tmp_path):
+        from fastapi.testclient import TestClient
+
+        import app.main as main
+        from app.main import app
+
+        monkeypatch.setattr(main, "get_settings", lambda: _isolated(tmp_path))
+
+        with TestClient(app) as c:
+            r = c.post("/api/edit",
+                      files={"design": ("d.png", self._png(), "image/png")},
+                      data={"instruction": "add a window", "x": "0.1", "y": "0.1"})
+        assert r.status_code == 400
+
+    def test_a_rectangle_outside_the_photograph_is_refused(self, monkeypatch, tmp_path):
+        from fastapi.testclient import TestClient
+
+        import app.main as main
+        from app.main import app
+
+        monkeypatch.setattr(main, "get_settings", lambda: _isolated(tmp_path))
+
+        with TestClient(app) as c:
+            r = c.post("/api/edit",
+                      files={"design": ("d.png", self._png(), "image/png")},
+                      data={"instruction": "add a window",
+                            "x": "0.8", "y": "0.1", "w": "0.5", "h": "0.2"})
+        assert r.status_code == 400
+
+    def test_no_rectangle_at_all_still_works(self, monkeypatch, tmp_path):
+        """The existing whole-photograph edit must not regress."""
+        from fastapi.testclient import TestClient
+
+        import app.main as main
+        from app.main import app
+
+        async def redraw(image, mask, prompt, s, **kw):
+            assert mask is None
+            return self._png()
+
+        monkeypatch.setattr(main, "get_settings", lambda: _isolated(tmp_path))
+        monkeypatch.setattr("app.openai_images.redraw", redraw)
+
+        with TestClient(app) as c:
+            r = c.post("/api/edit",
+                      files={"design": ("d.png", self._png(), "image/png")},
+                      data={"instruction": "make it warmer"})
+        assert r.status_code == 200

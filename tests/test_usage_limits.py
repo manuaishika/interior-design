@@ -209,3 +209,39 @@ class TestFailingOpenRatherThanClosed:
         with TestClient(app) as c:
             for _ in range(4):   # more than anon_daily_designs=2
                 assert draw(c, ip="5.5.5.5").status_code == 200
+
+
+class TestEditAlsoSpendsTheQuota:
+    """/api/edit costs the same real money as /api/generate — it was not
+    gated at all before this, which meant hitting the daily cap on
+    /api/generate was never actually a cap: the same person could keep
+    editing instead."""
+
+    def _png(self):
+        buf = io.BytesIO()
+        Image.new("RGB", (32, 32)).save(buf, "PNG")
+        return buf.getvalue()
+
+    def test_an_edit_counts_against_the_same_anonymous_quota(self, client, monkeypatch):
+        draw_stub(monkeypatch)
+        for _ in range(2):
+            assert draw(client, ip="6.6.6.6").status_code == 200
+        r = client.post(
+            "/api/edit",
+            files={"design": ("d.png", self._png(), "image/png")},
+            data={"instruction": "make it warmer"},
+            headers={"x-forwarded-for": "6.6.6.6"},
+        )
+        assert r.status_code == 429
+
+    def test_an_edit_can_itself_spend_the_last_of_the_quota(self, client, monkeypatch):
+        draw_stub(monkeypatch)
+        r = client.post(
+            "/api/edit",
+            files={"design": ("d.png", self._png(), "image/png")},
+            data={"instruction": "make it warmer"},
+            headers={"x-forwarded-for": "7.7.7.7"},
+        )
+        assert r.status_code == 200
+        assert draw(client, ip="7.7.7.7").status_code == 200        # 2nd
+        assert draw(client, ip="7.7.7.7").status_code == 429        # 3rd, over

@@ -262,8 +262,27 @@
   .shots { display: grid; gap: .8rem; width: 100%;
     grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); align-self: start; }
   .shots figure { margin: 0; }
+  .shots .frame { position: relative; }
   .shots img { width: 100%; border-radius: 2px; display: block; }
   .shots figcaption { font-size: .72rem; color: #A79E90; margin-top: .35rem; }
+
+  /* Marking one spot on a design, rather than describing the whole photo
+     in words to change one thing in it. .marking swaps the cursor for a
+     crosshair the moment the mode is on, before anyone has dragged
+     anything, so the mode itself is visible. */
+  .frame.marking img { cursor: crosshair; }
+  .mark-rect { position: absolute; border: 2px dashed var(--clay);
+    background: rgba(176,74,36,.16); pointer-events: none; }
+  .mark-ask { position: absolute; z-index: 5; background: #14130F;
+    border: 1px solid rgba(239,234,224,.25); border-radius: 2px;
+    padding: .55rem; display: flex; gap: .4rem; box-shadow: 0 6px 18px rgba(0,0,0,.35);
+    width: min(240px, 90%); }
+  .mark-ask input { flex: 1; min-width: 0; border: 1px solid rgba(239,234,224,.25);
+    background: rgba(255,255,255,.06); border-radius: 2px; padding: .3rem .5rem;
+    font-size: .78rem; color: #F5F2EA; }
+  .mark-ask input::placeholder { color: #8B8377; }
+  .mark-ask button { flex: none; }
+  .mark-toggle.on { border-color: var(--clay); color: #F5F2EA; }
 
   /* Quieter than the Save/Download/Compare row on purpose — this is an
      aside the design offers to ask, not a control anyone came here for. */
@@ -2482,6 +2501,174 @@
      first one to land appears immediately and the rest fill in around it;
      variant_offset is what keeps three separate variants=1 calls from all
      drawing the identical option (see pipeline.run_pipeline's docstring). */
+  function b64ToBlob(b64, type) {
+    var raw = atob(b64), buf = new Uint8Array(raw.length);
+    for (var i = 0; i < raw.length; i++) { buf[i] = raw.charCodeAt(i); }
+    return new Blob([buf], { type: type || 'image/png' });
+  }
+
+  /* Marking one spot on a design and saying what should change there,
+     rather than describing the whole photograph in words to change one
+     thing in it — the same shape as ChatGPT's own image markup, aimed at
+     a design already on screen instead of the room photo it came from.
+     The mask this builds (imaging.build_region_mask) is the one place in
+     the whole app a mask is the right tool: everywhere else it would be a
+     demolition order for whatever the model decided the rest of the room
+     should become; here the model is told to touch nothing BUT the
+     rectangle someone drew on purpose. Only one frame is ever in marking
+     mode — starting a second cancels whichever was already open. */
+  var activeMarking = null;
+
+  function toggleMarking(frame, img, button, g) {
+    if (activeMarking) {
+      var was = activeMarking.frame;
+      activeMarking.cancel();
+      if (was === frame) { return; }   // toggled off, not switched
+    }
+    startMarking(frame, img, button, g);
+  }
+
+  function startMarking(frame, img, button, g) {
+    frame.classList.add('marking');
+    frame.style.touchAction = 'none';
+    button.classList.add('on');
+    button.textContent = 'Cancel marking';
+
+    var rectEl = null, startX = 0, startY = 0, dragging = false;
+
+    function point(e) {
+      var box = frame.getBoundingClientRect();
+      return {
+        x: Math.max(0, Math.min(1, (e.clientX - box.left) / box.width)),
+        y: Math.max(0, Math.min(1, (e.clientY - box.top) / box.height)),
+      };
+    }
+
+    function draw(p) {
+      var x = Math.min(startX, p.x), y = Math.min(startY, p.y);
+      var w = Math.abs(p.x - startX), h = Math.abs(p.y - startY);
+      rectEl.style.left = (x * 100) + '%';
+      rectEl.style.top = (y * 100) + '%';
+      rectEl.style.width = (w * 100) + '%';
+      rectEl.style.height = (h * 100) + '%';
+      rectEl.box = [x, y, w, h];
+    }
+
+    function down(e) {
+      if (e.button) { return; }   // a right- or middle-click is not a mark
+      var p = point(e);
+      startX = p.x; startY = p.y; dragging = true;
+      rectEl = document.createElement('div');
+      rectEl.className = 'mark-rect';
+      frame.appendChild(rectEl);
+      draw(p);
+      e.preventDefault();
+    }
+
+    function move(e) {
+      if (!dragging) { return; }
+      draw(point(e));
+      e.preventDefault();
+    }
+
+    function up() {
+      if (!dragging) { return; }
+      dragging = false;
+      var box = rectEl && rectEl.box;
+      // Under 3% of the image in either direction reads as a stray tap,
+      // not a marked area — cancel rather than ask about a sliver.
+      if (!box || box[2] < 0.03 || box[3] < 0.03) { cancel(); return; }
+      askAbout(box);
+    }
+
+    function askAbout(box) {
+      frame.removeEventListener('pointerdown', down);
+      frame.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+
+      var ask = document.createElement('div');
+      ask.className = 'mark-ask';
+      ask.style.left = ((box[0] + box[2] / 2) * 100) + '%';
+      ask.style.top = 'calc(' + ((box[1] + box[3]) * 100) + '% + .4rem)';
+      ask.style.transform = 'translateX(-50%)';
+
+      var input = document.createElement('input');
+      input.type = 'text';
+      input.placeholder = 'What should change here?';
+
+      var go = document.createElement('button');
+      go.className = 'cta clay';
+      go.type = 'button';
+      go.textContent = 'Change';
+      go.onclick = function () { submit(box, input.value); };
+
+      var no = document.createElement('button');
+      no.className = 'cta ghost';
+      no.type = 'button';
+      no.textContent = '×';
+      no.onclick = cancel;
+
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { go.click(); }
+        if (e.key === 'Escape') { cancel(); }
+      });
+
+      ask.appendChild(input);
+      ask.appendChild(go);
+      ask.appendChild(no);
+      frame.appendChild(ask);
+      input.focus();
+    }
+
+    async function submit(box, instruction) {
+      instruction = (instruction || '').trim();
+      if (!instruction) { return; }
+      finish();
+      var note = document.createElement('p');
+      note.className = 'need ok';
+      note.textContent = 'Changing that spot…';
+      frame.parentNode.insertBefore(note, frame.nextSibling);
+      var f = new FormData();
+      f.append('design', b64ToBlob(g.image_base64), 'design.png');
+      f.append('instruction', instruction);
+      f.append('x', String(box[0]));
+      f.append('y', String(box[1]));
+      f.append('w', String(box[2]));
+      f.append('h', String(box[3]));
+      try {
+        var r = await fetch(api('/api/edit'), { method: 'POST', body: f, credentials: 'include' });
+        var d = await r.json();
+        if (!r.ok) throw new Error(d.detail || 'Could not change that.');
+        appendDesign({ image_base64: d.image_base64 }, $('shots').children.length,
+                     [], 'Edited · ' + instruction);
+      } catch (e) {
+        say((e && e.message) || 'Could not change that.', true);
+      } finally {
+        note.remove();
+      }
+    }
+
+    function cancel() { finish(); }
+
+    function finish() {
+      frame.classList.remove('marking');
+      frame.style.touchAction = '';
+      button.classList.remove('on');
+      button.textContent = 'Mark an area';
+      frame.removeEventListener('pointerdown', down);
+      frame.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      var old = frame.querySelector('.mark-rect'); if (old) { old.remove(); }
+      var oldAsk = frame.querySelector('.mark-ask'); if (oldAsk) { oldAsk.remove(); }
+      if (activeMarking && activeMarking.frame === frame) { activeMarking = null; }
+    }
+
+    frame.addEventListener('pointerdown', down);
+    frame.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    activeMarking = { frame: frame, cancel: cancel };
+  }
+
   /* "Why isn't the agent getting better" has no honest answer from inside
      one session — one person's read of one result is a data point, the
      prompt got tuned against exactly one of those so far. This is the
@@ -2568,9 +2755,20 @@
     working(false);
     $('shots').classList.remove('hidden');
 
+    // .frame wraps only the image — nothing else — so it exactly matches
+    // the image's own rendered box, which is what lets the markup
+    // rectangle's fractions (0-1) mean the same thing here as they do to
+    // the backend, and what keeps openCompare's own overlay (still
+    // targeting `figure`, unchanged) from interacting with this at all.
+    var frame = document.createElement('div');
+    frame.className = 'frame';
+
     var img = document.createElement('img');
     img.src = 'data:image/png;base64,' + g.image_base64;
     img.alt = caption || ('Design ' + (i + 1));
+    img.draggable = false;   // the browser's own drag-image gesture would
+                             // otherwise fight a drag meant to mark a spot
+    frame.appendChild(img);
 
     var cap = document.createElement('figcaption');
     cap.textContent = caption || ('Design ' + (i + 1) + ' · ' + style.name);
@@ -2600,11 +2798,18 @@
     compare.textContent = 'Compare';
     compare.onclick = function () { openCompare(g.image_base64, figure); };
 
+    var mark = document.createElement('button');
+    mark.className = 'cta ghost keep mark-toggle';
+    mark.type = 'button';
+    mark.textContent = 'Mark an area';
+    mark.onclick = function () { toggleMarking(frame, img, mark, g, i); };
+
     row.appendChild(keep);
     row.appendChild(down);
     row.appendChild(compare);
+    row.appendChild(mark);
 
-    figure.appendChild(img);
+    figure.appendChild(frame);
     figure.appendChild(cap);
     figure.appendChild(row);
     figure.appendChild(designFeedback(g));

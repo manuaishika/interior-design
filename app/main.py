@@ -773,25 +773,52 @@ async def edit_endpoint(
     request: Request,
     design: UploadFile = File(...),
     instruction: str = Form(...),
+    x: float | None = Form(None),
+    y: float | None = Form(None),
+    w: float | None = Form(None),
+    h: float | None = Form(None),
 ):
     """A follow-up edits the design already on screen — see
     pipeline.edit_design for why this is not just another /api/generate
     call. Guarded like /api/generate and /api/chat: it costs money the
-    moment it runs.
+    moment it runs, so it now spends from the same daily quota — before
+    this it was the one place left where a request that actually costs
+    money did not, which someone hitting a limit on /api/generate could
+    simply have called instead.
+
+    x, y, w, h: a rectangle someone marked directly on the design, as
+    fractions of it (0-1). All four or none — a partial rectangle is not
+    a smaller one, it is a broken request.
     """
     settings = get_settings()
     auth.guard(request, settings)
     tier = await _tier_for(request, settings)
+    usage_key = await _usage_gate(request, settings, tier)
     instruction = instruction.strip()
     if not instruction:
         raise HTTPException(400, "Say what to change.")
+
+    region = None
+    given = (x, y, w, h)
+    if any(v is not None for v in given):
+        if None in given:
+            raise HTTPException(400, "A marked area needs its full outline.")
+        if not (0 <= x < 1 and 0 <= y < 1 and 0 < w <= 1 and 0 < h <= 1
+                and x + w <= 1.001 and y + h <= 1.001):
+            raise HTTPException(400, "That marked area is outside the photograph.")
+        region = (x, y, w, h)
+
     data = await _read_upload(design, settings)
     try:
-        result = await edit_design(data, instruction, settings, tier=tier)
+        result = await edit_design(data, instruction, settings, tier=tier,
+                                   region=region)
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
     except RuntimeError as exc:
         raise HTTPException(502, str(exc)) from exc
+    if store.is_configured():
+        async with store.session() as db:
+            await store.bump_usage(db, usage_key, 1)
     return {"image_base64": base64.b64encode(result).decode("ascii")}
 
 
