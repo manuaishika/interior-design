@@ -115,7 +115,17 @@ class TestEveryShotIsRedrawnNoneIsJustAReference:
 
     def test_a_light_restyle_swaps_its_photo_rather_than_refusing(self):
         body = function_body(page(), "function addPhotos(")
-        assert "shots = [input.files[0]];" in body
+        assert "files.slice(0, 1)" in body       # only the first is kept...
+        assert "shots = ready;" in body          # ...and it replaces, not appends
+
+    def test_photos_are_shrunk_to_what_the_server_uses_before_upload(self):
+        """A phone photo is 3-12 MB; the server works at 1536px anyway, and
+        every design request re-sent every angle at full size — the
+        sluggishness on a phone, and a request that fails on weak signal."""
+        source = page()
+        assert "var PHOTO_EDGE = 1536;" in source
+        assert "keep.map(shrinkPhoto)" in function_body(source, "function addPhotos(")
+        assert "imageOrientation: 'from-image'" in source   # portraits stay upright
 
 
 class TestDocsCopyMatches:

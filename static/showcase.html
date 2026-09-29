@@ -585,7 +585,8 @@
 
   /* ---------- pricing ---------- */
   .tiers { display: grid; gap: 1rem; margin-top: 2.4rem; }
-  @media (min-width: 860px) { .tiers { grid-template-columns: repeat(3, 1fr); } }
+  @media (min-width: 620px) { .tiers { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 1080px) { .tiers { grid-template-columns: repeat(4, 1fr); } }
   .tier { border: 1px solid var(--line); border-radius: 2px; padding: 1.5rem 1.4rem;
     background: var(--raise); display: flex; flex-direction: column; }
   .tier.pick { background: var(--dark); border-color: var(--dark); color: #EFEAE0; }
@@ -620,6 +621,10 @@
   .peek-shots img, .peek-shots svg { display: block; width: 100%;
     aspect-ratio: 4/3; object-fit: cover; }
   .peek-foot { font-size: .7rem; color: var(--muted); margin: .55rem 0 0; }
+  /* The same look, shown in place on a phone: no hover to open a popup
+     and nothing to dismiss it but the next tap. */
+  .look-card { margin-top: .6rem; padding: .7rem; background: var(--raise);
+    border: 1px solid var(--line); border-radius: 2px; }
   .saved-card { position: relative; }
   .saved-card img { display: block; width: 100%; aspect-ratio: 4/3;
     object-fit: cover; }
@@ -816,8 +821,12 @@
           <select class="drop-sel" id="roomSel"></select>
 
           <p class="lab">Look</p>
-          <p class="hint">Hover to see one.</p>
+          <p class="hint" id="lookHint">Hover to see one.</p>
           <div class="pills" id="stylePills"></div>
+          <div class="look-card hidden" id="lookCard">
+            <div class="peek-head"><b id="lookName"></b><span id="lookMade"></span></div>
+            <div class="peek-shots" id="lookShots"></div>
+          </div>
 
           <p class="lab">Options</p>
           <div class="count">
@@ -1004,44 +1013,60 @@
   <div class="wrap">
     <p class="kick">Pricing</p>
     <h1 class="big">Cheaper than one wrong sofa.</h1>
-    <p class="lede">Draft figures — placeholders showing the shape of the plan.
-       Set your own before this page goes in front of a customer.</p>
+    <p class="lede">Start free, no card. Paid plans open soon — prices
+       will be listed here when they do.</p>
+    <!-- The same four plans config.TIERS actually runs on, and nothing
+         they do not do. This page used to sell "Sketch / Studio /
+         Practice" with 100 designs a day, shareable boards and a priority
+         queue — none of which existed. -->
     <div class="tiers">
       <div class="tier">
-        <h3>Sketch</h3>
-        <div class="price">Free</div>
-        <span class="per">For one room, one afternoon</span>
+        <h3>Free</h3>
+        <div class="price">AED 0</div>
+        <span class="per">To see what your room could be</span>
         <ul>
-          <li>5 designs a day</li>
-          <li>All six core looks</li>
-          <li>Downloads without a watermark</li>
-          <li>Public gallery access</li>
+          <li>5 designs a day when signed in, 2 without</li>
+          <li>Up to 2 designs per run, standard quality</li>
+          <li>Every look, or your own brief</li>
+          <li>Before and after, download, mark an area to change</li>
         </ul>
         <button class="cta" type="button" data-go="studio">Start for free</button>
       </div>
       <div class="tier pick">
-        <h3>Studio</h3>
+        <h3>One Room</h3>
         <div class="price">&mdash;</div>
-        <span class="per">Per month, for people mid-renovation</span>
+        <span class="per">For the room you are about to redo</span>
         <ul>
-          <li>100 designs a day</li>
-          <li>Custom briefs in your own words</li>
-          <li>Before and after exports</li>
-          <li>Material and furniture lists</li>
+          <li>No daily limit</li>
+          <li>Up to 3 designs per run</li>
+          <li>High quality</li>
+          <li>Everything in Free</li>
         </ul>
-        <button class="cta clay" type="button" data-go="studio">Choose Studio</button>
+        <button class="cta clay" type="button" disabled>Coming soon</button>
       </div>
       <div class="tier">
-        <h3>Practice</h3>
+        <h3>Whole Home</h3>
         <div class="price">&mdash;</div>
-        <span class="per">Per seat, for design teams</span>
+        <span class="per">For more than one room</span>
         <ul>
-          <li>Unlimited designs</li>
-          <li>Boards you can share with clients</li>
-          <li>Your own brand style presets</li>
-          <li>Priority queue</li>
+          <li>No daily limit</li>
+          <li>Up to 4 designs per run</li>
+          <li>High quality</li>
+          <li>Everything in Free</li>
         </ul>
-        <button class="cta" type="button" data-go="studio">Talk to us</button>
+        <button class="cta" type="button" disabled>Coming soon</button>
+      </div>
+      <div class="tier">
+        <h3>Studio</h3>
+        <div class="price">&mdash;</div>
+        <span class="per">For designers presenting to clients</span>
+        <ul>
+          <li>No daily limit</li>
+          <li>Up to 4 designs per run</li>
+          <li>Highest quality</li>
+          <li>Everything in Free</li>
+        </ul>
+        <button class="cta" type="button" disabled>Coming soon</button>
       </div>
     </div>
   </div>
@@ -1540,7 +1565,9 @@
       var box = document.createElement('div');
       box.className = 'shot-in';
       var img = document.createElement('img');
-      img.src = URL.createObjectURL(file);
+      // Once per photo, not once per redraw — each call decoded the
+      // photo again and nothing ever freed the last copy.
+      img.src = file._thumb || (file._thumb = URL.createObjectURL(file));
       img.alt = 'Photo ' + (i + 1);
       box.appendChild(img);
       // Every photo in the strip is redrawn — there is nothing left to
@@ -1619,7 +1646,7 @@
     })[0] || ROOM_TYPES[0];
   };
 
-  pillRow($('stylePills'), LOOKS, style, function (x) { style = x; peek(x); }, true);
+  pillRow($('stylePills'), LOOKS, style, pickLook, true);
   pillRow($('depthPills'), DEPTHS, depth, function (x) {
     depth = x;
     say('');   // whatever the last mode was missing no longer applies
@@ -1645,6 +1672,25 @@
      fallback is per-image and silent, so half a set works as well as a whole
      one and nobody sees a broken frame. */
   var peekTimer = null, peekOver = false;
+
+  /* A phone has no hover. The popup below opened on a tap and died 180ms
+     later when the tap's synthetic mouseleave fired — "Mid-century" never
+     said what it meant. On a device that cannot hover, the look is shown
+     in place under the pills instead, and stays until the next tap. */
+  var TOUCH = window.matchMedia && window.matchMedia('(hover: none)').matches;
+
+  function showLookCard(look) {
+    if (!look) return;
+    $('lookName').textContent = look.name;
+    $('lookMade').textContent = look.plain ? '' : look.made;
+    peekFrames(look, $('lookShots'));
+    $('lookCard').classList.remove('hidden');
+  }
+
+  function pickLook(x) {
+    style = x;
+    if (TOUCH) { showLookCard(x); } else { peek(x); }
+  }
 
   var PEEK_ROOMS = ['living', 'bedroom', 'kitchen'];
 
@@ -1708,6 +1754,7 @@
   }
 
   $('stylePills').addEventListener('mouseover', function (e) {
+    if (TOUCH) return;
     var pill = e.target.closest('[data-id]');
     if (!pill) return;
     clearTimeout(peekTimer);
@@ -1733,6 +1780,13 @@
     peekOver = false;
     $('peek').classList.add('hidden');
   }, { passive: true });
+
+  // On a phone, say "tap" rather than "hover", and show the look already
+  // picked so the pills mean something before anyone touches them.
+  if (TOUCH) {
+    $('lookHint').textContent = 'Tap one to see it.';
+    showLookCard(style);
+  }
 
   $('less').onclick = function () {
     count = Math.max(1, count - 1);
@@ -2108,7 +2162,7 @@
     var foundStyle = LOOKS.filter(function (x) { return x.id === d.style; })[0];
     if (foundStyle) {
       style = foundStyle;
-      pillRow($('stylePills'), LOOKS, style, function (x) { style = x; peek(x); }, true);
+      pillRow($('stylePills'), LOOKS, style, pickLook, true);
     }
 
     convId = d.id;
@@ -2217,7 +2271,50 @@
   // One path for both ways in: a gallery pick (several at once) and a
   // camera shot (one, by nature). Same guardrail either way — the camera
   // is not a way round the ceiling.
-  function addPhotos(input) {
+  /* A phone photo is 3-12 MB at about 4000px wide; the server shrinks
+     every photo to 1536px before it does anything with it (max_image_edge
+     in config.py). Sending it full size anyway meant every design request
+     carried every angle at full size — four photos is sixteen full-size
+     uploads per run over mobile data, which is the sluggishness, and on a
+     weak connection a request that simply fails. Shrunk here, once, to the
+     size the server was going to use: the same picture it would have
+     worked from, a tenth of the bytes. Anything already small enough, or
+     anything this browser cannot decode, goes up as it is. */
+  var PHOTO_EDGE = 1536;
+
+  function shrinkPhoto(file) {
+    function draw(src, w, h) {
+      var scale = Math.min(1, PHOTO_EDGE / Math.max(w, h));
+      if (scale >= 1 && file.size < 1.5e6) { return Promise.resolve(file); }
+      var c = document.createElement('canvas');
+      c.width = Math.round(w * scale); c.height = Math.round(h * scale);
+      c.getContext('2d').drawImage(src, 0, 0, c.width, c.height);
+      return new Promise(function (res) {
+        c.toBlob(function (blob) {
+          res(blob ? new File([blob], (file.name || 'photo').replace(/\.\w+$/, '') + '.jpg',
+                              { type: 'image/jpeg' }) : file);
+        }, 'image/jpeg', 0.88);
+      });
+    }
+    // createImageBitmap honours the camera's EXIF rotation, so a portrait
+    // photo does not arrive sideways once the orientation tag is gone.
+    if (window.createImageBitmap) {
+      return createImageBitmap(file, { imageOrientation: 'from-image' })
+        .then(function (bmp) { return draw(bmp, bmp.width, bmp.height); })
+        .catch(function () { return file; });
+    }
+    return new Promise(function (res) {
+      var img = new Image(), url = URL.createObjectURL(file);
+      img.onload = function () {
+        draw(img, img.naturalWidth, img.naturalHeight)
+          .then(function (out) { URL.revokeObjectURL(url); res(out); });
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); res(file); };
+      img.src = url;
+    });
+  }
+
+  async function addPhotos(input) {
     if (!input.files.length) return;
     // A deliberate new upload always means a new room, even if a history
     // thread was open a moment ago — carrying its id forward would file the
@@ -2228,17 +2325,21 @@
     turns = [];
     $('thread').innerHTML = '';
     hideResults();
-    var picked = input.files.length, before = shots.length, cap = maxShots();
+    var files = Array.prototype.slice.call(input.files);
+    input.value = '';        // so the same file can be picked again later
+    var picked = files.length, before = shots.length, cap = maxShots();
+    // Only the photos that will actually be kept are worth shrinking.
+    var keep = cap === 1 ? files.slice(0, 1) : files.slice(0, Math.max(0, cap - shots.length));
+    if (keep.length) { say('Preparing ' + (keep.length > 1 ? 'photos' : 'photo') + '…'); }
+    var ready = await Promise.all(keep.map(shrinkPhoto));
+    say('');
     if (cap === 1) {
       // One photo is the whole of a light restyle, so picking another is
       // a swap, not an addition refused.
-      shots = [input.files[0]];
+      shots = ready;
     } else {
-      Array.prototype.forEach.call(input.files, function (f) {
-        if (shots.length < cap) { shots.push(f); }
-      });
+      shots = shots.concat(ready);
     }
-    input.value = '';        // so the same file can be picked again later
     drawShots();
     refresh();
     if (cap === 1 && picked > 1) {

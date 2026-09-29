@@ -78,3 +78,42 @@ class TestTheBuildMarker:
         body = source[start:end]
         assert "$('build').textContent" in body
         assert "h.build" in body
+
+
+class TestLooksOnATouchScreen:
+    """A phone has no hover: the look popup opened on a tap and died 180ms
+    later, so "Mid-century" never said what it meant. On a device that
+    cannot hover, the look is shown in place under the pills."""
+
+    def test_touch_is_detected_by_hover_capability_not_width(self):
+        assert "matchMedia('(hover: none)')" in page()
+
+    def test_a_tap_fills_the_card_instead_of_the_popup(self):
+        source = page()
+        pick = source[source.index("function pickLook("):]
+        pick = pick[:pick.index("\n  }")]
+        assert "if (TOUCH) { showLookCard(x); } else { peek(x); }" in pick
+        assert 'id="lookCard"' in source
+
+    def test_the_hint_says_tap_on_a_phone(self):
+        assert "Tap one to see it." in page()
+
+
+class TestThePricingPageSellsWhatExists:
+    """It used to sell Sketch / Studio / Practice — 100 designs a day,
+    shareable boards, a priority queue — none of which existed."""
+
+    def test_the_plans_are_the_ones_config_runs_on(self):
+        from app.config import TIERS
+        pricing = page()[page().index('id="v-pricing"'):page().index("</main>", page().index('id="v-pricing"'))]
+        for tier in TIERS.values():
+            assert f"<h3>{tier['label']}</h3>" in pricing
+        for gone in ("Sketch", "Practice", "100 designs a day", "Unlimited designs", "Priority queue"):
+            assert f">{gone}<" not in pricing and f"<li>{gone}</li>" not in pricing
+
+    def test_paid_plans_do_not_pretend_to_be_buyable(self):
+        pricing = page()[page().index('id="v-pricing"'):]
+        assert pricing.count("disabled>Coming soon</button>") == 3
+
+    def test_the_draft_note_is_not_shown_to_customers(self):
+        assert "Set your own before this page goes in front of a customer" not in page()
