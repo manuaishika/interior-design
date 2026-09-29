@@ -103,14 +103,19 @@ class TestEveryShotIsRedrawnNoneIsJustAReference:
         body = function_body(page(), "function drawShots(")
         assert "tag.textContent = 'Redrawn';" in body
 
-    def test_a_flat_ceiling_exists_and_says_so_upfront(self):
-        """MAX_SHOTS, not a per-tier number, and the person is told before
-        they hit it, not after — via a disabled button and a straight
-        sentence, not a relabelled photo."""
-        assert "var MAX_SHOTS = 8;" in page()
+    def test_the_ceiling_follows_the_mode_and_says_so_upfront(self):
+        """One photo is all a light restyle uses; a full redesign stops at
+        four — a room has that many walls. Enforced as photos are added,
+        with a disabled button and a straight sentence, never by quietly
+        leaving an accepted photo out of the redraw."""
+        assert "function maxShots() { return depth.id === 'renovate' ? 4 : 1; }" in page()
         body = function_body(page(), "function drawShots(")
         assert "$('plus').disabled = atMax;" in body
-        assert "Up to ' + MAX_SHOTS" in body
+        assert "Up to ' + maxShots() + ' angles for a full redesign" in body
+
+    def test_a_light_restyle_swaps_its_photo_rather_than_refusing(self):
+        body = function_body(page(), "function addPhotos(")
+        assert "shots = [input.files[0]];" in body
 
 
 class TestDocsCopyMatches:

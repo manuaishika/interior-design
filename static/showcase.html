@@ -1,3 +1,11 @@
+<meta charset="UTF-8">
+<!-- Without this, a phone browser renders the page at a desktop width
+     (~980px) and shrinks the whole thing to fit — which is exactly "have
+     to zoom in to use it": every element is really there at full desktop
+     size, just scaled down past the point of being tappable. This one
+     line is what makes CSS's own mobile breakpoints (the @media rules
+     throughout this file) apply at all on a phone. -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Second Draft</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -171,6 +179,7 @@
   .panel-body { display: grid; }
   @media (min-width: 860px) { .panel-body { grid-template-columns: 290px minmax(0,1fr); } }
   .controls { padding: 1rem; border-right: 1px solid var(--line); }
+  .drop-row { display: flex; gap: .5rem; }
   .drop { border: 1px dashed var(--line); border-radius: 2px; background: var(--card);
     padding: .7rem 1rem; text-align: center; cursor: pointer; width: 100%; }
   .drop:disabled { opacity: .55; cursor: default; }
@@ -178,6 +187,10 @@
     font-weight: var(--display-weight); font-size: .95rem; letter-spacing: -.01em; }
   .drop span { font-size: .74rem; color: var(--muted); }
   .drop img { max-height: 116px; border-radius: 6px; margin-bottom: .4rem; }
+  /* A laptop has no rear camera to open — this button only earns its
+     place on whatever the phone breakpoint is for the rest of the page. */
+  .drop.camera { display: none; }
+  @media (max-width: 760px) { .drop.camera { display: block; } }
 
   /* The strip of photographs. The first is the view that gets redrawn, so it
      is labelled — otherwise people upload their best angle second and wonder
@@ -775,10 +788,23 @@
 
           <p class="lab" id="photoLab">Photographs</p>
           <div class="shots-in" id="shotsIn"></div>
-          <button class="drop" id="plus" type="button">
-            <b id="dropTitle">Add a room photo</b>
-            <span id="dropNote">JPG or PNG &middot; a phone snapshot is plenty</span>
-          </button>
+          <div class="drop-row">
+            <button class="drop" id="plus" type="button">
+              <b id="dropTitle">Add a room photo</b>
+              <span id="dropNote">JPG or PNG &middot; a phone snapshot is plenty</span>
+            </button>
+            <!-- A file input with accept="image/*" alone shows a camera
+                 option on some phones and not others — this one is what
+                 makes it reliable: capture asks the OS directly for the
+                 camera rather than leaving it to however that phone's
+                 browser feels like presenting a plain file picker. Shown
+                 only under 760px (see the media query) — a laptop has no
+                 rear camera to open. -->
+            <button class="drop camera" id="cameraBtn" type="button">
+              <b>Take a photo</b>
+              <span>Use your camera now</span>
+            </button>
+          </div>
           <p class="need" id="need"></p>
 
           <p class="lab">Extra comments</p>
@@ -1045,6 +1071,11 @@
 </footer>
 
 <input type="file" id="photo" accept="image/*" multiple class="hidden">
+<!-- capture on its own, no multiple: a camera hands back one photo per
+     shot by nature, and asking for `multiple` here is what makes some
+     browsers drop the camera option entirely rather than show it
+     alongside one they cannot fulfil. -->
+<input type="file" id="photoCamera" accept="image/*" capture="environment" class="hidden">
 
 <div class="peek hidden" id="peek">
   <div class="peek-head">
@@ -1460,11 +1491,14 @@
      thing actually redesigned and the rest quietly relegated to context
      nobody asked to have invented for them. */
   var shots = [];
-  // A ceiling on one run, not on a plan — the same number for a free
-  // visitor and a Studio account, because the reason for it (a batch this
-  // size stops being "a room from a few angles" and starts being a job for
-  // someone, not a button) has nothing to do with what anyone is paying.
-  var MAX_SHOTS = 8;
+  // What one photo can show is a light restyle's whole job — a second
+  // photo there is not a smaller version of a full redesign, it is a
+  // photo the mode has no use for. A full redesign needs at least two
+  // angles (photosNeeded, below) and stops making sense past about four —
+  // a room has that many walls, not eight. Tied to depth, not to a plan:
+  // the reason for a ceiling here is what the mode can use, which has
+  // nothing to do with what anyone is paying.
+  function maxShots() { return depth.id === 'renovate' ? 4 : 1; }
   function currentPhoto() { return shots[0] || currentPhotoBlob; }
 
   /* A full redesign changes the ceiling, the floor and the furniture, and then
@@ -1483,8 +1517,9 @@
      each, full stop — that number belongs to how many corners of the room
      were actually photographed, which a plan has no opinion on. Capping it
      by tier.variants used to mean a photo could go in and quietly not come
-     back redrawn, quietly relabelled to explain why; MAX_SHOTS is the only
-     ceiling left, and it says so upfront rather than after the fact. */
+     back redrawn, quietly relabelled to explain why; maxShots() is the only
+     ceiling left, it is enforced when a photo is added rather than after,
+     and it says so upfront. */
   function optionCount() {
     return shots.length > 1 ? shots.length : count;
   }
@@ -1524,12 +1559,19 @@
       strip.appendChild(box);
     });
 
-    var atMax = shots.length >= MAX_SHOTS;
+    // A light restyle's one photo can always be swapped; only a full
+    // redesign's ceiling actually closes the button.
+    var swap = maxShots() === 1 && shots.length >= 1;
+    var atMax = !swap && shots.length >= maxShots();
     $('plus').disabled = atMax;
+    $('cameraBtn').disabled = atMax;
     var need = $('need'), short = photosNeeded() - shots.length;
-    if (atMax) {
+    if (swap) {
+      $('dropTitle').textContent = 'Replace photo';
+      $('dropNote').textContent = 'Pick a different one';
+    } else if (atMax) {
       $('dropTitle').textContent = 'That is plenty';
-      $('dropNote').textContent = 'Up to ' + MAX_SHOTS + ' photos in one run';
+      $('dropNote').textContent = 'Up to ' + maxShots() + ' angles for a full redesign';
     } else {
       $('dropTitle').textContent = shots.length ? 'Add another photo'
                                                 : 'Add a room photo';
@@ -1580,6 +1622,16 @@
   pillRow($('stylePills'), LOOKS, style, function (x) { style = x; peek(x); }, true);
   pillRow($('depthPills'), DEPTHS, depth, function (x) {
     depth = x;
+    say('');   // whatever the last mode was missing no longer applies
+    // Switching to a mode that uses fewer photos keeps the first ones and
+    // says so — rather than leaving a light restyle holding three photos
+    // it has no way to use.
+    if (shots.length > maxShots()) {
+      shots = shots.slice(0, maxShots());
+      say(maxShots() === 1
+        ? 'A light restyle uses one photo — kept your first.'
+        : 'Kept your first ' + maxShots() + ' photos.');
+    }
     drawShots();
     refresh();
   }, false);
@@ -2158,10 +2210,15 @@
   }
 
   /* ---- photo ---- */
-  var photo = $('photo');
+  var photo = $('photo'), photoCamera = $('photoCamera');
   $('plus').onclick = function () { photo.click(); };
-  photo.onchange = function () {
-    if (!photo.files.length) return;
+  $('cameraBtn').onclick = function () { photoCamera.click(); };
+
+  // One path for both ways in: a gallery pick (several at once) and a
+  // camera shot (one, by nature). Same guardrail either way — the camera
+  // is not a way round the ceiling.
+  function addPhotos(input) {
+    if (!input.files.length) return;
     // A deliberate new upload always means a new room, even if a history
     // thread was open a moment ago — carrying its id forward would file the
     // next chat and any kept design under the wrong photo.
@@ -2171,22 +2228,36 @@
     turns = [];
     $('thread').innerHTML = '';
     hideResults();
-    var picked = photo.files.length, before = shots.length;
-    Array.prototype.forEach.call(photo.files, function (f) {
-      if (shots.length < MAX_SHOTS) { shots.push(f); }
-    });
-    photo.value = '';        // so the same file can be picked again later
+    var picked = input.files.length, before = shots.length, cap = maxShots();
+    if (cap === 1) {
+      // One photo is the whole of a light restyle, so picking another is
+      // a swap, not an addition refused.
+      shots = [input.files[0]];
+    } else {
+      Array.prototype.forEach.call(input.files, function (f) {
+        if (shots.length < cap) { shots.push(f); }
+      });
+    }
+    input.value = '';        // so the same file can be picked again later
     drawShots();
     refresh();
-    if (shots.length - before < picked) {
-      say('Only added up to ' + MAX_SHOTS + ' — that is the most in one run.');
+    if (cap === 1 && picked > 1) {
+      say('A light restyle uses one photo — kept the first. For more angles, switch to Full redesign.');
+    } else if (cap > 1 && shots.length - before < picked) {
+      say('A full redesign uses up to ' + cap + ' photos — kept the first ' + cap + '.');
     }
-  };
+  }
+  photo.onchange = function () { addPhotos(photo); };
+  photoCamera.onchange = function () { addPhotos(photoCamera); };
 
   function refresh() {
     var barred = needsCode && !signedIn;
-    var enough = haveEnough();
-    $('go').disabled = barred || !enough || (!live && !sampler);
+    // Not enough photos is NOT a reason to grey the button out. A dead
+    // button with no message is exactly how "Reimagine does not work at
+    // all" happened: Full redesign is the default, it needs two photos,
+    // and someone with one photo tapped a button that did nothing. It
+    // stays tappable and the tap says what is missing (see $('go').onclick).
+    $('go').disabled = barred || (!live && !sampler);
     if (barred) { say('Sign in to use the studio.'); }
     $('go').textContent = reading ? 'Draw it again' : 'Reimagine this room';
 
@@ -3012,6 +3083,7 @@
       var r = await fetch(api('/api/generate'), { method: 'POST', body: f, credentials: 'include' });
       var d = await r.json();
       if (!r.ok) throw new Error(d.detail || 'Could not draw');
+      if (!progress.cleared) { $('shots').innerHTML = ''; progress.cleared = true; }
       appendDesign(d.generations[0], i, saving, caption, primary);
       if (d.analysis && d.analysis.products && d.analysis.products.length) {
         catalogueProducts = d.analysis.products;
@@ -3030,7 +3102,11 @@
   }
 
   async function draw() {
-    $('shots').innerHTML = '';
+    // The old designs stay until a new one actually lands (drawOne clears
+    // them on the first success). Clearing here, up front, meant a run the
+    // server refused — the daily limit, a dropped connection — wiped the
+    // designs already on screen and replaced them with nothing: the second
+    // tap of "Draw it again" looked like the button had broken the page.
     $('contact').classList.add('hidden');
     // The waiting panel stays up until the first design lands. Clearing it
     // here left an empty black rectangle for the minute it takes.
@@ -3187,6 +3263,12 @@
   /* One button. It reads the room first, then draws. Nobody should have to
      know which step they are on. */
   $('go').onclick = async function () {
+    if (!haveEnough()) {
+      say(shots.length || currentPhotoBlob
+        ? 'Full redesign needs two photos from different corners — add one more, or switch to Light restyle.'
+        : 'Add a photo of the room first.', true);
+      return;
+    }
     $('go').disabled = true;
     try {
       if (!reading) {

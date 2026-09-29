@@ -534,9 +534,30 @@ class TestTheStudioAsksInTheRightOrder:
         """Never a dead end: add a photo, or change the depth. Both escapes
         have to be named, however the sentence is phrased."""
         html = client.get("/").text
-        short = html[html.index("photosNeeded() - shots.length"):][:700]
+        short = html[html.index("photosNeeded() - shots.length"):][:1500]
         assert "another corner" in short          # add one
         assert "Light restyle" in short           # or change depth
+
+    def test_tapping_reimagine_short_of_photos_says_why(self, client):
+        """"Reimagine does not work at all": Full redesign is the default,
+        it needs two photos, and the button used to go grey with one — a
+        tap did nothing and said nothing. It stays tappable, and the tap
+        names both ways out."""
+        html = client.get("/").text
+        refresh = html[html.index("function refresh()"):][:900]
+        assert "!enough" not in refresh
+        go = html[html.index("$('go').onclick = async function"):][:600]
+        assert "if (!haveEnough())" in go
+        assert "add one more, or switch to Light restyle" in go
+
+    def test_a_refused_run_does_not_wipe_the_designs_on_screen(self, client):
+        """The second tap for someone not signed in hits the daily limit —
+        draw() used to clear the page first, so the designs vanished and
+        nothing replaced them. They are cleared only once a new one lands."""
+        html = client.get("/").text
+        draw = html[html.index("async function draw()"):][:700]
+        assert "$('shots').innerHTML = ''" not in draw
+        assert "if (!progress.cleared)" in html
 
     def test_the_first_photo_is_labelled_as_the_one_redrawn(self, client):
         """Otherwise people upload their best angle second and wonder why the
