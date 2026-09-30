@@ -1,3 +1,6 @@
+"""Records client/how-it-works-demo.mp4 from the real studio page.
+Run demo_server.py first (port 8767). The room pictures come from rooms.py and are
+drawn stand-ins, not AI output. Trim from t0.txt, encode H.264 with +faststart."""
 import asyncio, time, httpx, glob, os, shutil
 from playwright.async_api import async_playwright
 V = os.path.dirname(os.path.abspath(__file__))
