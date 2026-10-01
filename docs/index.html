@@ -238,6 +238,98 @@
     text-align: center; min-height: 1.1rem; }
   .msg.bad { color: var(--bad); }
 
+  /* ---------- question cards (phone only) ----------
+     Wider than 760px none of this exists: every .step is display:contents, so
+     the controls are the same flat column as ever, and the "home or business"
+     step, the questions and the Back/Next bar are not shown. Under 760px the
+     script adds .wiz to .controls and the page asks one question at a time.
+     Without that class (script failed) a phone still gets the plain column,
+     so a broken script can never leave a blank form. */
+  .step { display: contents; }
+  .step .q, .step .qhint, .wiz-nav, #roomChips, .wiz-sum,
+  .step[data-g="setting"] { display: none; }
+  @media (max-width: 760px) {
+    .controls.wiz { display: flex; flex-direction: column; padding: .9rem;
+      border-right: 0; scroll-margin-top: 4rem; }
+    .controls.wiz .step { display: none; background: var(--raise);
+      border: 1px solid var(--line); border-radius: 16px; padding: 1.2rem 1.1rem 1.3rem;
+      box-shadow: 0 10px 28px -18px rgba(20,19,15,.35); }
+    .controls.wiz .step.cur { display: block; }
+    .controls.wiz .step[data-g="setting"] { order: 0; }
+    .controls.wiz .step[data-g="depth"]   { order: 1; }
+    .controls.wiz .step[data-g="room"]    { order: 2; }
+    .controls.wiz .step[data-g="photos"]  { order: 3; }
+    .controls.wiz .step[data-g="look"]    { order: 4; }
+    .controls.wiz .step[data-part="note"] { order: 5; border-bottom: 0;
+      border-bottom-left-radius: 0; border-bottom-right-radius: 0; padding-bottom: 0; }
+    .controls.wiz .step[data-part="go"]   { order: 6; border-top: 0;
+      border-top-left-radius: 0; border-top-right-radius: 0; padding-top: .2rem; }
+    .controls.wiz .wiz-nav { display: block; order: 7; padding: .9rem .2rem 0; }
+    .controls.wiz .lab { display: none; }
+    .controls.wiz .q { display: block; font-family: var(--display);
+      font-weight: var(--display-weight); font-size: 1.5rem; line-height: 1.15;
+      letter-spacing: -.01em; margin: 0 0 .4rem; }
+    .controls.wiz .qhint { display: block; font-size: .86rem; color: var(--muted);
+      margin: 0 0 .9rem; }
+    .controls.wiz .step .hint { margin: .7rem 0 0; }
+
+    /* Big, thumb-sized answers. Looks stay a wrapping row of pills: there are
+       eight of them and you want to see them all at once. */
+    .controls.wiz #depthPills .pill, .controls.wiz .pills.choice .pill {
+      flex: 1 1 100%; min-height: 52px; padding: .9rem 1rem; font-size: 1rem;
+      text-align: left; border-radius: 12px; }
+    .controls.wiz #depthPills .pill:not(.on),
+    .controls.wiz .pills.choice .pill:not(.on) { color: var(--ink); }
+    .controls.wiz .pills.two .pill { flex: 1 1 calc(50% - .35rem); }
+    .controls.wiz #stylePills .pill { min-height: 44px; padding: .6rem 1rem;
+      font-size: .95rem; border-radius: 999px; }
+    .controls.wiz #roomSel { display: none; }
+    .controls.wiz #roomChips { display: flex; }
+    .controls.wiz .drop { padding: 1.1rem 1rem; min-height: 68px; }
+    .controls.wiz .count button { width: 40px; height: 40px; font-size: 1.1rem; }
+    .controls.wiz textarea.brief { min-height: 96px; font-size: 1rem; }
+
+    .controls.wiz .wiz-sum { display: flex; flex-wrap: wrap; gap: .4rem;
+      margin: .4rem 0 1rem; }
+    .wiz-sum button { border: 1px solid var(--line); background: var(--card);
+      border-radius: 999px; padding: .4rem .85rem; font-size: .84rem;
+      color: var(--ink); cursor: pointer; }
+
+    .controls.wiz #go { margin-top: 1rem; padding: 1rem; font-size: 1.05rem;
+      border-radius: 10px; }
+    .controls.wiz #msg { display: none; }
+
+    .wiz-prog { display: flex; align-items: center; gap: .7rem; margin: 0 0 .6rem;
+      font-size: .72rem; letter-spacing: .14em; text-transform: uppercase;
+      color: var(--muted); }
+    .wiz-dots { display: flex; gap: .3rem; flex: 1; }
+    .wiz-dots i { height: 4px; flex: 1; border-radius: 2px; background: var(--line); }
+    .wiz-dots i.on { background: var(--clay); }
+    .wiz-msg { min-height: 1.1rem; font-size: .84rem; color: var(--muted);
+      margin: 0 0 .5rem; }
+    .wiz-msg.bad { color: var(--bad); }
+    .wiz-btns { display: flex; gap: .6rem; }
+    .controls.wiz .wiz-btns .cta { margin-top: 0; width: auto; flex: 1;
+      padding: .9rem; border-radius: 10px; font-size: 1rem; }
+    .controls.wiz .wiz-btns .cta.ghost { flex: 0 0 32%; }
+    .controls.wiz[data-cur="final"] #wizNext { display: none; }
+    .controls.wiz[data-cur="final"] .wiz-btns .cta.ghost { flex: 1; }
+    .controls.wiz[data-cur="setting"] #wizBack { display: none; }
+
+    /* Results first. They used to land under the questions and had to be
+       scrolled to; once a run starts they sit above them instead. */
+    .panel-body.has-run .pane { order: -1; scroll-margin-top: 4rem; }
+    /* The pane grows as designs land. With the questions below it, the
+       browser's scroll anchoring read that as "the content I was looking at
+       moved down" and scrolled the page past the new designs to keep the
+       questions still. Not wanted: the designs are the thing being watched. */
+    .panel-body.has-run { overflow-anchor: none; }
+    /* Save / Download / Compare / Mark an area ran off the right edge of the
+       screen in one line; on a phone they wrap onto a second. */
+    .shot-row { flex-wrap: wrap; }
+    .shot-row > * { flex: 1 1 auto; }
+  }
+
   /* The pane is now the whole right-hand side and everything that used to
      be three things stacked under it — the conversation, what was found,
      what it would cost — lives inside it: two tabs plus a bar pinned to the
@@ -783,62 +875,102 @@
         </span>
       </div>
       <div class="panel-body">
-        <div class="controls">
-          <!-- How far to go comes first, because it decides how many
-               photographs are needed and there is no point asking for them
-               before we know. -->
-          <p class="lab">How far are we going?</p>
-          <div class="pills" id="depthPills"></div>
-          <p class="hint" id="depthNote"></p>
-
-          <p class="lab" id="photoLab">Photographs</p>
-          <div class="shots-in" id="shotsIn"></div>
-          <div class="drop-row">
-            <button class="drop" id="plus" type="button">
-              <b id="dropTitle">Add a room photo</b>
-              <span id="dropNote">JPG or PNG &middot; a phone snapshot is plenty</span>
-            </button>
-            <!-- A file input with accept="image/*" alone shows a camera
-                 option on some phones and not others — this one is what
-                 makes it reliable: capture asks the OS directly for the
-                 camera rather than leaving it to however that phone's
-                 browser feels like presenting a plain file picker. Shown
-                 only under 760px (see the media query) — a laptop has no
-                 rear camera to open. -->
-            <button class="drop camera" id="cameraBtn" type="button">
-              <b>Take a photo</b>
-              <span>Use your camera now</span>
-            </button>
-          </div>
-          <p class="need" id="need"></p>
-
-          <p class="lab">Extra comments</p>
-          <p class="hint">Anything to keep, change or avoid.</p>
-          <textarea class="brief" id="text"
-            placeholder="Keep the window, add a reading corner, warmer light&hellip;"></textarea>
-
-          <p class="lab">Room</p>
-          <select class="drop-sel" id="roomSel"></select>
-
-          <p class="lab">Look</p>
-          <p class="hint" id="lookHint">Hover to see one.</p>
-          <div class="pills" id="stylePills"></div>
-          <div class="look-card hidden" id="lookCard">
-            <div class="peek-head"><b id="lookName"></b><span id="lookMade"></span></div>
-            <div class="peek-shots" id="lookShots"></div>
+        <div class="controls" id="controls">
+          <!-- On a phone these groups become one question at a time (see the
+               "question cards" block in the script and its max-width:760px
+               CSS). On anything wider every .step is display:contents, so
+               this is the same flat column it always was, and the first
+               step and every .q are not shown at all. -->
+          <div class="step" data-g="setting">
+            <h3 class="q">Is this a home or a business?</h3>
+            <p class="qhint">It decides which rooms we offer next.</p>
+            <div class="pills choice" id="settingPills"></div>
           </div>
 
-          <p class="lab">Options</p>
-          <div class="count">
-            <button id="less" type="button" aria-label="Fewer">&minus;</button>
-            <b id="countN">3</b>
-            <button id="more" type="button" aria-label="More">+</button>
-            <span id="countLabel">designs per run</span>
+          <div class="step" data-g="depth">
+            <h3 class="q">Full redesign, or a light restyle?</h3>
+            <!-- How far to go comes first, because it decides how many
+                 photographs are needed and there is no point asking for them
+                 before we know. -->
+            <p class="lab">How far are we going?</p>
+            <div class="pills" id="depthPills"></div>
+            <p class="hint" id="depthNote"></p>
           </div>
-          <p class="hint" id="tierNote"></p>
 
-          <button class="cta" id="go" type="button" disabled>Reimagine this room</button>
-          <span class="msg" id="msg"></span>
+          <div class="step" data-g="photos">
+            <h3 class="q">Add photos of the room</h3>
+            <p class="qhint" id="photoQHint"></p>
+            <p class="lab" id="photoLab">Photographs</p>
+            <div class="shots-in" id="shotsIn"></div>
+            <div class="drop-row">
+              <button class="drop" id="plus" type="button">
+                <b id="dropTitle">Add a room photo</b>
+                <span id="dropNote">JPG or PNG &middot; a phone snapshot is plenty</span>
+              </button>
+              <!-- A file input with accept="image/*" alone shows a camera
+                   option on some phones and not others — this one is what
+                   makes it reliable: capture asks the OS directly for the
+                   camera rather than leaving it to however that phone's
+                   browser feels like presenting a plain file picker. Shown
+                   only under 760px (see the media query) — a laptop has no
+                   rear camera to open. -->
+              <button class="drop camera" id="cameraBtn" type="button">
+                <b>Take a photo</b>
+                <span>Use your camera now</span>
+              </button>
+            </div>
+            <p class="need" id="need"></p>
+          </div>
+
+          <div class="step" data-g="final" data-part="note">
+            <h3 class="q">Ready when you are</h3>
+            <div class="wiz-sum" id="wizSum"></div>
+            <p class="lab">Extra comments</p>
+            <p class="hint">Anything to keep, change or avoid.</p>
+            <textarea class="brief" id="text"
+              placeholder="Keep the window, add a reading corner, warmer light&hellip;"></textarea>
+          </div>
+
+          <div class="step" data-g="room">
+            <h3 class="q">Which room is it?</h3>
+            <p class="lab">Room</p>
+            <select class="drop-sel" id="roomSel"></select>
+            <div class="pills choice two" id="roomChips"></div>
+          </div>
+
+          <div class="step" data-g="look">
+            <h3 class="q">Pick a look</h3>
+            <p class="lab">Look</p>
+            <p class="hint" id="lookHint">Hover to see one.</p>
+            <div class="pills" id="stylePills"></div>
+            <div class="look-card hidden" id="lookCard">
+              <div class="peek-head"><b id="lookName"></b><span id="lookMade"></span></div>
+              <div class="peek-shots" id="lookShots"></div>
+            </div>
+          </div>
+
+          <div class="step" data-g="final" data-part="go">
+            <p class="lab">Options</p>
+            <div class="count">
+              <button id="less" type="button" aria-label="Fewer">&minus;</button>
+              <b id="countN">3</b>
+              <button id="more" type="button" aria-label="More">+</button>
+              <span id="countLabel">designs per run</span>
+            </div>
+            <p class="hint" id="tierNote"></p>
+
+            <button class="cta" id="go" type="button" disabled>Reimagine this room</button>
+            <span class="msg" id="msg"></span>
+          </div>
+
+          <div class="wiz-nav" id="wizNav">
+            <p class="wiz-prog" id="wizProg"></p>
+            <p class="wiz-msg" id="wizMsg" role="status"></p>
+            <div class="wiz-btns">
+              <button type="button" class="cta ghost" id="wizBack">Back</button>
+              <button type="button" class="cta" id="wizNext">Next</button>
+            </div>
+          </div>
         </div>
 
         <div class="pane" id="pane">
@@ -2367,10 +2499,15 @@
       ? 'New furniture and finishes. Two photos, wide and from a corner — '
         + 'it can only redesign what is actually in frame.'
       : 'Same furniture, new finish. One photo.';
+    wizSync();
   }
   function say(t, bad) {
     $('msg').textContent = t || '';
     $('msg').classList.toggle('bad', Boolean(bad));
+    // The question cards hide #msg (it lives on the last card only), so the
+    // same words also go to the line under whichever card is showing.
+    $('wizMsg').textContent = t || '';
+    $('wizMsg').classList.toggle('bad', Boolean(bad));
   }
 
   /* Not a failure — the reader worked and the answer was no. It reads as
@@ -2577,6 +2714,7 @@
   /* One pair of calls for "a room has been read" / "start over" — everything
      that used to be #readout's hidden class now lives on two elements. */
   function showResults() {
+    markRun();
     $('paneTabs').classList.remove('hidden');
     $('convoBar').classList.remove('hidden');
     switchTab('designs');
@@ -3371,6 +3509,7 @@
         : 'Add a photo of the room first.', true);
       return;
     }
+    markRun();
     $('go').disabled = true;
     try {
       if (!reading) {
@@ -3441,6 +3580,179 @@
     document.fonts.ready.then(nudgeRepaint);
   }
   window.addEventListener('load', nudgeRepaint);
+
+  /* ------------------------------------------------------------------
+     Question cards (phone only).
+
+     A phone cannot hold the whole form at once, and scrolling past eight
+     controls to find the button is what made "Reimagine" feel broken. Under
+     760px the same controls are shown one question at a time, as cards:
+     home or business, how far, which room, photos, a look, then a last card
+     with a summary and the button. Nothing here is new machinery — the cards
+     drive the same depth, room, look and photo state the form always did, so
+     a phone and a laptop produce identical requests. Wider than 760px this
+     block does nothing at all.
+
+     Answers are kept (localStorage) so the next visit starts where the last
+     one ended, and the last card lists them as chips you can tap to change.
+     Once a run starts the results move above the cards (.has-run).
+     ------------------------------------------------------------------ */
+  var WIZ_KEY = 'second-draft-answers';
+  var WIZ_STEPS = ['setting', 'depth', 'room', 'photos', 'look', 'final'];
+  var SETTINGS = [
+    { id: 'home',     name: 'Home' },
+    { id: 'business', name: 'Business' }
+  ];
+  // A business is not a different set of rooms to design, only a different
+  // list to choose from. The briefs behind them already exist.
+  var BUSINESS_ROOMS = [
+    { id: 'retail', name: 'Shop, café or salon' },
+    { id: 'study',  name: 'Office' },
+    { id: 'other',  name: 'Something else — say so in the comments' }
+  ];
+  var MQ = window.matchMedia ? window.matchMedia('(max-width: 760px)') : null;
+  var wiz = { on: false, i: 0, setting: 'home', loading: false };
+
+  function wizRooms() {
+    return wiz.setting === 'business' ? BUSINESS_ROOMS
+      : ROOM_TYPES.filter(function (r) { return r.id !== 'retail'; });
+  }
+  function wizStep() { return WIZ_STEPS[wiz.i]; }
+  function wizSave() {
+    if (!wiz.on || wiz.loading) return;
+    try {
+      localStorage.setItem(WIZ_KEY, JSON.stringify({
+        setting: wiz.setting, depth: depth.id, room: room.id, look: style.id }));
+    } catch (e) { /* private window: the cards still work, they just forget */ }
+  }
+  function wizSetRoom(id) {
+    $('roomSel').value = id;
+    $('roomSel').onchange();
+  }
+  function wizRoomChips() {
+    var rooms = wizRooms();
+    if (!rooms.some(function (r) { return r.id === room.id; })) {
+      wizSetRoom(rooms[0].id);
+    }
+    pillRow($('roomChips'), rooms, room, function (r) {
+      wizSetRoom(r.id); wizSave(); wizAdvance();
+    }, true);
+  }
+  function wizSummary() {
+    var n = shots.length || (currentPhotoBlob ? 1 : 0);
+    var items = [
+      ['setting', wiz.setting === 'business' ? 'Business' : 'Home'],
+      ['depth', depth.name], ['room', room.name], ['look', style.name],
+      ['photos', n + (n === 1 ? ' photo' : ' photos')]
+    ];
+    $('wizSum').innerHTML = items.map(function (it) {
+      return '<button type="button" data-step="' + it[0] + '">' + it[1] + '</button>';
+    }).join('');
+  }
+  function wizSync() {
+    // refresh() can run before this block has set `wiz` up.
+    if (!wiz || !wiz.on) return;
+    var dots = '';
+    for (var k = 0; k < WIZ_STEPS.length; k++) {
+      dots += '<i' + (k <= wiz.i ? ' class="on"' : '') + '></i>';
+    }
+    $('wizProg').innerHTML = '<span>' + (wiz.i + 1) + ' of ' + WIZ_STEPS.length +
+      '</span><span class="wiz-dots">' + dots + '</span>';
+    $('photoQHint').textContent = depth.id === 'renovate'
+      ? 'Two to four, from different corners of the room.'
+      : 'One photo is plenty.';
+    if (wizStep() === 'final') wizSummary();
+  }
+  function wizShow(scroll) {
+    var c = $('controls'), cur = wizStep();
+    c.setAttribute('data-cur', cur);
+    Array.prototype.forEach.call(c.querySelectorAll('.step'), function (el) {
+      el.classList.toggle('cur', el.getAttribute('data-g') === cur);
+    });
+    wizSync();
+    if (scroll) c.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  function wizGo(i) {
+    wiz.i = Math.max(0, Math.min(WIZ_STEPS.length - 1, i));
+    wizShow(true);
+  }
+  // A beat after the tap, so the chosen answer is seen to be chosen.
+  function wizAdvance() {
+    if (!wiz.on || wiz.loading) return;
+    var from = wiz.i;
+    setTimeout(function () { if (wiz.i === from) wizGo(from + 1); }, 180);
+  }
+  function wizLoad() {
+    var saved = null;
+    try { saved = JSON.parse(localStorage.getItem(WIZ_KEY) || 'null'); } catch (e) {}
+    if (!saved) return;
+    wiz.loading = true;
+    if (saved.setting === 'business') wiz.setting = 'business';
+    pillRow($('settingPills'), SETTINGS,
+            SETTINGS.filter(function (x) { return x.id === wiz.setting; })[0],
+            wizPickSetting, true);
+    var d = DEPTHS.filter(function (x) { return x.id === saved.depth; })[0];
+    if (d && d.id !== depth.id) {
+      $('depthPills').querySelector('[data-id="' + d.id + '"]').click();
+    }
+    var l = LOOKS.filter(function (x) { return x.id === saved.look; })[0];
+    if (l) { style = l; pillRow($('stylePills'), LOOKS, style, pickLook, true); }
+    if (wizRooms().some(function (r) { return r.id === saved.room; })) {
+      wizSetRoom(saved.room);
+    }
+    wiz.loading = false;
+  }
+  function wizPickSetting(x) {
+    wiz.setting = x.id;
+    wizRoomChips();
+    wizSave(); wizAdvance();
+  }
+  function wizApply() {
+    wiz.on = Boolean(MQ && MQ.matches);
+    $('controls').classList.toggle('wiz', wiz.on);
+    if (wiz.on) { wizRoomChips(); wizShow(false); }
+  }
+  // Results above the questions, so nobody scrolls to find what they asked
+  // for. The class is inert above 760px (its CSS lives in the phone query).
+  function markRun() {
+    $('pane').parentNode.classList.add('has-run');
+    if (wiz.on) {
+      setTimeout(function () {
+        $('pane').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 60);
+    }
+  }
+
+  pillRow($('settingPills'), SETTINGS, SETTINGS[0], wizPickSetting, true);
+  $('depthPills').addEventListener('click', function (e) {
+    if (wiz.on && e.target.closest('[data-id]')) { wizSave(); wizAdvance(); }
+  });
+  $('stylePills').addEventListener('click', function (e) {
+    if (wiz.on && e.target.closest('[data-id]')) { wizSave(); }
+  });
+  $('wizSum').onclick = function (e) {
+    var b = e.target.closest('[data-step]');
+    if (b) wizGo(WIZ_STEPS.indexOf(b.getAttribute('data-step')));
+  };
+  $('wizBack').onclick = function () { say(''); wizGo(wiz.i - 1); };
+  $('wizNext').onclick = function () {
+    // Never a dead button: if the photos are not enough, say so right here.
+    if (wizStep() === 'photos' && !haveEnough()) {
+      say(shots.length || currentPhotoBlob
+        ? 'A full redesign needs two photos from different corners. Add one more, or go back and pick Light restyle.'
+        : 'Add a photo of the room first.', true);
+      return;
+    }
+    say('');
+    wizGo(wiz.i + 1);
+  };
+  if (MQ) {
+    if (MQ.addEventListener) { MQ.addEventListener('change', wizApply); }
+    else if (MQ.addListener) { MQ.addListener(wizApply); }
+  }
+  wiz.on = Boolean(MQ && MQ.matches);
+  if (wiz.on) wizLoad();
+  wizApply();
 
   check();
   refresh();
