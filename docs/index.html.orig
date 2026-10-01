@@ -378,16 +378,48 @@
      is on, before a single stroke exists, so the mode itself is visible. */
   .mark-canvas { position: absolute; inset: 0; width: 100%; height: 100%;
     border-radius: 2px; touch-action: none; cursor: crosshair; }
-  .mark-toolbar { margin-top: .55rem; padding: .55rem .6rem;
+  .mark-toolbar { margin-top: .55rem; padding: .7rem .75rem;
     background: #14130F; border: 1px solid rgba(239,234,224,.2);
-    border-radius: 2px; display: flex; gap: .4rem; align-items: center;
-    flex-wrap: wrap; }
-  .mark-toolbar span { font-size: .74rem; color: #8B8377; flex: none; }
-  .mark-toolbar input { flex: 1; min-width: 120px; border: 1px solid rgba(239,234,224,.25);
-    background: rgba(255,255,255,.06); border-radius: 2px; padding: .35rem .55rem;
-    font-size: .78rem; color: #F5F2EA; }
-  .mark-toolbar input::placeholder { color: #8B8377; }
-  .mark-toolbar button { flex: none; }
+    border-radius: 2px; }
+  .mark-steps { display: flex; gap: .35rem; flex-wrap: wrap; margin-bottom: .55rem; }
+  .mark-steps span { font-size: .72rem; padding: .18rem .6rem; border-radius: 99px;
+    border: 1px solid rgba(239,234,224,.25); color: #8B8377; white-space: pre; }
+  .mark-steps span.done { color: #EFEAE0; border-color: rgba(239,234,224,.55); }
+  .mark-steps span.on { background: var(--clay); border-color: var(--clay); color: #fff;
+    font-weight: 600; }
+  .mark-hint { margin: 0 0 .6rem; font-size: .86rem; color: #EFEAE0; line-height: 1.4; }
+  .mark-line { display: flex; gap: .45rem; flex-wrap: wrap; align-items: stretch; }
+  .mark-line input { flex: 1 1 14rem; min-width: 0; border: 1px solid rgba(239,234,224,.3);
+    background: rgba(255,255,255,.07); border-radius: 2px; padding: .5rem .65rem;
+    font-size: 16px; color: #F5F2EA; }
+  .mark-line input::placeholder { color: #8B8377; }
+  .mark-btns { display: flex; gap: .4rem; flex: 1 1 auto; }
+  .mark-btns button { flex: 1 1 auto; margin: 0; }
+  .mark-btns .cta.clay { flex-grow: 2; font-weight: 600; }
+  /* The next thing to do pulses. */
+  @keyframes nudge { 0%, 100% { box-shadow: 0 0 0 0 rgba(176,74,36,.0); }
+                     50% { box-shadow: 0 0 0 5px rgba(176,74,36,.6); } }
+  .mark-toolbar .nudge { border-color: var(--clay) !important;
+    animation: nudge 1.1s ease-in-out infinite; }
+  /* A tip on the picture until the first stroke. */
+  .mark-tip { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
+    background: rgba(20,19,15,.85); color: #fff; font-size: .9rem; font-weight: 500;
+    padding: .6rem 1rem; border-radius: 99px; pointer-events: none; white-space: nowrap;
+    box-shadow: 0 0 0 2px rgba(255,255,255,.35); animation: nudge 1.3s ease-in-out infinite; }
+  .mark-tip.bump { animation: tipBump .5s ease; }
+  @keyframes tipBump { 30% { transform: translate(-50%,-50%) scale(1.15); } }
+  .mark-note { margin: .6rem 0 0; font-size: .86rem; color: #EFEAE0;
+    padding: .6rem .75rem; border: 1px solid rgba(239,234,224,.25); border-radius: 2px; }
+  .mark-note.bad { color: #F3B7A0; border-color: var(--clay); }
+  /* The edited design flashes when it lands, so a scroll to it is noticed. */
+  @keyframes landedFlash { from { box-shadow: 0 0 0 4px var(--clay); }
+                           to { box-shadow: 0 0 0 4px rgba(176,74,36,0); } }
+  .shots figure.landed .frame { animation: landedFlash 2.2s ease-out; }
+  .shots figure { scroll-margin-top: 5rem; }
+  @media (prefers-reduced-motion: reduce) {
+    .mark-toolbar .nudge, .mark-tip { animation: none; }
+    .mark-toolbar .nudge { box-shadow: 0 0 0 3px var(--clay); }
+  }
   .mark-toggle.on { border-color: var(--clay); color: #F5F2EA; }
 
   /* Quieter than the Save/Download/Compare row on purpose — this is an
@@ -868,6 +900,31 @@
     .shots figure .overlay .line::after { width: 24px; height: 24px; }
 
     .foot { gap: 1.2rem; }
+
+    /* The studio, as a phone uses it. The dark results panel used to sit
+       under the questions the whole time, empty ("Your designs appear
+       here") and with its own inner scrollbar; the conversation bar showed
+       before there was anything to talk about; and the engine line wrapped
+       over the panel title. Now: the panel appears when a run starts, the
+       page scrolls (not the panel), the conversation waits for a design,
+       and the engine line is gone. */
+    .lede-more { display: none; }
+    .panel-top, .panel-top > span:first-child, #state { display: none; }
+    .panel-top:has(#historyBtn:not(.hidden)) { display: flex; justify-content: flex-end; }
+    .panel-body:not(.has-run) .pane { display: none; }
+    .panel-body:not(.has-design) .convo-bar { display: none; }
+    .pane { min-height: 0; overflow: visible; }
+    .pane-scroll { flex: none; overflow: visible; }
+    .pane-tab[data-tab="designs"] { min-height: 0; }
+    .pane-tab[data-tab="designs"] .working { padding: 2.2rem 0; }
+    .askrow input { flex: 1 1 100%; }
+    .askrow .cta { flex: 1 1 auto; }
+    .mark-toolbar { padding: .6rem .65rem; }
+    .mark-hint { font-size: .8rem; }
+    .mark-line input { flex: 1 1 100%; }
+    .mark-btns { flex: 1 1 100%; }
+    .mark-btns button { padding: .65rem .4rem; font-size: .88rem; }
+    .shots figure { scroll-margin-top: 4rem; }
   }
 </style>
 
@@ -951,8 +1008,9 @@
   <div class="wrap">
     <p class="kick">The studio</p>
     <h1 class="big">Point it at a room.</h1>
-    <p class="lede">Add a photo, choose a direction, and let it work. What it
-       found in your room is listed underneath, so you can see what it kept.</p>
+    <p class="lede">Add a photo, choose a direction, and let it work.<span
+       class="lede-more"> What it found in your room is listed underneath, so
+       you can see what it kept.</span></p>
 
     <div class="panel">
       <div class="panel-top">
@@ -2418,6 +2476,7 @@
       $('shots').appendChild(figure);
     });
     $('paneEmpty').classList.toggle('hidden', (d.designs || []).length > 0);
+    if ((d.designs || []).length) { $('pane').parentNode.classList.add('has-design'); }
     $('shots').classList.toggle('hidden', (d.designs || []).length === 0);
 
     showResults();
@@ -2959,13 +3018,29 @@
     mctx.lineCap = 'round'; mctx.lineJoin = 'round';
     mctx.lineWidth = w * BRUSH_FRAC;
 
+    // Three things have to happen, in order, and nothing used to say so:
+    // circle a spot, type what it should become, press Change. Someone who
+    // had done the first two was left looking at a dim button with no idea
+    // it was waiting on them. Now the toolbar says which step it is on,
+    // pulses the one thing to do next, and a tip sits on the picture until
+    // the first stroke.
     var toolbar = document.createElement('div');
     toolbar.className = 'mark-toolbar';
-    var label = document.createElement('span');
-    label.textContent = 'Draw on the spot to change, then say what.';
+    var steps = document.createElement('div');
+    steps.className = 'mark-steps';
+    ['1  Circle it', '2  Say what', '3  Tap Change'].forEach(function (t) {
+      var sp = document.createElement('span'); sp.textContent = t; steps.appendChild(sp);
+    });
+    var hint = document.createElement('p');
+    hint.className = 'mark-hint';
+    var line = document.createElement('div');
+    line.className = 'mark-line';
     var input = document.createElement('input');
     input.type = 'text';
-    input.placeholder = 'What should change here?';
+    input.placeholder = 'e.g. a brass arc lamp';
+    input.setAttribute('aria-label', 'What should change in the circled spot');
+    var btns = document.createElement('div');
+    btns.className = 'mark-btns';
     var clearBtn = document.createElement('button');
     clearBtn.className = 'cta ghost';
     clearBtn.type = 'button';
@@ -2974,19 +3049,43 @@
     go.className = 'cta clay';
     go.type = 'button';
     go.textContent = 'Change';
-    go.disabled = true;
     var no = document.createElement('button');
     no.className = 'cta ghost';
     no.type = 'button';
-    no.textContent = '×';
-    toolbar.appendChild(label);
-    toolbar.appendChild(input);
-    toolbar.appendChild(clearBtn);
-    toolbar.appendChild(go);
-    toolbar.appendChild(no);
+    no.textContent = 'Cancel';
+    btns.appendChild(clearBtn);
+    btns.appendChild(go);
+    btns.appendChild(no);
+    line.appendChild(input);
+    line.appendChild(btns);
+    toolbar.appendChild(steps);
+    toolbar.appendChild(hint);
+    toolbar.appendChild(line);
     frame.parentNode.insertBefore(toolbar, frame.nextSibling);
 
+    var tip = document.createElement('div');
+    tip.className = 'mark-tip';
+    tip.textContent = 'Draw a circle around it';
+    frame.appendChild(tip);
+
     var painted = false, drawing = false, lastX = 0, lastY = 0;
+
+    function guide() {
+      var said = Boolean(input.value.trim());
+      var at = !painted ? 0 : !said ? 1 : 2;
+      Array.prototype.forEach.call(steps.children, function (el, k) {
+        el.classList.toggle('on', k === at);
+        el.classList.toggle('done', k < at);
+      });
+      hint.textContent = [
+        'Draw a circle around the thing you want changed.',
+        'Now type what it should become, for example \u201ca brass arc lamp\u201d.',
+        'Ready. Tap Change.'
+      ][at];
+      input.classList.toggle('nudge', at === 1);
+      go.classList.toggle('nudge', at === 2);
+    }
+    guide();
 
     function point(e) {
       var box = paint.getBoundingClientRect();
@@ -3000,7 +3099,7 @@
       pctx.beginPath(); pctx.moveTo(lastX, lastY); pctx.lineTo(p.x, p.y); pctx.stroke();
       mctx.beginPath(); mctx.moveTo(lastX, lastY); mctx.lineTo(p.x, p.y); mctx.stroke();
       lastX = p.x; lastY = p.y;
-      if (!painted) { painted = true; go.disabled = !input.value.trim(); }
+      if (!painted) { painted = true; tip.remove(); guide(); }
     }
 
     function down(e) {
@@ -3019,20 +3118,33 @@
 
     function up() { drawing = false; }
 
-    input.addEventListener('input', function () {
-      go.disabled = !(painted && input.value.trim());
-    });
+    input.addEventListener('input', guide);
     input.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter' && !go.disabled) { go.click(); }
+      if (e.key === 'Enter') { go.click(); }
       if (e.key === 'Escape') { cancel(); }
     });
     clearBtn.onclick = function () {
       pctx.clearRect(0, 0, w, h);
       mctx.fillStyle = 'black'; mctx.fillRect(0, 0, w, h);
       painted = false;
-      go.disabled = true;
+      if (!tip.parentNode) { frame.appendChild(tip); }
+      guide();
     };
-    go.onclick = function () { submit(input.value); };
+    // Never a dead button: if a step is missing, this says which and points
+    // at it, instead of doing nothing.
+    go.onclick = function () {
+      if (!painted) {
+        hint.textContent = 'First draw a circle on the picture, around what you want changed.';
+        tip.classList.remove('bump'); void tip.offsetWidth; tip.classList.add('bump');
+        return;
+      }
+      if (!input.value.trim()) {
+        hint.textContent = 'Now type what it should become, for example \u201ca brass arc lamp\u201d.';
+        input.focus();
+        return;
+      }
+      submit(input.value);
+    };
     no.onclick = cancel;
 
     async function submit(instruction) {
@@ -3040,8 +3152,8 @@
       if (!instruction || !painted) { return; }
       finish();
       var note = document.createElement('p');
-      note.className = 'need ok';
-      note.textContent = 'Changing that spot…';
+      note.className = 'mark-note';
+      note.textContent = 'Changing that spot\u2026 about twenty seconds.';
       frame.parentNode.insertBefore(note, frame.nextSibling);
       try {
         var maskBlob = await new Promise(function (res) { mask.toBlob(res, 'image/png'); });
@@ -3052,12 +3164,24 @@
         var r = await fetch(api('/api/edit'), { method: 'POST', body: f, credentials: 'include' });
         var d = await r.json();
         if (!r.ok) throw new Error(d.detail || 'Could not change that.');
+        // Compare on the edit shows the design it was made from, not the
+        // original photograph.
         appendDesign({ image_base64: d.image_base64 }, $('shots').children.length,
-                     [], 'Edited · ' + instruction);
-      } catch (e) {
-        say((e && e.message) || 'Could not change that.', true);
-      } finally {
+                     [], 'Edited \u00b7 ' + instruction, b64ToBlob(g.image_base64));
         note.remove();
+        // The result lands at the end of the list, which on a phone is far
+        // below. Take the person to it, and mark it for a moment.
+        var landed = $('shots').lastElementChild;
+        if (landed) {
+          landed.classList.add('landed');
+          landed.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          setTimeout(function () { landed.classList.remove('landed'); }, 2400);
+        }
+      } catch (e) {
+        note.classList.add('bad');
+        note.textContent = ((e && e.message) || 'Could not change that.') +
+          ' Tap Mark an area to try again.';
+        setTimeout(function () { note.remove(); }, 9000);
       }
     }
 
@@ -3071,6 +3195,7 @@
       paint.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
       paint.remove();
+      tip.remove();
       toolbar.remove();
       if (activeMarking && activeMarking.frame === frame) { activeMarking = null; }
     }
@@ -3164,6 +3289,7 @@
     // for a single-photo run, but its own angle once there is more than
     // one, so Compare shows that view's own before, not always the first.
     figure.beforePhoto = beforeBlob || currentPhoto();
+    $('pane').parentNode.classList.add('has-design');
     working(false);
     $('shots').classList.remove('hidden');
 

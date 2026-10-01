@@ -189,3 +189,74 @@ class TestCompareStaysOnThePicture:
 
     def test_the_button_says_how_to_get_out(self):
         assert "cmp.textContent = 'Close compare';" in page()
+
+
+class TestThePhoneStudioIsQuiet:
+    """What a phone showed that it should not have."""
+
+    def test_the_empty_results_panel_waits_for_a_run(self):
+        css = phone_sizing(page())
+        assert ".panel-body:not(.has-run) .pane { display: none; }" in css
+
+    def test_the_conversation_waits_for_a_design(self):
+        source = page()
+        assert ".panel-body:not(.has-design) .convo-bar { display: none; }" in phone_sizing(source)
+        body = source[source.index("function appendDesign("):]
+        assert "classList.add('has-design')" in body[:900]
+
+    def test_the_engine_line_no_longer_wraps_over_the_panel_title(self):
+        css = phone_sizing(page())
+        assert ".panel-top, .panel-top > span:first-child, #state { display: none; }" in css
+
+    def test_the_results_scroll_with_the_page_not_in_a_box_of_their_own(self):
+        css = phone_sizing(page())
+        assert ".pane-scroll { flex: none; overflow: visible; }" in css
+
+    def test_the_studio_intro_is_one_short_line_on_a_phone(self):
+        source = page()
+        assert '<span\n       class="lede-more">' in source
+        assert ".lede-more { display: none; }" in phone_sizing(source)
+        # and the wide page keeps the whole sentence
+        assert "listed underneath, so" in source
+
+
+class TestMarkupSaysWhatToDoNext:
+    def body(self):
+        source = page()
+        start = source.index("function startMarking(")
+        return source[start:source.index("function designFeedback", start)]
+
+    def test_three_steps_are_named_and_the_current_one_is_marked(self):
+        body = self.body()
+        assert "'1  Circle it', '2  Say what', '3  Tap Change'" in body
+        assert "el.classList.toggle('on', k === at);" in body
+
+    def test_the_next_thing_to_do_pulses(self):
+        body = self.body()
+        assert "input.classList.toggle('nudge', at === 1);" in body
+        assert "go.classList.toggle('nudge', at === 2);" in body
+        assert "@keyframes nudge" in page()
+
+    def test_a_tip_sits_on_the_picture_until_the_first_stroke(self):
+        body = self.body()
+        assert "tip.textContent = 'Draw a circle around it';" in body
+        assert "painted = true; tip.remove(); guide();" in body
+
+    def test_change_is_never_a_dead_button(self):
+        body = self.body()
+        assert "go.disabled" not in body
+        assert "First draw a circle on the picture" in body
+        assert "input.focus();" in body
+
+    def test_the_result_is_scrolled_to_and_flashes(self):
+        body = self.body()
+        assert "landed.scrollIntoView(" in body
+        assert "landed.classList.add('landed')" in body
+
+    def test_compare_on_an_edit_shows_the_design_it_came_from(self):
+        assert "b64ToBlob(g.image_base64));" in self.body()
+
+    def test_a_failed_edit_is_said_next_to_the_picture(self):
+        body = self.body()
+        assert "note.classList.add('bad');" in body
+        assert "say((e && e.message)" not in body   # #msg is out of sight on a phone
