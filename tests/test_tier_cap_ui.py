@@ -35,15 +35,16 @@ class TestTheCapComesFromTheAccount:
     def test_the_cap_is_not_hardcoded_to_four(self):
         """The old control let anyone reach 4 regardless of plan — the cap
         now comes from whichever tier actually applies."""
-        body = function_body(page(), "function applyTierCap(")
+        body = function_body(page(), "function designMax(")
         assert "tier.variants" in body
+        assert "DESIGN_CAP" in body
 
     def test_more_button_stops_at_the_cap_not_at_a_literal_four(self):
         source = page()
         start = source.index("$('more').onclick")
         end = source.index("};", start)
         body = source[start:end]
-        assert "tier.variants" in body
+        assert "designMax()" in body
         assert "Math.min(4," not in body
 
     def test_hitting_the_cap_disables_the_button_with_a_reason(self):
@@ -68,5 +69,5 @@ class TestDocsCopyMatches:
     def test_the_same_mechanism_exists_there(self):
         source = page("docs/index.html")
         assert 'id="tierNote"' in source
-        body = function_body(source, "function applyTierCap(")
+        body = function_body(source, "function designMax(")
         assert "tier.variants" in body

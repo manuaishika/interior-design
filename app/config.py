@@ -144,7 +144,7 @@ class Settings(BaseSettings):
     # here, though, "free demo" and "unmetered key" are the same sentence.
     # Identified by IP, the only thing an anonymous request carries; see
     # store.Usage. A signed-in account's own limit is TIERS[...]["daily"].
-    anon_daily_designs: int = 2
+    anon_daily_designs: int = 12
     # Reading /api/feedback needs this exact value as ?key=. Blank — the
     # default — means the endpoint always 404s: unlike studio_access_code,
     # where blank opens the door, blank here keeps it shut, because what it
@@ -268,7 +268,7 @@ class Settings(BaseSettings):
 # reaches with no card at all, which is exactly where an unmetered key
 # turns into an open bill.
 TIERS: dict[str, dict] = {
-    "free":     {"quality": "medium", "variants": 2, "label": "Free", "daily": 5},
+    "free":     {"quality": "medium", "variants": 3, "label": "Free", "daily": 20},
     "room":     {"quality": "high",   "variants": 3, "label": "One Room", "daily": None},
     "home":     {"quality": "high",   "variants": 4, "label": "Whole Home", "daily": None},
     "studio":   {"quality": "xhigh",  "variants": 4, "label": "Studio", "daily": None},

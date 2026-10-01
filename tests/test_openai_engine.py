@@ -349,7 +349,7 @@ class TestTheTierDecides:
         assert "quality" in sent and sent["quality"]
 
     @pytest.mark.parametrize("tier,quality,variants", [
-        ("free", "medium", 2),
+        ("free", "medium", 3),
         ("room", "high", 3),
         ("studio", "xhigh", 4),
     ])
@@ -395,7 +395,7 @@ class TestTheTierDecides:
         Image.new("RGB", (100, 100)).save(buf, "PNG")
         await run_pipeline(buf.getvalue(), "japandi", settings(),
                            variants=4, tier="free")
-        assert len(drawn) == 2
+        assert len(drawn) == 3
 
 
 class TestExtraViews:

@@ -57,21 +57,31 @@ class TestEveryAngleIsItsOwnRequest:
         assert "shots.slice(1), i)" in body
 
 
-class TestOptionCountFollowsThePhotos:
-    def test_every_uploaded_angle_counts_not_just_a_capped_share(self):
-        """This used to cap the multi-angle count at tier.variants — the
-        design-variety number — which meant an uploaded photo could go in
-        and quietly not come back redrawn. The only cap left is MAX_SHOTS,
-        a flat ceiling on one run that has nothing to do with a plan."""
-        body = function_body(page(), "function optionCount(")
-        assert "shots.length > 1" in body
-        assert "shots.length : count" in body
-        assert "tier.variants" not in body
+class TestTheDesignCountIsThePersonsChoice:
+    """One to three designs, whatever the number of photographs. Two photos
+    used to force two designs; now someone can ask for one."""
 
-    def test_the_stepper_disables_itself_once_there_is_a_second_angle(self):
+    def test_three_is_the_ceiling_whatever_the_photo_count(self):
+        source = page()
+        assert "var DESIGN_CAP = 3;" in source
+        body = function_body(source, "function designMax(")
+        assert "Math.min(DESIGN_CAP," in body
+        assert "tier.variants" in body
+
+    def test_it_never_exceeds_the_photos_that_could_be_drawn(self):
+        body = function_body(page(), "function designMax(")
+        assert "shots.length > 1 ? Math.min(m, shots.length) : m" in body
+
+    def test_the_stepper_stays_usable_with_several_photos(self):
         body = function_body(page(), "function updateCountUI(")
-        assert "$('less').disabled = multi" in body
-        assert "$('more').disabled = multi" in body
+        assert "$('less').disabled = n <= 1;" in body
+        assert "$('more').disabled = n >= designMax();" in body
+        assert "multi" not in body
+
+    def test_each_design_is_drawn_from_one_photo_with_the_rest_as_references(self):
+        body = function_body(page(), "async function draw()")
+        assert "var primary = shots[i];" in body
+        assert "var n = optionCount()" in body.replace("multi = shots.length > 1, n", "var n")
 
 
 class TestCompareUsesTheRightBeforePhoto:
@@ -96,12 +106,13 @@ class TestEveryShotIsRedrawnNoneIsJustAReference:
     def test_the_old_first_photo_only_claim_is_gone(self):
         assert "Designs come back from the first photo" not in page()
 
-    def test_no_shot_is_labelled_reference(self):
-        assert "'Reference'" not in page()
-
-    def test_every_shot_gets_the_same_honest_tag(self):
-        body = function_body(page(), "function drawShots(")
-        assert "tag.textContent = 'Redrawn';" in body
+    def test_photos_not_drawn_are_labelled_and_explained(self):
+        """Asking for fewer designs than photos leaves some as references.
+        That is said on the photo and in the line under it, not left silent."""
+        source = page()
+        body = function_body(source, "function updateCountUI(")
+        assert "tag.textContent = i < n ? 'Redrawn' : 'Reference';" in body
+        assert "The others tell" in body
 
     def test_the_ceiling_follows_the_mode_and_says_so_upfront(self):
         """One photo is all a light restyle uses; a full redesign stops at

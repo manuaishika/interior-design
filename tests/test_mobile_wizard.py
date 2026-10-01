@@ -278,10 +278,19 @@ class TestTheLaptopStudioFitsOneScreen:
     def test_the_button_stays_in_reach(self):
         assert "#v-studio .controls #go { position: sticky; bottom: 0;" in self.block("@media (min-width: 860px) {")
 
-    def test_wide_screens_put_the_questions_in_two_columns(self):
+    def test_wide_screens_put_the_questions_in_two_independent_columns(self):
+        """Two flex columns, not grid rows: with rows, a tall look list on the
+        right stretched the photos row on the left and left a gap."""
         css = self.block("@media (min-width: 1100px) {")
-        assert "grid-template-columns: 1fr 1fr;" in css
+        assert "#v-studio .controls .col { display: flex; flex-direction: column;" in css
+        assert "flex-direction: row;" in css
         assert '.step[data-g="setting"] { display: none; }' in css
+        assert ".col { display: contents; }" in page()
+
+    def test_a_short_laptop_screen_still_fits_without_scrolling(self):
+        css = self.block("@media (min-width: 860px) and (max-height: 780px) {")
+        assert "min-height: 430px;" in css
+        assert "#lookHint" in css
 
     def test_the_header_lines_up_with_the_wider_studio(self):
         css = self.block("@media (min-width: 1100px) {")
@@ -291,3 +300,19 @@ class TestTheLaptopStudioFitsOneScreen:
         source = page()
         start = source.index("the studio on a laptop: one screen")
         assert "max-width" not in source[start:source.index("{", start)]
+
+
+class TestSignInIsQuietForNow:
+    def test_the_button_and_the_save_prompt_are_hidden_while_accounts_are_off(self):
+        source = page()
+        assert "var SIGN_IN_OFF = true;" in source
+        assert "$('login').classList.toggle('hidden', !signInVisible());" in source
+        assert "keep.classList.add('hidden')" in source
+
+    def test_an_access_code_studio_still_shows_it(self):
+        assert "return !SIGN_IN_OFF || needsCode || Boolean(account);" in page()
+
+    def test_the_pricing_page_stops_promising_a_sign_in_difference(self):
+        source = page()
+        assert "Up to 12 designs a day, no account needed" in source
+        assert "when signed in, 2 without" not in source

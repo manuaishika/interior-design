@@ -135,7 +135,7 @@ class TestSessionReportsTheAccountsTier:
         body = client.get("/api/session").json()
         assert body["account"]["tier"] == "free"
         assert body["tier"]["id"] == "free"
-        assert body["tier"]["variants"] == 2
+        assert body["tier"]["variants"] == 3
 
     def test_a_tier_set_by_hand_is_reported_back(self, client, db_settings):
         join(client, "anna@example.test")
@@ -200,7 +200,7 @@ class TestTwoAccountsTwoTiers:
                     data={"style": "japandi", "variants": "4"})
         studio_count = len(seen["calls"])
 
-        assert free_count == 2      # config.TIERS["free"]["variants"]
+        assert free_count == 3      # config.TIERS["free"]["variants"]
         assert studio_count == 4    # config.TIERS["studio"]["variants"]
 
 

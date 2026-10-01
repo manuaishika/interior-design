@@ -148,19 +148,19 @@ class TestAnonymousVisitors:
 
 
 class TestSignedInFreeTier:
-    def test_five_a_day_matches_the_pricing_page(self, client, monkeypatch):
+    def test_twenty_a_day_for_an_account(self, client, monkeypatch):
         draw_stub(monkeypatch)
         join(client, "anna@example.test")
-        for _ in range(5):
+        for _ in range(20):
             assert draw(client).status_code == 200
         r = draw(client)
         assert r.status_code == 429
-        assert "5" in r.json()["detail"]
+        assert "20" in r.json()["detail"]
 
     def test_two_accounts_do_not_share_a_quota(self, client, monkeypatch):
         draw_stub(monkeypatch)
         join(client, "anna@example.test")
-        for _ in range(5):
+        for _ in range(20):
             draw(client)
         assert draw(client).status_code == 429
         client.post("/api/logout")
@@ -169,11 +169,11 @@ class TestSignedInFreeTier:
         assert draw(client).status_code == 200
 
     def test_signing_in_is_its_own_reason_over_staying_anonymous(self, client, monkeypatch):
-        """The two limits are 2 and 5 — an anonymous visitor who signs in
+        """The two limits are 12 and 20 — an anonymous visitor who signs in
         gets a real increase, not a relabelled version of the same cap."""
         from app.config import TIERS
-        assert TIERS["free"]["daily"] == 5
-        assert settings().anon_daily_designs == 2
+        assert TIERS["free"]["daily"] == 20
+        assert Settings(openai_api_key='sk-test').anon_daily_designs == 12
 
 
 class TestPaidTiersAreNotCapped:

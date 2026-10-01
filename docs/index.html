@@ -931,57 +931,59 @@
      The studio used to be a page: a large heading, then the panel starting
      halfway down the screen, then a column of questions longer than the
      screen, so the button was always below the fold. Now the heading is one
-     compact block and the panel takes the rest of the screen exactly. The
-     questions are spaced tighter; if a short screen still cannot hold them,
-     that column scrolls on its own and the Reimagine button stays pinned at
-     its foot. The designs side fills the same height with the conversation
-     bar always in view. Same min-width as the two-column layout, so a phone
-     (and anything that stacks) is untouched. */
+     compact block and the panel takes the rest of the screen. Under 1100px
+     the questions are one column (and scroll inside the panel if the screen
+     is short); from 1100px they are two independent columns, left: how far,
+     photos, comments; right: room, look, options and the button, each
+     stacking at its own height so one side never leaves a gap to match the
+     other. Same min-width as the two-column layout, so a phone (which stacks
+     and uses question cards) is untouched. */
+  .col { display: contents; }
   @media (min-width: 860px) {
-    #v-studio.view { padding: 1.3rem 0 1.6rem; }
-    #v-studio .kick { margin-bottom: .35rem; }
-    #v-studio h1.big { font-size: 2.3rem; }
-    #v-studio .lede { margin-top: .35rem; font-size: .95rem; }
+    #v-studio.view { padding: 1.1rem 0 1.3rem; }
+    #v-studio .kick { margin-bottom: .3rem; }
+    #v-studio h1.big { font-size: 2.2rem; }
+    #v-studio .lede { margin-top: .3rem; font-size: .95rem; }
     #v-studio .lede-more { display: none; }
-    #v-studio .panel { margin-top: 1rem; }
-    #v-studio .panel-body { height: calc(100vh - 62px - 13.6rem); min-height: 440px; }
-    #v-studio .controls { overflow-y: auto; min-height: 0; padding: .9rem 1rem 0;
+    #v-studio .panel { margin-top: .9rem; }
+    #v-studio .panel-body { height: calc(100vh - 62px - 12.4rem); min-height: 470px; }
+    #v-studio .controls { overflow-y: auto; min-height: 0; padding: .8rem 1rem 0;
       display: flex; flex-direction: column; }
-    #v-studio .controls .lab { margin: .8rem 0 .35rem; }
-    #v-studio .controls > .step:first-of-type + .step .lab:first-of-type,
-    #v-studio .controls .step[data-g="depth"] .lab { margin-top: 0; }
-    #v-studio .controls .hint { margin: .3rem 0 .3rem; }
-    #v-studio .controls textarea.brief { min-height: 52px; }
-    #v-studio .controls .drop { padding: .55rem .8rem; }
-    #v-studio .controls .count { margin-bottom: .1rem; }
-    /* The button is always in reach, even when the column scrolls. */
+    #v-studio .controls .lab { margin: .75rem 0 .3rem; }
+    #v-studio .controls .step[data-g="depth"] .lab,
+    #v-studio .controls .step[data-g="room"] .lab { margin-top: 0; }
+    #v-studio .controls .hint { margin: .25rem 0 .25rem; }
+    #v-studio .controls textarea.brief { min-height: 56px; }
+    #v-studio .controls .drop { padding: .5rem .8rem; }
     #v-studio .controls #go { position: sticky; bottom: 0; margin-top: auto;
       box-shadow: 0 -14px 14px -6px var(--raise); }
-    #v-studio .controls .msg { margin: .35rem 0 .7rem; }
+    #v-studio .controls .msg { margin: .3rem 0 .6rem; }
     #v-studio .pane { min-height: 0; }
   }
-  /* Wide enough for the questions to sit in two columns: how far, photos and
-     comments on the left; room, look and the button on the right. The studio
-     also takes more of a wide screen than the text pages do (it is a tool,
-     not an article), so the designs side does not lose out. */
   @media (min-width: 1100px) {
     #v-studio .wrap { max-width: 1440px; }
     /* The top bar follows, so its edges line up with the studio's. */
     body:has(#v-studio:not(.hidden)) .top .wrap { max-width: 1440px; }
     #v-studio .panel-body { grid-template-columns: 560px minmax(0,1fr); }
-    #v-studio .controls { display: grid; grid-template-columns: 1fr 1fr;
-      column-gap: 1.3rem; align-content: start; }
-    #v-studio .controls .step { display: block; min-width: 0; }
+    #v-studio .controls { flex-direction: row; gap: 1.3rem; overflow-y: visible;
+      padding-bottom: 1rem; }
+    #v-studio .controls .col { display: flex; flex-direction: column; flex: 1 1 0;
+      min-width: 0; }
+    #v-studio .controls .step { display: block; }
     #v-studio .controls .step[data-g="setting"] { display: none; }
-    #v-studio .controls .step[data-g="depth"]  { grid-column: 1; grid-row: 1; }
-    #v-studio .controls .step[data-g="photos"] { grid-column: 1; grid-row: 2; }
-    #v-studio .controls .step[data-part="note"] { grid-column: 1; grid-row: 3; }
-    #v-studio .controls .step[data-g="room"]   { grid-column: 2; grid-row: 1; }
-    #v-studio .controls .step[data-g="look"]   { grid-column: 2; grid-row: 2; }
-    #v-studio .controls .step[data-part="go"]  { grid-column: 2; grid-row: 3;
-      align-self: end; position: sticky; bottom: 0; background: var(--raise); }
-    #v-studio .controls .step[data-g="room"] .lab { margin-top: 0; }
-    #v-studio .controls #go { position: static; box-shadow: none; }
+    #v-studio .controls #go { position: static; box-shadow: none; margin-top: .6rem; }
+    #v-studio .controls .wiz-nav { display: none; }
+  }
+  /* A short laptop screen: give the panel the height the heading was using,
+     and drop the explanatory lines that the labels already carry. */
+  @media (min-width: 860px) and (max-height: 780px) {
+    #v-studio.view { padding-top: .8rem; }
+    #v-studio .kick, #v-studio .lede { display: none; }
+    #v-studio h1.big { font-size: 1.7rem; }
+    #v-studio .panel { margin-top: .6rem; }
+    #v-studio .panel-body { height: calc(100vh - 62px - 7.4rem); min-height: 430px; }
+    #v-studio .controls #lookHint, #v-studio .controls #tierNote { display: none; }
+    #v-studio .controls .lab { margin: .55rem 0 .25rem; }
   }
 </style>
 
@@ -1090,6 +1092,7 @@
             <div class="pills choice" id="settingPills"></div>
           </div>
 
+          <div class="col col-a">
           <div class="step" data-g="depth">
             <h3 class="q">Full redesign, or a light restyle?</h3>
             <!-- How far to go comes first, because it decides how many
@@ -1134,6 +1137,8 @@
               placeholder="Keep the window, add a reading corner, warmer light&hellip;"></textarea>
           </div>
 
+          </div>
+          <div class="col col-b">
           <div class="step" data-g="room">
             <h3 class="q">Which space is it?</h3>
             <p class="qhint">Pick the closest one. The list follows your last answer, and you can add detail in the comments at the end.</p>
@@ -1164,6 +1169,8 @@
 
             <button class="cta" id="go" type="button" disabled>Reimagine this room</button>
             <span class="msg" id="msg"></span>
+          </div>
+
           </div>
 
           <div class="wiz-nav" id="wizNav">
@@ -1360,7 +1367,7 @@
         <div class="price">AED 0</div>
         <span class="per">To see what your room could be</span>
         <ul>
-          <li>5 designs a day when signed in, 2 without</li>
+          <li>Up to 12 designs a day, no account needed</li>
           <li>Up to 2 designs per run, standard quality</li>
           <li>Every look, or your own brief</li>
           <li>Before and after, download, mark an area to change</li>
@@ -1871,26 +1878,38 @@
     return (shots.length || (currentPhotoBlob ? 1 : 0)) >= photosNeeded();
   }
 
-  /* One photo: the stepper decides how many takes come back, all of the
-     same view — that number is the plan's, capped by tier.variants, because
-     it is buying design variety. Two or more: every photo IS a take, one
-     each, full stop — that number belongs to how many corners of the room
-     were actually photographed, which a plan has no opinion on. Capping it
-     by tier.variants used to mean a photo could go in and quietly not come
-     back redrawn, quietly relabelled to explain why; maxShots() is the only
-     ceiling left, it is enforced when a photo is added rather than after,
-     and it says so upfront. */
-  function optionCount() {
-    return shots.length > 1 ? shots.length : count;
+  /* How many designs come back is the person's choice, one to three, and
+     does not depend on how many photographs were uploaded. One photo: that
+     many independent takes on the same view. Several photos: each design is
+     drawn from one of them (the first N), with all the others sent along as
+     what the rest of the room looks like — so asking for one design from
+     three photos gives one design, drawn from the first, that knows what is
+     round the corner. The photos not drawn are labelled as such, and the
+     line under the photos says so, so nothing is left out silently. Three is
+     the ceiling, whatever the plan or the photo count. */
+  var DESIGN_CAP = 3;
+  function designMax() {
+    var m = Math.min(DESIGN_CAP, (tier && tier.variants) || DESIGN_CAP);
+    return shots.length > 1 ? Math.min(m, shots.length) : m;
   }
+  function optionCount() { return Math.max(1, Math.min(count, designMax())); }
 
   function updateCountUI() {
-    var max = (tier && tier.variants) || 4, multi = shots.length > 1;
-    $('countN').textContent = optionCount();
-    $('less').disabled = multi;
-    $('more').disabled = multi || count >= max;
-    $('countLabel').textContent = multi ? 'angles, each redrawn'
-                                        : 'designs per run';
+    var n = optionCount();
+    $('countN').textContent = n;
+    $('less').disabled = n <= 1;
+    $('more').disabled = n >= designMax();
+    $('countLabel').textContent = n === 1 ? 'design per run' : 'designs per run';
+    // Which photos get drawn, said on the photos themselves.
+    Array.prototype.forEach.call(document.querySelectorAll('#shotsIn .shot-in .tag'),
+      function (tag, i) { tag.textContent = i < n ? 'Redrawn' : 'Reference'; });
+    var need = $('need');
+    if (shots.length > n && n >= 1 && !need.classList.contains('short')) {
+      need.className = 'need ok';
+      need.textContent = n === 1
+        ? 'One design, drawn from your first photo. The others tell it what the rest of the room looks like.'
+        : 'Designs are drawn from your first ' + n + ' photos. The others tell them what the rest of the room looks like.';
+    }
   }
 
   function drawShots() {
@@ -1905,11 +1924,11 @@
       img.src = file._thumb || (file._thumb = URL.createObjectURL(file));
       img.alt = 'Photo ' + (i + 1);
       box.appendChild(img);
-      // Every photo in the strip is redrawn — there is nothing left to
-      // distinguish, so the tag says the one true thing about all of them.
+      // The first N photos are drawn (N is the design count); the tag says
+      // which, and updateCountUI keeps it true as the count changes.
       var tag = document.createElement('span');
       tag.className = 'tag';
-      tag.textContent = 'Redrawn';
+      tag.textContent = i < optionCount() ? 'Redrawn' : 'Reference';
       box.appendChild(tag);
       var x = document.createElement('button');
       x.className = 'x';
@@ -1947,8 +1966,7 @@
         + 'Light restyle.';
     } else if (shots.length > 1) {
       need.className = 'need ok';
-      need.textContent = 'Every photo comes back redesigned, drawn to '
-        + 'match the others.';
+      need.textContent = 'Each design is drawn to match the other photos.';
     } else {
       need.className = 'need ok';
       need.textContent = '';
@@ -2130,8 +2148,7 @@
     updateCountUI();
   };
   $('more').onclick = function () {
-    var max = (tier && tier.variants) || 4;
-    count = Math.min(max, count + 1);
+    count = Math.min(designMax(), count + 1);
     updateCountUI();
   };
 
@@ -2198,6 +2215,12 @@
      are my designs". Signing in is now about keeping your work, so it is
      offered whether or not this deployment gates anything. */
   var needsCode = false, signedIn = true, account = null, googleReady = false;
+  // Accounts are built but switched off for now: the studio is open to
+  // anyone, so nothing in the page asks people to sign in. Flip this to
+  // false to bring the Sign in button and "Sign in to save" back. A studio
+  // that needs an access code still shows Sign in, since that is how it opens.
+  var SIGN_IN_OFF = true;
+  function signInVisible() { return !SIGN_IN_OFF || needsCode || Boolean(account); }
   var tier = null;
   // A WhatsApp number to hand finished designs to, when the deployment has
   // one. Null means nobody is set to answer, so the button never shows.
@@ -2246,13 +2269,9 @@
      capped at two must not leave + looking clickable and doing nothing:
      that reads as broken, not as a limit. */
   function applyTierCap() {
-    var max = (tier && tier.variants) || 4;
-    if (count > max) { count = max; }
+    if (count > designMax()) { count = designMax(); }
     updateCountUI();
-    $('tierNote').textContent = tier
-      ? tier.label + ' plan — up to ' + max + ' design' +
-        (max === 1 ? '' : 's') + ' per run.'
-      : '';
+    $('tierNote').textContent = '';
   }
 
   /* One drawer, not two nav items. "Your chats" sitting next to Pricing said
@@ -2274,6 +2293,7 @@
     $('login').textContent = account
       ? (account.name || account.email).split('@')[0] + ' · Sign out'
       : (needsCode && signedIn ? 'Sign out' : 'Sign in');
+    $('login').classList.toggle('hidden', !signInVisible());
     $('historyBtn').classList.toggle('hidden', !account);
     if (!account) { historyOpen = false; $('savedBlock').classList.add('hidden'); }
     refresh();
@@ -3377,6 +3397,7 @@
     keep.type = 'button';
     keep.disabled = Boolean(account);
     keep.textContent = account ? 'Saving…' : 'Sign in to save';
+    if (!account && !signInVisible()) { keep.classList.add('hidden'); }
     keep.onclick = function () { keepDesign(g.image_base64, keep); };
     saving.push(keepDesign(g.image_base64, keep, true));
 
@@ -3666,14 +3687,13 @@
     var requests = [];
     for (var i = 0; i < n; i++) {
       if (multi) {
-        // Every uploaded angle is its own take, drawn against the same
-        // instruction and cross-referenced against the rest — one design,
-        // shown from where each photo actually stood. variant_offset stays
-        // at 0 for all of them so nothing nudges the angles apart.
+        // Each design is drawn from one photo and cross-referenced against
+        // the rest. variant_offset stays at 0 for all of them so nothing
+        // nudges the angles apart.
         var primary = shots[i];
         var refs = shots.filter(function (_, j) { return j !== i; });
         requests.push(drawOne(i, saving, progress, primary, refs, 0,
-                              'Angle ' + (i + 1)));
+                              n > 1 ? 'Angle ' + (i + 1) : undefined));
       } else {
         requests.push(drawOne(i, saving, progress, currentPhoto(),
                               shots.slice(1), i));
