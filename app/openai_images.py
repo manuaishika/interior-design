@@ -383,7 +383,10 @@ async def redraw(image: Image.Image, inpaint_mask: Image.Image | None,
         call = {
             "model": model,
             "image": views if len(views) > 1 else views[0],
-            "prompt": prompt[:4000],
+            # Well inside the model's own limit (32,000), and not tighter than
+            # that on purpose: the client's own words are the LAST thing in the
+            # prompt, so a short cap cuts off exactly the part they wrote.
+            "prompt": prompt[:12000],
             "size": _edit_size(image.size),
             # Never left to the default. The default is the expensive end.
             "quality": quality,

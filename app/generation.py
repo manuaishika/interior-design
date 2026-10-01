@@ -195,6 +195,28 @@ PRESERVE = (
 )
 
 
+# What kind of picture comes back. Without this the model's default is the
+# glossy, over-lit, too-perfect look of a 3D visualisation, which is the one
+# thing a designer's client can spot at a glance. This is about the look of the
+# photograph only: the camera stays where the original photo put it (PRESERVE),
+# so "eye level" and the lens describe the finish, never a new viewpoint.
+PHOTO_FINISH = (
+    "Photographic finish: this must read as a photograph from a high-quality "
+    "interior design magazine or a professional photographer's portfolio — not "
+    "a 3D render, not an architectural visualisation, not an AI concept image. "
+    "Natural morning or late-afternoon window light with realistic shadows; "
+    "authentic materials and real wood grain; subtle imperfections; slightly "
+    "lived-in styling with natural fabric wrinkles; believable furniture "
+    "proportions. As if shot on a full-frame camera with a 28–35mm interior "
+    "lens at eye level: natural exposure, realistic depth of field, subtle lens "
+    "characteristics, high dynamic range that does not look HDR.\n"
+    "This describes the look of the picture only. It never changes the camera "
+    "position, angle, crop or field of view, which stay exactly as in the "
+    "original photograph, and \"lived-in\" means a folded throw or a book on "
+    "a table, never clutter."
+)
+
+
 # How far to go. This existed as a control on the page and as a lock profile
 # in the config, and reached the generator through neither — so "full redesign"
 # and "light restyle" produced the same picture, and asking for something
@@ -285,11 +307,7 @@ def build_prompt(
             "moved slightly — but every one of them must be clearly present "
             "and usable in the result. Do not remove or substitute them."
         )
-    prompt += (
-        " Tidy and uncluttered. Photorealistic, architectural photography, "
-        "natural lighting, consistent perspective and proportions with the "
-        "original room."
-    )
+    prompt += " Tidy and uncluttered.\n\n" + PHOTO_FINISH
     how_far = depth_clause(depth)
     if how_far:
         prompt += f"\n\n{how_far}"
