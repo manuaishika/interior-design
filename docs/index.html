@@ -246,7 +246,7 @@
      Without that class (script failed) a phone still gets the plain column,
      so a broken script can never leave a blank form. */
   .step { display: contents; }
-  .step .q, .step .qhint, .wiz-nav, #roomChips, .wiz-sum,
+  .step .q, .step .qhint, .wiz-nav, .wiz-sum,
   .step[data-g="setting"] { display: none; }
   @media (max-width: 760px) {
     .controls.wiz { display: flex; flex-direction: column; padding: .9rem;
@@ -280,11 +280,10 @@
       text-align: left; border-radius: 12px; }
     .controls.wiz #depthPills .pill:not(.on),
     .controls.wiz .pills.choice .pill:not(.on) { color: var(--ink); }
-    .controls.wiz .pills.two .pill { flex: 1 1 calc(50% - .35rem); }
     .controls.wiz #stylePills .pill { min-height: 44px; padding: .6rem 1rem;
       font-size: .95rem; border-radius: 999px; }
-    .controls.wiz #roomSel { display: none; }
-    .controls.wiz #roomChips { display: flex; }
+    .controls.wiz #roomSel { display: block; min-height: 54px; padding: .8rem 1rem;
+      font-size: 1rem; border-radius: 12px; color: var(--ink); }
     .controls.wiz .drop { padding: 1.1rem 1rem; min-height: 68px; }
     .controls.wiz .count button { width: 40px; height: 40px; font-size: 1.1rem; }
     .controls.wiz textarea.brief { min-height: 96px; font-size: 1rem; }
@@ -932,10 +931,10 @@
           </div>
 
           <div class="step" data-g="room">
-            <h3 class="q">Which room is it?</h3>
+            <h3 class="q">Which space is it?</h3>
+            <p class="qhint">Pick the closest one. The list follows your last answer, and you can add detail in the comments at the end.</p>
             <p class="lab">Room</p>
             <select class="drop-sel" id="roomSel"></select>
-            <div class="pills choice two" id="roomChips"></div>
           </div>
 
           <div class="step" data-g="look">
@@ -1773,7 +1772,9 @@
     return '<option value="' + r.id + '">' + r.name + '</option>';
   }).join('');
   $('roomSel').onchange = function () {
-    room = ROOM_TYPES.filter(function (r) {
+    // On a phone the list is the home or business one (see wizRooms).
+    var pool = (wiz && wiz.on) ? wizRooms() : ROOM_TYPES;
+    room = pool.filter(function (r) {
       return r.id === $('roomSel').value;
     })[0] || ROOM_TYPES[0];
   };
@@ -2290,7 +2291,7 @@
     $('dropTitle').textContent = 'Photo added';
     $('dropNote').textContent = 'Click to choose a different one';
 
-    var foundRoom = ROOM_TYPES.filter(function (x) { return x.id === d.room; })[0];
+    var foundRoom = ROOM_TYPES.concat(BUSINESS_ROOMS).filter(function (x) { return x.id === d.room; })[0];
     if (foundRoom) { room = foundRoom; $('roomSel').value = room.id; }
     var foundStyle = LOOKS.filter(function (x) { return x.id === d.style; })[0];
     if (foundStyle) {
@@ -3603,19 +3604,43 @@
     { id: 'home',     name: 'Home' },
     { id: 'business', name: 'Business' }
   ];
-  // A business is not a different set of rooms to design, only a different
-  // list to choose from. The briefs behind them already exist.
+  // Two lists, because "study" and "studio" mean different things in a home
+  // and in a business — a home office or an office, a studio flat or a
+  // studio space. Home reuses the page's own rooms; business adds the ones
+  // that only exist there. Every id has a brief on the server.
+  var HOME_ROOMS = [
+    { id: 'bedroom',     name: 'Bedroom' },
+    { id: 'living',      name: 'Living room' },
+    { id: 'dining',      name: 'Dining room' },
+    { id: 'kitchen',     name: 'Kitchen' },
+    { id: 'study',       name: 'Study or home office' },
+    { id: 'bathroom',    name: 'Bathroom' },
+    { id: 'hallway',     name: 'Hallway' },
+    { id: 'stairway',    name: 'Stairway or landing' },
+    { id: 'nursery',     name: "Kids' room or nursery" },
+    { id: 'utility',     name: 'Utility or laundry room' },
+    { id: 'balcony',     name: 'Balcony or terrace' },
+    { id: 'gym',         name: 'Home gym' },
+    { id: 'studio-flat', name: 'Studio apartment' },
+    { id: 'open-plan',   name: 'Open-plan living and kitchen' },
+    { id: 'other',       name: 'Somewhere else — say so in the comments' }
+  ];
   var BUSINESS_ROOMS = [
-    { id: 'retail', name: 'Shop, café or salon' },
-    { id: 'study',  name: 'Office' },
-    { id: 'other',  name: 'Something else — say so in the comments' }
+    { id: 'retail',       name: 'Shop or showroom' },
+    { id: 'cafe',         name: 'Café or restaurant' },
+    { id: 'salon',        name: 'Salon or spa' },
+    { id: 'office',       name: 'Office' },
+    { id: 'reception',    name: 'Reception or lobby' },
+    { id: 'clinic',       name: 'Clinic or consulting room' },
+    { id: 'studio-space', name: 'Studio space (photo, dance, art, work)' },
+    { id: 'fitness',      name: 'Gym or fitness studio' },
+    { id: 'other',        name: 'Somewhere else — say so in the comments' }
   ];
   var MQ = window.matchMedia ? window.matchMedia('(max-width: 760px)') : null;
-  var wiz = { on: false, i: 0, setting: 'home', loading: false };
+  var wiz = { on: false, i: 0, setting: 'home', loading: false, filled: false };
 
   function wizRooms() {
-    return wiz.setting === 'business' ? BUSINESS_ROOMS
-      : ROOM_TYPES.filter(function (r) { return r.id !== 'retail'; });
+    return wiz.setting === 'business' ? BUSINESS_ROOMS : HOME_ROOMS;
   }
   function wizStep() { return WIZ_STEPS[wiz.i]; }
   function wizSave() {
@@ -3629,14 +3654,25 @@
     $('roomSel').value = id;
     $('roomSel').onchange();
   }
-  function wizRoomChips() {
+  // The dropdown shows the list for the answer just given. Keeps the
+  // current room if it is on that list, otherwise falls to the first.
+  function wizFillRooms() {
     var rooms = wizRooms();
-    if (!rooms.some(function (r) { return r.id === room.id; })) {
-      wizSetRoom(rooms[0].id);
-    }
-    pillRow($('roomChips'), rooms, room, function (r) {
-      wizSetRoom(r.id); wizSave(); wizAdvance();
-    }, true);
+    $('roomSel').innerHTML = rooms.map(function (r) {
+      return '<option value="' + r.id + '">' + r.name + '</option>';
+    }).join('');
+    var keep = rooms.filter(function (r) { return r.id === room.id; })[0];
+    $('roomSel').value = keep ? keep.id : rooms[0].id;
+    $('roomSel').onchange();
+  }
+  // Back to the page's own list when the window grows past a phone.
+  function wizRestoreRooms() {
+    $('roomSel').innerHTML = ROOM_TYPES.map(function (r) {
+      return '<option value="' + r.id + '">' + r.name + '</option>';
+    }).join('');
+    var keep = ROOM_TYPES.filter(function (r) { return r.id === room.id; })[0];
+    $('roomSel').value = keep ? keep.id : ROOM_TYPES[0].id;
+    $('roomSel').onchange();
   }
   function wizSummary() {
     var n = shots.length || (currentPhotoBlob ? 1 : 0);
@@ -3697,6 +3733,7 @@
     }
     var l = LOOKS.filter(function (x) { return x.id === saved.look; })[0];
     if (l) { style = l; pillRow($('stylePills'), LOOKS, style, pickLook, true); }
+    wizFillRooms();
     if (wizRooms().some(function (r) { return r.id === saved.room; })) {
       wizSetRoom(saved.room);
     }
@@ -3704,13 +3741,15 @@
   }
   function wizPickSetting(x) {
     wiz.setting = x.id;
-    wizRoomChips();
+    wizFillRooms();
     wizSave(); wizAdvance();
   }
   function wizApply() {
     wiz.on = Boolean(MQ && MQ.matches);
     $('controls').classList.toggle('wiz', wiz.on);
-    if (wiz.on) { wizRoomChips(); wizShow(false); }
+    if (wiz.on) { wizFillRooms(); wizShow(false); }
+    else if (wiz.filled) { wizRestoreRooms(); }
+    wiz.filled = wiz.on;
   }
   // Results above the questions, so nobody scrolls to find what they asked
   // for. The class is inert above 760px (its CSS lives in the phone query).
@@ -3727,6 +3766,7 @@
   $('depthPills').addEventListener('click', function (e) {
     if (wiz.on && e.target.closest('[data-id]')) { wizSave(); wizAdvance(); }
   });
+  $('roomSel').addEventListener('change', wizSave);
   $('stylePills').addEventListener('click', function (e) {
     if (wiz.on && e.target.closest('[data-id]')) { wizSave(); }
   });

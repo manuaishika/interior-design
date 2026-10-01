@@ -117,6 +117,31 @@ ROOM_BRIEFS: dict[str, str] = {
                  "distinct but continuous",
     "retail": "a shop, café or salon, with a clear route for customers, a "
               "service point, display or seating, and commercial-grade finishes",
+    "cafe": "a café or restaurant, with a clear route from the door to the "
+            "counter, seating at more than one scale, a service point with the "
+            "back of house kept out of sight, and warm lighting that flatters "
+            "the food and the faces",
+    "salon": "a salon or spa, with styling or treatment stations spaced to "
+             "work around, mirrors lit on the face, a reception point at the "
+             "entrance, a waiting area, and surfaces that wipe clean",
+    "office": "an office, with desks at working height and a supportive chair "
+              "at each, task lighting, room to walk between workstations, "
+              "somewhere to meet, and storage that keeps surfaces clear",
+    "reception": "a reception or lobby, with a desk that can be seen from the "
+                 "entrance, a waiting area, a clear wall for the brand, and a "
+                 "route through that never crosses the desk",
+    "clinic": "a clinic or consulting room, with a desk and chairs set for a "
+              "conversation, an examination couch with clear access on both "
+              "sides, handwashing within reach, calm lighting and surfaces "
+              "that can be disinfected",
+    "studio-space": "a studio space for making or working — photography, "
+                    "dance, art or crafts — with a large clear floor or "
+                    "worktop, controlled natural light, equipment stored "
+                    "against the walls, and surfaces that tolerate hard use",
+    "fitness": "a gym or fitness studio, with clear floor to move in, "
+               "impact-absorbing flooring, mirrors on one wall, equipment kept "
+               "back against the walls with space around each piece, and good "
+               "ventilation",
 }
 
 

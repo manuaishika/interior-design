@@ -12,8 +12,8 @@ def png(name):
     b = io.BytesIO(); Image.open(f"{V}/{name}").convert("RGB").save(b, "PNG"); return b.getvalue()
 async def find(image, s): return []
 async def redraw(image, mask, prompt, s, **kw):
-    await asyncio.sleep(1.8 if "marked area" not in prompt else 1.0)
-    return png("edited.jpg" if "marked area" in prompt else "after.jpg")
+    await asyncio.sleep(1.4 if "marked area" not in prompt else 1.0)
+    return png("after.jpg")
 async def read_room(photo, room_type, settings, currency="", market=""):
     return {"is_room": True, "room": "A bedroom with one bed, one door and one window.",
             "items": [{"name": "bed", "count": 1, "treatment": "redraw"}, {"name": "door", "count": 1, "treatment": "keep"},
