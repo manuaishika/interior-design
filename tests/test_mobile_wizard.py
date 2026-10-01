@@ -260,3 +260,34 @@ class TestMarkupSaysWhatToDoNext:
         body = self.body()
         assert "note.classList.add('bad');" in body
         assert "say((e && e.message)" not in body   # #msg is out of sight on a phone
+
+
+class TestTheLaptopStudioFitsOneScreen:
+    def block(self, query):
+        source = page()
+        start = source.index("the studio on a laptop: one screen")
+        rest = source[start:]
+        at = rest.index(query)
+        return rest[at:rest.index("\n  }\n", at)]
+
+    def test_the_panel_takes_the_rest_of_the_screen(self):
+        css = self.block("@media (min-width: 860px) {")
+        assert "#v-studio .panel-body { height: calc(100vh" in css
+        assert "#v-studio .controls { overflow-y: auto;" in css
+
+    def test_the_button_stays_in_reach(self):
+        assert "#v-studio .controls #go { position: sticky; bottom: 0;" in self.block("@media (min-width: 860px) {")
+
+    def test_wide_screens_put_the_questions_in_two_columns(self):
+        css = self.block("@media (min-width: 1100px) {")
+        assert "grid-template-columns: 1fr 1fr;" in css
+        assert '.step[data-g="setting"] { display: none; }' in css
+
+    def test_the_header_lines_up_with_the_wider_studio(self):
+        css = self.block("@media (min-width: 1100px) {")
+        assert "body:has(#v-studio:not(.hidden)) .top .wrap { max-width: 1440px; }" in css
+
+    def test_none_of_it_reaches_a_phone(self):
+        source = page()
+        start = source.index("the studio on a laptop: one screen")
+        assert "max-width" not in source[start:source.index("{", start)]
