@@ -57,7 +57,7 @@ STYLES: dict[str, str] = {
     ),
     "bohemian": (
         "bohemian interior, layered patterned rugs, rattan and macrame, "
-        "abundant houseplants, warm terracotta and ochre palette"
+        "one or two houseplants at most, warm terracotta and ochre palette"
     ),
     "modern-luxury": (
         "modern luxury interior, marble and brass accents, deep velvet "
@@ -216,6 +216,20 @@ PHOTO_FINISH = (
     "a table, never clutter."
 )
 
+# Image models dress every "styled" room like a plant shop: a fern on every
+# shelf, a vase on every surface, trailing vines over the window. A client's
+# room is a home, not a greenhouse. Placed before the client's own words, so
+# "fill it with plants" still wins when someone actually asks for that.
+DECOR_RESTRAINT = (
+    "Restraint with decoration: at most one or two plants in the whole room, "
+    "each in a sensible spot (a floor plant in a corner, or one small pot), "
+    "and no cut flowers, hanging or trailing plants, or plants on every shelf "
+    "and surface unless the client asks for them. The same goes for "
+    "ornaments, vases and cushions: a few, chosen, never a styled-showroom "
+    "pile. If the original photograph has plants, keep them as they are; do "
+    "not multiply them."
+)
+
 
 # How far to go. This existed as a control on the page and as a lock profile
 # in the config, and reached the generator through neither — so "full redesign"
@@ -307,7 +321,7 @@ def build_prompt(
             "moved slightly — but every one of them must be clearly present "
             "and usable in the result. Do not remove or substitute them."
         )
-    prompt += " Tidy and uncluttered.\n\n" + PHOTO_FINISH
+    prompt += " Tidy and uncluttered.\n\n" + PHOTO_FINISH + "\n\n" + DECOR_RESTRAINT
     how_far = depth_clause(depth)
     if how_far:
         prompt += f"\n\n{how_far}"

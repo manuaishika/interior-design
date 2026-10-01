@@ -598,7 +598,10 @@ class TestComparingHappensOnThePicture:
     def test_the_overlay_is_built_on_the_design(self, client):
         html = client.get("/").text
         assert "function openCompare(designBase64, figure)" in html
-        assert "figure.appendChild(overlay)" in html
+        # On the image's own box, not the whole card: laid over the card it
+        # swallowed every tap, including the buttons below the picture.
+        assert "frame.appendChild(overlay)" in html
+        assert "figure.appendChild(overlay)" not in html
 
     def test_it_toggles_off_again(self, client):
         html = client.get("/").text
@@ -606,7 +609,7 @@ class TestComparingHappensOnThePicture:
 
     def test_only_one_design_compares_at_a_time(self, client):
         html = client.get("/").text
-        assert "other.classList.remove('comparing')" in html
+        assert "closeCompare(other)" in html
 
     def test_the_two_sides_are_labelled(self, client):
         html = client.get("/").text

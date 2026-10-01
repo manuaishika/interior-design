@@ -141,3 +141,51 @@ class TestDocsCopyMatches:
         source = page("docs/index.html")
         assert "var WIZ_STEPS = [" in source
         assert ".panel-body.has-run .pane { order: -1;" in source
+
+
+def phone_sizing(source: str) -> str:
+    start = source.index("phone sizing ----------")
+    block = source.index("@media (max-width: 760px) {", start)
+    return source[block:source.index("</style>", block)]
+
+
+class TestPhoneScale:
+    """A phone used to get the laptop's sizes in one long column."""
+
+    def test_it_is_the_last_rule_and_phone_only(self):
+        source = page()
+        css = phone_sizing(source)
+        assert css.startswith("@media (max-width: 760px) {")
+        assert source.index("phone sizing ----------") > source.index("question cards (phone only)")
+
+    def test_pictures_go_two_across(self):
+        css = phone_sizing(page())
+        assert ".grid { column-count: 2;" in css
+        assert "grid-template-columns: repeat(2, minmax(0, 1fr))" in css
+
+    def test_inputs_stay_at_16px_so_ios_does_not_zoom_in(self):
+        css = page()
+        assert ".askrow input { font-size: 16px; }" in phone_sizing(css)
+        assert "textarea.brief { min-height: 70px; font-size: 16px; }" in phone_css(css)
+
+
+class TestCompareStaysOnThePicture:
+    def test_the_drag_surface_is_the_image_only(self):
+        source = page()
+        body = source[source.index("function openCompare("):]
+        body = body[:body.index("$('compareRange')")]
+        assert "frame.appendChild(overlay)" in body
+        assert "pointerdown" in body and "setPointerCapture" in body
+
+    def test_a_vertical_swipe_still_scrolls_the_page(self):
+        assert "touch-action: pan-y" in page()
+
+    def test_the_hidden_slider_no_longer_covers_anything(self):
+        source = page()
+        rule = source[source.index(".shots figure .overlay input[type=range] {"):]
+        rule = rule[:rule.index("}")]
+        assert "pointer-events: none" in rule
+        assert "inset: 0" not in rule
+
+    def test_the_button_says_how_to_get_out(self):
+        assert "cmp.textContent = 'Close compare';" in page()

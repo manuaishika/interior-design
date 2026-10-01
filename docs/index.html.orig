@@ -249,11 +249,11 @@
   .step .q, .step .qhint, .wiz-nav, .wiz-sum,
   .step[data-g="setting"] { display: none; }
   @media (max-width: 760px) {
-    .controls.wiz { display: flex; flex-direction: column; padding: .9rem;
+    .controls.wiz { display: flex; flex-direction: column; padding: .7rem;
       border-right: 0; scroll-margin-top: 4rem; }
     .controls.wiz .step { display: none; background: var(--raise);
-      border: 1px solid var(--line); border-radius: 16px; padding: 1.2rem 1.1rem 1.3rem;
-      box-shadow: 0 10px 28px -18px rgba(20,19,15,.35); }
+      border: 1px solid var(--line); border-radius: 12px; padding: .95rem .9rem 1rem;
+      box-shadow: 0 8px 22px -18px rgba(20,19,15,.35); }
     .controls.wiz .step.cur { display: block; }
     .controls.wiz .step[data-g="setting"] { order: 0; }
     .controls.wiz .step[data-g="depth"]   { order: 1; }
@@ -264,38 +264,38 @@
       border-bottom-left-radius: 0; border-bottom-right-radius: 0; padding-bottom: 0; }
     .controls.wiz .step[data-part="go"]   { order: 6; border-top: 0;
       border-top-left-radius: 0; border-top-right-radius: 0; padding-top: .2rem; }
-    .controls.wiz .wiz-nav { display: block; order: 7; padding: .9rem .2rem 0; }
+    .controls.wiz .wiz-nav { display: block; order: 7; padding: .7rem .1rem 0; }
     .controls.wiz .lab { display: none; }
     .controls.wiz .q { display: block; font-family: var(--display);
-      font-weight: var(--display-weight); font-size: 1.5rem; line-height: 1.15;
-      letter-spacing: -.01em; margin: 0 0 .4rem; }
-    .controls.wiz .qhint { display: block; font-size: .86rem; color: var(--muted);
-      margin: 0 0 .9rem; }
+      font-weight: var(--display-weight); font-size: 1.2rem; line-height: 1.2;
+      letter-spacing: -.01em; margin: 0 0 .25rem; }
+    .controls.wiz .qhint { display: block; font-size: .78rem; line-height: 1.45;
+      color: var(--muted); margin: 0 0 .7rem; }
     .controls.wiz .step .hint { margin: .7rem 0 0; }
 
     /* Big, thumb-sized answers. Looks stay a wrapping row of pills: there are
        eight of them and you want to see them all at once. */
     .controls.wiz #depthPills .pill, .controls.wiz .pills.choice .pill {
-      flex: 1 1 100%; min-height: 52px; padding: .9rem 1rem; font-size: 1rem;
-      text-align: left; border-radius: 12px; }
+      flex: 1 1 100%; min-height: 44px; padding: .6rem .85rem; font-size: .9rem;
+      text-align: left; border-radius: 9px; }
     .controls.wiz #depthPills .pill:not(.on),
     .controls.wiz .pills.choice .pill:not(.on) { color: var(--ink); }
-    .controls.wiz #stylePills .pill { min-height: 44px; padding: .6rem 1rem;
-      font-size: .95rem; border-radius: 999px; }
-    .controls.wiz #roomSel { display: block; min-height: 54px; padding: .8rem 1rem;
-      font-size: 1rem; border-radius: 12px; color: var(--ink); }
-    .controls.wiz .drop { padding: 1.1rem 1rem; min-height: 68px; }
-    .controls.wiz .count button { width: 40px; height: 40px; font-size: 1.1rem; }
-    .controls.wiz textarea.brief { min-height: 96px; font-size: 1rem; }
+    .controls.wiz #stylePills .pill { min-height: 36px; padding: .4rem .8rem;
+      font-size: .84rem; border-radius: 999px; }
+    .controls.wiz #roomSel { display: block; min-height: 44px; padding: .55rem .8rem;
+      font-size: .9rem; border-radius: 9px; color: var(--ink); }
+    .controls.wiz .drop { padding: .75rem .8rem; min-height: 56px; }
+    .controls.wiz .count button { width: 34px; height: 34px; font-size: 1rem; }
+    .controls.wiz textarea.brief { min-height: 70px; font-size: 16px; }
 
     .controls.wiz .wiz-sum { display: flex; flex-wrap: wrap; gap: .4rem;
-      margin: .4rem 0 1rem; }
+      margin: .2rem 0 .8rem; }
     .wiz-sum button { border: 1px solid var(--line); background: var(--card);
-      border-radius: 999px; padding: .4rem .85rem; font-size: .84rem;
+      border-radius: 999px; padding: .28rem .7rem; font-size: .78rem;
       color: var(--ink); cursor: pointer; }
 
-    .controls.wiz #go { margin-top: 1rem; padding: 1rem; font-size: 1.05rem;
-      border-radius: 10px; }
+    .controls.wiz #go { margin-top: .8rem; padding: .75rem; font-size: .95rem;
+      border-radius: 9px; }
     .controls.wiz #msg { display: none; }
 
     .wiz-prog { display: flex; align-items: center; gap: .7rem; margin: 0 0 .6rem;
@@ -309,7 +309,7 @@
     .wiz-msg.bad { color: var(--bad); }
     .wiz-btns { display: flex; gap: .6rem; }
     .controls.wiz .wiz-btns .cta { margin-top: 0; width: auto; flex: 1;
-      padding: .9rem; border-radius: 10px; font-size: 1rem; }
+      padding: .7rem; border-radius: 9px; font-size: .92rem; }
     .controls.wiz .wiz-btns .cta.ghost { flex: 0 0 32%; }
     .controls.wiz[data-cur="final"] #wizNext { display: none; }
     .controls.wiz[data-cur="final"] .wiz-btns .cta.ghost { flex: 1; }
@@ -527,8 +527,15 @@
   .shots figure .overlay .line::after { content: ''; position: absolute;
     top: 50%; left: 50%; width: 30px; height: 30px; transform: translate(-50%,-50%);
     border-radius: 50%; background: #F5F2EA; box-shadow: 0 1px 6px rgba(20,19,15,.4); }
-  .shots figure .overlay input[type=range] { position: absolute; inset: 0;
-    width: 100%; height: 100%; margin: 0; opacity: 0; cursor: ew-resize; }
+  /* The overlay is the drag surface; the range is only for keyboards and
+     screen readers, so it is tiny, invisible and never in a finger's way. */
+  .shots .frame .overlay { cursor: ew-resize; touch-action: pan-y;
+    user-select: none; -webkit-user-select: none; z-index: 3; }
+  .shots figure .overlay input[type=range] { position: absolute; left: 0;
+    bottom: 0; width: 100%; height: 1px; margin: 0; opacity: 0;
+    pointer-events: none; }
+  .shots figure .overlay input[type=range]:focus-visible { opacity: 1;
+    height: 18px; }
   .shots figure .overlay .edge { position: absolute; top: .5rem;
     font-size: .68rem; font-weight: 700; letter-spacing: .1em;
     text-transform: uppercase; background: rgba(15,14,11,.94);
@@ -780,6 +787,88 @@
   .foot button { background: none; border: 0; padding: 0; cursor: pointer;
     color: var(--muted); font-size: .84rem; }
   .foot button:hover { color: var(--clay); }
+
+  /* ---------- phone sizing ----------
+     Everything above was set for a laptop and only reflowed for a phone, so
+     on a phone it was the laptop's sizes in one long column: every picture
+     card the full width of the screen (Explore ran to ~12,000px), headings
+     and paddings at desktop scale. This block is the phone's own scale. It
+     is the last rule in the sheet and lives entirely in the phone query, so
+     nothing wider than 760px changes. */
+  @media (max-width: 760px) {
+    body { font-size: 14px; line-height: 1.55; }
+    .top-in { height: 52px; gap: .6rem; }
+    .brand { font-size: 1.15rem; }
+    nav button { font-size: .8rem; padding: .35rem .45rem; }
+    .view { padding: 1.4rem 0 3rem; }
+    .kick { font-size: .62rem; margin: 0 0 .55rem; }
+    h1.big { font-size: 1.7rem; }
+    h2.sec { font-size: 1.35rem; }
+    .sec-head { margin-bottom: .9rem; }
+    .lede { font-size: .9rem; margin-top: .7rem; }
+    .hero-do { margin-top: 1.1rem; gap: .6rem; }
+    .hero-do .cta { padding: .6rem 1.1rem; font-size: .88rem; }
+    .hero-do span { font-size: .78rem; }
+    .rule { margin: 2rem 0; }
+
+    /* Two pictures across, not one. */
+    .strip, .strip.three { grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: .5rem; margin-top: 1.4rem; }
+    .grid { column-count: 2; column-gap: .5rem; }
+    .grid .plate { margin-bottom: .5rem; }
+    .plate figcaption { padding: .4rem .5rem .5rem; gap: .2rem .4rem; }
+    .plate figcaption b { font-size: .88rem; }
+    .plate figcaption span { font-size: .64rem; }
+    .plate .made { font-size: .64rem; padding: 0 .5rem .5rem; margin-top: -.25rem; }
+    #filters { gap: .3rem; }
+    #filters .pill { font-size: .74rem; padding: .25rem .6rem; }
+    .chip-row button { font-size: .7rem; padding: .18rem .5rem; }
+
+    .steps > div { padding: .8rem 0 1.1rem; }
+    .steps h3 { font-size: 1.05rem; margin: .3rem 0 .25rem; }
+    .steps p { font-size: .82rem; }
+    .band { padding: 2.4rem 1.1rem; margin-top: 2.6rem; }
+    .band h2 { font-size: 1.45rem; }
+    .band p { font-size: .84rem; margin: .6rem 0 1.2rem; }
+
+    .tiers { gap: .6rem; }
+    .tier { padding: 1rem .95rem; }
+    .tier h3 { font-size: 1.1rem; }
+    .tier .price { font-size: 1.8rem; margin-top: .25rem; }
+    .tier .per { font-size: .74rem; }
+    .tier ul { margin: .8rem 0 1rem; }
+    .tier li { font-size: .78rem; padding: .4rem 0; }
+    .tier .cta { padding: .55rem; font-size: .85rem; }
+
+    /* The studio's own panel. */
+    .panel { margin-top: 1rem; }
+    .panel-top { padding: .45rem .7rem; font-size: .6rem; }
+    .panel-top #state { font-size: .7rem; }
+    .pane { min-height: 320px; }
+    .pane-tabs { padding: .4rem .6rem 0; }
+    .pane-tabs button { font-size: .76rem; padding: .4rem .6rem; }
+    .pane-scroll { padding: .7rem; }
+    .shots { gap: .6rem; }
+    .shots figcaption { font-size: .68rem; }
+    .shot-row { gap: .35rem; margin-top: .45rem; }
+    .shot-row .cta { font-size: .76rem; padding: .45rem .55rem; }
+    .feedback { margin-top: .4rem; padding-top: .4rem; }
+    .fb-ask, .fb-said { font-size: .7rem; }
+    .fb-btn { font-size: .72rem; }
+    .contact { margin-top: .9rem; padding: .75rem .8rem; }
+    .contact b { font-size: .95rem; }
+    .contact span { font-size: .72rem; }
+    .contact .cta { font-size: .82rem; padding: .5rem .8rem; }
+    .convo-bar { padding: .65rem .75rem; }
+    .convo-label { font-size: .6rem; margin-bottom: .35rem; }
+    .chip { font-size: .7rem; padding: .18rem .5rem; }
+    .askrow input { font-size: 16px; }
+    .askrow .cta { font-size: .8rem; padding: .45rem .7rem; }
+    .shots figure .overlay .edge { font-size: .58rem; padding: .15rem .4rem; }
+    .shots figure .overlay .line::after { width: 24px; height: 24px; }
+
+    .foot { gap: 1.2rem; }
+  }
 </style>
 
 <header class="top">
@@ -3178,22 +3267,35 @@
   /* Comparing happens on the design itself. It used to open a second copy
      of the same picture further down the page, which pushed everything else
      below the fold to show something already on screen. */
+  /* Before and after, on the picture and only on the picture. The overlay
+     used to be laid over the whole card — image, caption, every button and
+     the feedback row — with an invisible slider stretched across all of it,
+     so once Compare was on, any tap anywhere on the card moved the divider
+     and the buttons (including Compare itself, to turn it off) could not be
+     reached. Now it sits inside .frame, which is exactly the image's box,
+     and the divider follows a finger or mouse dragged across the image.
+     touch-action: pan-y (CSS) keeps a vertical swipe scrolling the page. */
+  function closeCompare(figure) {
+    figure.classList.remove('comparing');
+    var gone = figure.querySelector('.overlay');
+    if (gone) { gone.remove(); }
+    var b = figure.querySelector('.cmp');
+    if (b) { b.textContent = 'Compare'; }
+  }
+
   function openCompare(designBase64, figure) {
     var photo = (figure && figure.beforePhoto) || currentPhoto();
     if (!photo || !figure) { return; }
 
-    if (figure.classList.contains('comparing')) {
-      figure.classList.remove('comparing');
-      var gone = figure.querySelector('.overlay');
-      if (gone) { gone.remove(); }
-      return;
-    }
+    if (figure.classList.contains('comparing')) { closeCompare(figure); return; }
 
     Array.prototype.forEach.call($('shots').children, function (other) {
-      other.classList.remove('comparing');
-      var o = other.querySelector('.overlay');
-      if (o) { o.remove(); }
+      if (other.classList.contains('comparing')) { closeCompare(other); }
     });
+
+    var frame = figure.querySelector('.frame') || figure;
+    // Marking and comparing both want the picture; comparing wins.
+    if (activeMarking && activeMarking.frame === frame) { activeMarking.cancel(); }
 
     var overlay = document.createElement('div');
     overlay.className = 'overlay';
@@ -3201,11 +3303,14 @@
     var before = document.createElement('img');
     before.className = 'before';
     before.alt = 'The room as it was';
+    before.draggable = false;
     before.src = URL.createObjectURL(photo);
 
     var line = document.createElement('div');
     line.className = 'line';
 
+    // Kept for the keyboard (arrow keys) and screen readers only. It no
+    // longer covers anything: pointer input is handled on the overlay.
     var range = document.createElement('input');
     range.type = 'range';
     range.min = 0;
@@ -3214,11 +3319,28 @@
     range.setAttribute('aria-label', 'Reveal more of the original photograph');
 
     function split(value) {
+      value = Math.max(0, Math.min(100, value));
       // The original is revealed from the left; the design stays put beneath.
       before.style.clipPath = 'inset(0 ' + (100 - value) + '% 0 0)';
       line.style.left = value + '%';
+      range.value = value;
     }
     range.addEventListener('input', function () { split(Number(this.value)); });
+
+    var dragging = false;
+    function follow(e) {
+      var box = overlay.getBoundingClientRect();
+      split((e.clientX - box.left) / box.width * 100);
+    }
+    overlay.addEventListener('pointerdown', function (e) {
+      dragging = true;
+      try { overlay.setPointerCapture(e.pointerId); } catch (err) {}
+      follow(e);
+    });
+    overlay.addEventListener('pointermove', function (e) { if (dragging) { follow(e); } });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (t) {
+      overlay.addEventListener(t, function () { dragging = false; });
+    });
     split(50);
 
     var tagB = document.createElement('span');
@@ -3233,8 +3355,10 @@
     overlay.appendChild(tagB);
     overlay.appendChild(tagA);
     overlay.appendChild(range);
-    figure.appendChild(overlay);
+    frame.appendChild(overlay);
     figure.classList.add('comparing');
+    var cmp = figure.querySelector('.cmp');
+    if (cmp) { cmp.textContent = 'Close compare'; }
 
     // The download and the lists still read from the hidden pair.
     $('compareBefore').src = before.src;

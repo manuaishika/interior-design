@@ -68,3 +68,23 @@ class TestNothingIsCutOff:
         except Exception:
             pass
         assert seen["prompt"].endswith("x" * 400)
+
+
+class TestNotAJungle:
+    """Scandinavian and friends came back with plants on every surface."""
+
+    def test_every_prompt_limits_plants(self):
+        from app.generation import DECOR_RESTRAINT
+        for style in ("scandinavian", "bohemian", "japandi", "none"):
+            assert DECOR_RESTRAINT in build_prompt(style, room="living")
+        assert "at most one or two plants" in DECOR_RESTRAINT
+        assert "no cut flowers" in DECOR_RESTRAINT
+
+    def test_the_client_can_still_ask_for_a_jungle(self):
+        from app.generation import DECOR_RESTRAINT
+        prompt = build_prompt("bohemian", "lots of plants please")
+        assert prompt.index(DECOR_RESTRAINT) < prompt.index("lots of plants please")
+
+    def test_bohemian_no_longer_asks_for_abundant_plants(self):
+        from app.generation import STYLES
+        assert "abundant houseplants" not in STYLES["bohemian"]
