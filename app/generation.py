@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import logging
+import re
 from typing import Any
 
 import httpx
@@ -166,7 +167,9 @@ def room_brief(room: str) -> str:
 # move to another wall, that one bed stays one bed.
 PRESERVE = (
     "This is a photograph of a real room and the result must be recognisably "
-    "the same room, from the same spot.\n\n"
+    "the same room — the same architecture, seen from the same spot. What is "
+    "furnished inside it is the redesign instruction's to change, not this "
+    "list's.\n\n"
     "Keep exactly as they are, in the same places and at the same sizes:\n"
     "- the camera position, angle, height and field of view. Do not crop, "
     "zoom, straighten or change the proportions of the room\n"
@@ -178,9 +181,9 @@ PRESERVE = (
     "- fixed services exactly where they are mounted: the air conditioner, "
     "the ceiling fan, lights, switches and sockets. An air conditioner "
     "cannot move to a different wall, and there is only ever one of it\n\n"
-    "Never change how many of anything there already is. If the photograph "
-    "shows one bed, the result shows one bed — never invent a second bed, "
-    "a second door or a second window. Do not turn a private room into a "
+    "Never change how many beds, doors, windows or other fixed things there "
+    "already are. If the photograph shows one bed, the result shows one bed "
+    "— never invent a second bed, a second door or a second window. Do not turn a private room into a "
     "hotel room, all matching pairs and decorative clutter.\n\n"
     "This is about count, not about the room staying exactly as furnished. "
     "Whether a genuinely new piece — a wardrobe where there was none, a "
@@ -237,21 +240,30 @@ DECOR_RESTRAINT = (
 # brighter only ever repainted the wall.
 DEPTHS: dict[str, str] = {
     "renovate": (
-        "Go the whole way. Replace the furniture with genuinely different and "
-        "better pieces — a different bed, a different desk, different storage "
-        "and seating — and change the wall finishes, the flooring, the "
-        "lighting and the textiles. The ceiling's own treatment is part of "
-        "this, not exempt from it: a false ceiling, cove lighting, coving or "
-        "simply a different colour are all genuine options, not just a flat "
-        "repaint of what was there. Every function the room has now it must "
-        "still have, and everything fixed stays exactly where it is, but the "
-        "loose pieces themselves should be visibly new.\n\n"
+        "This is a FULL REDESIGN: a renovation, not a clean-up. Picture every "
+        "loose piece of furniture and furnishing in the photograph carted "
+        "away and a new, different set bought for this room. The new bed is a "
+        "different bed, the new desk a different desk, the same for the "
+        "seating, storage, tables, lighting, curtains, rug and bedding: "
+        "different silhouettes, different materials, different colours. "
+        "Walls, floor covering, ceiling treatment, lighting and textiles are "
+        "new as well. The ceiling's own treatment is part of this — a false "
+        "ceiling, cove lighting, coving or simply a different colour are real "
+        "options, not just a repaint of what was there.\n\n"
+        "A result in which the furniture is still recognisably the same pieces, "
+        "only cleaner, brighter, shinier or better finished, has FAILED this "
+        "instruction: that is what a light restyle is, and this is not one. "
+        "It should look like a different, better-furnished room that happens "
+        "to have the same walls, doors and windows. If the room is nearly "
+        "empty, furnish it fully.\n\n"
+        "What stays: the structure and fixed items listed below, what the room "
+        "is for, and any piece the client has said to keep. Every function the "
+        "room has now it must still have.\n\n"
         "This also covers what the room is missing, not only what it "
         "already owns: if there is nowhere to put things away, add real "
         "storage — a wardrobe, shelving, a chest, whatever actually suits "
         "the room — sized and placed for the space shown, not squeezed in "
-        "as an afterthought. A full redesign that leaves a genuine gap like "
-        "that unaddressed has not gone the whole way."
+        "as an afterthought."
     ),
     "restyle": (
         "Keep the furniture that is there and change how it is finished: new "
@@ -263,13 +275,68 @@ DEPTHS: dict[str, str] = {
 }
 
 
+# Things that are the building, not the furnishing. In a full redesign these
+# are the only items that stay by default; everything else is the client's
+# stuff and is being replaced.
+STRUCTURAL = re.compile(
+    r"\b(doors?|doorway|windows?|a/?c|air[- ]?condition\w*|radiators?|"
+    r"ceiling (fan|light)s?|light (fitting|fixture)s?|chandeliers?|switch(es)?|"
+    r"sockets?|outlets?|built[- ]?ins?|fitted|fireplace|stair\w*|railings?|"
+    r"balustrade|banister|pillars?|columns?|beams?|skirting|vents?|sink|toilet|"
+    r"bath ?tub|shower|basin|hob|oven|worktop|counter ?top)\b")
+
+
+def is_structural(name: str) -> bool:
+    return bool(STRUCTURAL.search((name or "").strip().lower()))
+
+
+def _names(contents: str) -> list[str]:
+    """Item names from a "2 beds, desk, chair" description."""
+    out = []
+    for part in (contents or "").split(","):
+        words = part.strip().split(" ", 1)
+        name = words[1] if words and words[0].isdigit() and len(words) > 1 else part
+        if name.strip():
+            out.append(name.strip().lower())
+    return out
+
+
+def effective_keep(keep: str, items: list[dict] | None, contents: str,
+                   depth: str) -> str:
+    """What a full redesign should actually treat as must-stay.
+
+    The studio ticks EVERY item it finds as "must stay" the moment a room is
+    read, so that nothing vanishes unasked in a light restyle. Sent as it
+    stands, that told a full redesign "the room must still contain the bed,
+    the desk, the chair and the lamp, replaced at most by better versions of
+    the same thing" — which is exactly the polish-instead-of-redesign result.
+
+    So in a full redesign, a list that keeps every piece of loose furniture is
+    read as the default, not as a decision, and only the structural items in
+    it stay. A list that leaves some furniture out was edited by a person, and
+    is respected exactly.
+    """
+    if (depth or "").strip().lower() != "renovate":
+        return keep
+    kept = [k.strip() for k in (keep or "").split(",") if k.strip()]
+    if not kept:
+        return ""
+    names = [str(i.get("name", "")).strip().lower() for i in (items or [])
+             if isinstance(i, dict)] or _names(contents)
+    movable = [n for n in names if n and not is_structural(n)]
+    kept_l = [k.lower() for k in kept]
+    if movable and all(n in kept_l for n in movable):
+        return ", ".join(k for k in kept if is_structural(k))
+    return ", ".join(kept)
+
+
 def depth_clause(depth: str) -> str:
     return DEPTHS.get((depth or "").strip().lower(), "")
 
 
 def build_prompt(
     style: str, extra: str = "", contents: str = "", keep: str = "",
-    room: str = "", depth: str = "",
+    room: str = "", depth: str = "", plan: str = "", views: int = 0,
 ) -> str:
     """Compose the generation prompt.
 
@@ -294,7 +361,16 @@ def build_prompt(
     key = style.strip().lower()
     base = STYLES.get(key, style.strip())
     verb = "photographed as" if key in ("none", "brief") else "restyled in"
-    prompt = f"Redesign this room as {base}.\n\n{PRESERVE}\n"
+    full = (depth or "").strip().lower() == "renovate"
+    prompt = f"Redesign this room as {base}.\n\n"
+    if full:
+        # Said first, before the list of what must not change: a model reads
+        # the opening as the job and the rest as its limits, and putting the
+        # limits first made the job a polish.
+        prompt += depth_clause(depth) + "\n\n"
+        if plan.strip():
+            prompt += plan.strip() + "\n\n"
+    prompt += f"{PRESERVE}\n"
 
     # Before the contents, because it governs what the contents should become.
     brief = room_brief(room)
@@ -315,14 +391,29 @@ def build_prompt(
         # is untouched. A desk may become a better desk. It may not become a
         # side table, and it may not quietly disappear — which is what happens
         # when the model is never told the desk was there.
-        prompt += (
-            f" The room must still contain {keep.strip()}. These may be "
-            "restyled, replaced with better versions of the same thing, or "
-            "moved slightly — but every one of them must be clearly present "
-            "and usable in the result. Do not remove or substitute them."
-        )
+        if full:
+            prompt += (
+                f" Keep exactly as they are: {keep.strip()}. These stay as "
+                "the same pieces in the same places, and the new design is "
+                "built around them. Everything else loose is replaced."
+            )
+        else:
+            prompt += (
+                f" The room must still contain {keep.strip()}. These may be "
+                "restyled, replaced with better versions of the same thing, or "
+                "moved slightly — but every one of them must be clearly present "
+                "and usable in the result. Do not remove or substitute them."
+            )
     prompt += " Tidy and uncluttered.\n\n" + PHOTO_FINISH + "\n\n" + DECOR_RESTRAINT
-    how_far = depth_clause(depth)
+    if views:
+        prompt += (
+            "\n\nSeveral photographs are supplied. The first is the view to "
+            "draw. The others show the same room from other corners as it is "
+            "NOW, with its old furniture: use them only to learn the layout and "
+            "what is out of frame. Do not copy the old furniture from them. "
+            "Every angle shows one and the same design."
+        )
+    how_far = "" if full else depth_clause(depth)
     if how_far:
         prompt += f"\n\n{how_far}"
 

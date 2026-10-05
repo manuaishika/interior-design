@@ -64,11 +64,11 @@ class TestEveryEngineIsTold:
 
         real = pipeline.build_prompt
 
-        def spy(style, extra="", contents="", keep="", room="", depth=""):
+        def spy(style, extra="", contents="", keep="", room="", depth="", **more):
             seen["contents"] = contents
             seen["keep"] = keep
             seen["depth"] = depth
-            return real(style, extra, contents, keep, room, depth)
+            return real(style, extra, contents, keep, room, depth, **more)
 
         monkeypatch.setattr(pipeline, "build_prompt", spy)
         monkeypatch.setattr(main, "get_settings", lambda: Settings(**keys))
@@ -228,9 +228,12 @@ class TestHowFarToGoActuallyDoesSomething:
         from app.generation import build_prompt
 
         prompt = build_prompt("modern-luxury", depth="renovate")
-        assert "Replace the furniture" in prompt
+        assert "FULL REDESIGN" in prompt
+        assert "different bed" in prompt
+        # a polished version of the same pieces is named as a failure
+        assert "has FAILED this instruction" in prompt
         # but the room itself still cannot move
-        assert "everything fixed stays exactly where it is" in prompt
+        assert "What stays: the structure and fixed items" in prompt
 
     def test_a_light_restyle_keeps_them(self):
         from app.generation import build_prompt

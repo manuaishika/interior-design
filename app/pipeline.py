@@ -17,7 +17,8 @@ from . import store
 from .config import (DEFAULT_PROFILE, Settings, is_locked, resolve_backend,
                      tier_of)
 from .describe import count_instances, describe_room, keep_clause
-from .generation import PRESERVE, GenerationError, build_prompt, encode_mask
+from .generation import (PRESERVE, GenerationError, build_prompt, effective_keep,
+                         encode_mask)
 from .imaging import (
     build_inpaint_mask,
     build_region_mask,
@@ -113,6 +114,26 @@ async def edit_design(design: bytes, instruction: str, settings: Settings,
                                       quality=tier_of(tier)["quality"])
 
 
+async def _plan_for(data: bytes, references, style: str, room: str,
+                    depth: str, keep: str, extra: str, option: int,
+                    settings: Settings) -> str:
+    """The written redesign plan for a full redesign, or "" for anything else
+    (and whenever planning is unavailable — see planning.make_plan)."""
+    if (depth or "").strip().lower() != "renovate":
+        return ""
+    from . import planning
+    from .generation import STYLES, room_brief
+
+    key = style.strip().lower()
+    plan = await planning.make_plan(
+        [data] + [r for r in (references or []) if r],
+        style_text=STYLES.get(key, style.strip()),
+        room_text=room_brief(room) or room,
+        keep=keep, extra=extra, option=option,
+        key_parts=(style, room, depth, extra), settings=settings)
+    return planning.render_plan(plan)
+
+
 async def _furnish_contents(
     contents: str, items: list[dict] | None, style: str, room: str
 ) -> tuple[str, list[dict]]:
@@ -139,7 +160,8 @@ async def _furnish_contents(
 
 
 async def _run_free(data, style, settings, *, extra_prompt, variants, room="",
-                    contents="", keep="", depth="", variant_offset=0):
+                    contents="", keep="", depth="", variant_offset=0,
+                    references=None):
     """The free path: no segmentation, no mask, one image model.
 
     There is nothing to segment because there is nothing to mask — the whole
@@ -153,8 +175,12 @@ async def _run_free(data, style, settings, *, extra_prompt, variants, room="",
                        settings.max_variants))
     image = prepare_image(data, settings)
     photo = image_to_png_bytes(image)
+    plan = await _plan_for(data, references, style, room, depth, keep,
+                           extra_prompt, variant_offset, settings)
+    # views stays 0 here: the free engine is sent one photograph, so the prompt
+    # must not tell it that several were supplied.
     prompt = build_prompt(style, extra_prompt, room=room, contents=contents,
-                          keep=keep, depth=depth)
+                          keep=keep, depth=depth, plan=plan)
 
     # variant_offset lets the page ask for one design at a time instead of
     # waiting for a whole batch to finish before showing the first — see
@@ -242,15 +268,21 @@ async def _run_openai(data, style, settings, *, extra_prompt, variants, room="",
     # Without this the model is told to draw "a bedroom" and draws the average
     # one: the desk and the television it was never told about simply are not
     # in the picture it paints.
+    plan = await _plan_for(data, references, style, room, depth, keep,
+                           extra_prompt, variant_offset, settings)
     prompt = build_prompt(style, extra_prompt, room=room, contents=contents,
-                          keep=keep, depth=depth)
+                          keep=keep, depth=depth, plan=plan,
+                          views=len(references or []))
     # variant_offset: see _run_free's docstring note — one request per
     # design still needs count(=1) requests to land on different wording.
     quality = tier_of(tier)["quality"]
     drawn = await asyncio.gather(
         *(openai_images.redraw(
             image, sent_mask,
-            prompt + openai_images.VARIATIONS[
+            # A plan already makes each option its own design (the planner is
+            # given the option number), and this nudge is one more sentence
+            # after the client's own words, so it only runs without one.
+            prompt if plan else prompt + openai_images.VARIATIONS[
                 (variant_offset + i) % len(openai_images.VARIATIONS)],
             settings, references=references, quality=quality)
           for i in range(count)),
@@ -507,11 +539,16 @@ async def run_pipeline(
     soon as it lands; each still needs a distinct wording nudge or all N
     would draw the same option, hence the offset.
     """
+    # See generation.effective_keep: the page ticks everything as must-stay,
+    # which in a full redesign meant "replace nothing".
+    keep = effective_keep(keep, items, contents, profile or "")
+
     if _is_free(settings):
         return await _run_free(data, style, settings, extra_prompt=extra_prompt,
                                variants=variants, room=room, contents=contents,
                                keep=keep, depth=profile or "",
-                               variant_offset=variant_offset)
+                               variant_offset=variant_offset,
+                               references=references)
     if _is_openai(settings):
         return await _run_openai(data, style, settings,
                                  extra_prompt=extra_prompt, variants=variants,
