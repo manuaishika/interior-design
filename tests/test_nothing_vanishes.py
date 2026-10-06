@@ -100,8 +100,35 @@ class TestTheMaskIsNoLongerADemolitionOrder:
             buf.getvalue(), "none", Settings(openai_api_key="k"), variants=1)
 
         assert seen["mask"] is None
-        # but it was still computed, so the door it found can be checked
+        # Nothing was sent, so nothing was looked for either: the structure
+        # call is a vision-model request per design whose answer went unused.
         assert generations[0].inpaint_mask_base64
+        assert analysis.objects == []
+
+    @pytest.mark.asyncio
+    async def test_the_structure_is_still_found_when_the_mask_is_asked_for(self, monkeypatch):
+        from app.pipeline import run_pipeline
+
+        seen = {}
+
+        async def find(image, s):
+            return [{"kind": "door", "box": [0.0, 0.0, 0.2, 1.0]}]
+
+        async def redraw(image, mask, prompt, s, **kw):
+            seen["mask"] = mask
+            buf = io.BytesIO()
+            Image.new("RGB", (8, 8)).save(buf, "PNG")
+            return buf.getvalue()
+
+        monkeypatch.setattr("app.openai_images.find_structure", find)
+        monkeypatch.setattr("app.openai_images.redraw", redraw)
+
+        buf = io.BytesIO()
+        room().save(buf, "PNG")
+        analysis, _ = await run_pipeline(
+            buf.getvalue(), "none",
+            Settings(openai_api_key="k", use_inpaint_mask=True), variants=1)
+        assert seen["mask"] is not None
         assert analysis.objects
 
 

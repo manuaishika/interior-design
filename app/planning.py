@@ -155,8 +155,13 @@ def _clean(plan: object) -> dict | None:
     return cleaned if cleaned["replace"] or cleaned["add"] else None
 
 
-async def _ask(prompt: str, photos: list[bytes], settings: Settings,
-               seed: int) -> dict | None:
+async def ask_json(prompt: str, photos: list[bytes], settings: Settings,
+                   seed: int = 0, max_tokens: int = 1400) -> dict:
+    """One vision question, JSON back, on whichever engine is configured.
+
+    Shared by the planner here and the self-check (app/checking.py), so both
+    behave the same under the free and paid keys.
+    """
     jpegs = [_shrink(p) for p in photos]
     backend = resolve_backend(settings)
 
@@ -168,11 +173,12 @@ async def _ask(prompt: str, photos: list[bytes], settings: Settings,
             {"contents": [{"parts": [{"text": prompt}] +
                           [google_ai._part_image(j) for j in jpegs]}],
              "generationConfig": {"response_mime_type": "application/json",
-                                  "temperature": 0.2, "maxOutputTokens": 4096,
+                                  "temperature": 0.2,
+                                  "maxOutputTokens": max(max_tokens, 4096),
                                   "thinkingConfig": {"thinkingLevel": "low"}}},
             settings)
         text = "".join(part.get("text", "") for part in google_ai._parts(payload))
-        return _clean(json.loads(text))
+        return json.loads(text)
 
     from openai import AsyncOpenAI
 
@@ -186,11 +192,16 @@ async def _ask(prompt: str, photos: list[bytes], settings: Settings,
         model=settings.vlm_model,
         messages=[{"role": "user", "content": content}],
         response_format={"type": "json_object"},
-        max_tokens=1400,
+        max_tokens=max_tokens,
         temperature=0.2,
         seed=seed,
     )
-    return _clean(json.loads(response.choices[0].message.content or "{}"))
+    return json.loads(response.choices[0].message.content or "{}")
+
+
+async def _ask(prompt: str, photos: list[bytes], settings: Settings,
+               seed: int) -> dict | None:
+    return _clean(await ask_json(prompt, photos, settings, seed))
 
 
 async def make_plan(photos: list[bytes], *, style_text: str, room_text: str,
@@ -266,3 +277,17 @@ def render_plan(plan: dict | None) -> str:
     if plan["fixed"]:
         lines.append("Leave exactly where they are: " + "; ".join(plan["fixed"]) + ".")
     return "\n".join(lines)
+
+
+def changes_of(plan: dict | None) -> list[str]:
+    """One short line per change, for showing under a design."""
+    if not plan:
+        return []
+    lines = []
+    for row in plan["replace"]:
+        if row["new"].strip().lower().rstrip(".") == "removed":
+            lines.append(f"{row['current']}: removed")
+        else:
+            lines.append(f"{row['current']} \u2192 {row['new']}")
+    lines += [f"Added {row['piece']}, {row['where']}" for row in plan["add"]]
+    return lines

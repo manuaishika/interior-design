@@ -28,7 +28,7 @@ Render server, see [DEPLOY.md](DEPLOY.md)).
   can see the design on screen.
 - **Accounts and history.** Email sign-up or Google sign-in, saved designs and
   past rooms.
-- **Plans and daily limits.** Free plan: 2 designs/day without an account, 5
+- **Plans and daily limits.** Free plan: 12 designs/day without an account, 20
   with one. Paid tiers change quality and designs per run (below).
 - **"Talk to a designer"** hands the finished design to WhatsApp.
 - **Feedback.** "Close to what you asked for?" is stored with the room, look and
@@ -41,8 +41,13 @@ Render server, see [DEPLOY.md](DEPLOY.md)).
 ```
 photo(s) ─► reader (GPT-4o / Gemini): is it a room? what is in it, how many,
              three directions ─► shown to the person, who ticks what must stay
-        ─► prompt: look + room brief + depth + what to keep + the person's words
+        ─► full redesign only: planner decides piece by piece what replaces
+             what, what to add, and the finishes (one plan shared by every angle)
+        ─► prompt: look + room brief + depth + plan + what to keep + their words
         ─► image model edits the whole photo, original in front of it
+        ─► self-check: a vision model compares result with original; one
+             redraw if the camera moved, a door appeared, a second bed
+             showed up, or a full redesign mostly kept the old furniture
         ─► designs appear one at a time
 ```
 
@@ -92,7 +97,8 @@ Useful settings (all in `app/config.py`, all environment variables):
 | `STUDIO_ACCESS_CODE` | Closes the whole studio behind a phrase |
 | `WHATSAPP_NUMBER` | Turns on "Talk to a designer" |
 | `BUSINESS_NAME`, `CURRENCY`, `MARKET` | Branding and the region cost notes are written for |
-| `ANON_DAILY_DESIGNS` | Daily allowance without an account (default 2) |
+| `ANON_DAILY_DESIGNS` | Daily allowance without an account (default 12) |
+| `SELF_CHECK` | `false` turns off the check-and-redraw step (default on) |
 | `FEEDBACK_KEY` | Lets you read feedback at `/api/feedback?key=`; blank keeps it shut |
 
 ## Deploy

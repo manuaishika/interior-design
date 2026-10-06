@@ -13,12 +13,12 @@ import random
 
 from PIL import Image
 
-from . import store
+from . import checking, planning, store
 from .config import (DEFAULT_PROFILE, Settings, is_locked, resolve_backend,
                      tier_of)
 from .describe import count_instances, describe_room, keep_clause
-from .generation import (PRESERVE, GenerationError, build_prompt, effective_keep,
-                         encode_mask)
+from .generation import (PRESERVE, GenerationError, before_client, build_prompt,
+                         effective_keep, encode_mask)
 from .imaging import (
     build_inpaint_mask,
     build_region_mask,
@@ -116,11 +116,11 @@ async def edit_design(design: bytes, instruction: str, settings: Settings,
 
 async def _plan_for(data: bytes, references, style: str, room: str,
                     depth: str, keep: str, extra: str, option: int,
-                    settings: Settings) -> str:
-    """The written redesign plan for a full redesign, or "" for anything else
+                    settings: Settings) -> dict | None:
+    """The redesign plan for a full redesign, or None for anything else
     (and whenever planning is unavailable — see planning.make_plan)."""
     if (depth or "").strip().lower() != "renovate":
-        return ""
+        return None
     from . import planning
     from .generation import STYLES, room_brief
 
@@ -131,7 +131,7 @@ async def _plan_for(data: bytes, references, style: str, room: str,
         room_text=room_brief(room) or room,
         keep=keep, extra=extra, option=option,
         key_parts=(style, room, depth, extra), settings=settings)
-    return planning.render_plan(plan)
+    return plan
 
 
 async def _furnish_contents(
@@ -177,10 +177,11 @@ async def _run_free(data, style, settings, *, extra_prompt, variants, room="",
     photo = image_to_png_bytes(image)
     plan = await _plan_for(data, references, style, room, depth, keep,
                            extra_prompt, variant_offset, settings)
+    plan_text = planning.render_plan(plan)
     # views stays 0 here: the free engine is sent one photograph, so the prompt
     # must not tell it that several were supplied.
     prompt = build_prompt(style, extra_prompt, room=room, contents=contents,
-                          keep=keep, depth=depth, plan=plan)
+                          keep=keep, depth=depth, plan=plan_text)
 
     # variant_offset lets the page ask for one design at a time instead of
     # waiting for a whole batch to finish before showing the first — see
@@ -205,6 +206,7 @@ async def _run_free(data, style, settings, *, extra_prompt, variants, room="",
             inpaint_mask_base64="",
             prompt=prompt,
             variant_index=variant_offset + index,
+            changes=planning.changes_of(plan),
         ))
 
     if not generations:
@@ -239,7 +241,14 @@ async def _run_openai(data, style, settings, *, extra_prompt, variants, room="",
     count = max(1, min(variants or settings.default_variants, allowed))
     image = prepare_image(data, settings)
 
-    regions = await openai_images.find_structure(image, settings)
+    # Finding doors and windows only matters if the mask is actually sent to
+    # the image model (USE_INPAINT_MASK). By default it is not — protection is
+    # in the prompt — so this was a GPT-4o call per design, several seconds and
+    # a few cents each, whose answer nothing used. Skipped unless wanted.
+    if settings.use_inpaint_mask:
+        regions = await openai_images.find_structure(image, settings)
+    else:
+        regions = []
     masks = openai_images.boxes_to_masks(regions, image.size)
 
     objects: list[RoomObject] = []
@@ -270,24 +279,53 @@ async def _run_openai(data, style, settings, *, extra_prompt, variants, room="",
     # in the picture it paints.
     plan = await _plan_for(data, references, style, room, depth, keep,
                            extra_prompt, variant_offset, settings)
+    plan_text = planning.render_plan(plan)
     prompt = build_prompt(style, extra_prompt, room=room, contents=contents,
-                          keep=keep, depth=depth, plan=plan,
+                          keep=keep, depth=depth, plan=plan_text,
                           views=len(references or []))
     # variant_offset: see _run_free's docstring note — one request per
     # design still needs count(=1) requests to land on different wording.
     quality = tier_of(tier)["quality"]
-    drawn = await asyncio.gather(
-        *(openai_images.redraw(
-            image, sent_mask,
-            # A plan already makes each option its own design (the planner is
-            # given the option number), and this nudge is one more sentence
-            # after the client's own words, so it only runs without one.
-            prompt if plan else prompt + openai_images.VARIATIONS[
-                (variant_offset + i) % len(openai_images.VARIATIONS)],
-            settings, references=references, quality=quality)
-          for i in range(count)),
-        return_exceptions=True,
-    )
+    original_png = image_to_png_bytes(image)
+
+    async def draw(text: str) -> bytes:
+        """One drawing, with one more try if the model hiccuped."""
+        try:
+            return await openai_images.redraw(
+                image, sent_mask, text, settings, references=references,
+                quality=quality)
+        except openai_images.OpenAIImageError as exc:
+            if not openai_images.is_transient(exc):
+                raise
+            log.warning("Drawing failed (%s); trying once more", exc)
+            await asyncio.sleep(2)
+            return await openai_images.redraw(
+                image, sent_mask, text, settings, references=references,
+                quality=quality)
+
+    async def one(i: int) -> tuple[bytes, str]:
+        # A plan already makes each option its own design (the planner is
+        # given the option number), and this nudge is one more sentence after
+        # the client's own words, so it only runs without one.
+        text = prompt if plan else before_client(
+            prompt, openai_images.VARIATIONS[
+                (variant_offset + i) % len(openai_images.VARIATIONS)])
+        result = await draw(text)
+        # Look at it next to the original. Serious faults get one redraw with
+        # the faults named; the first attempt is kept if the redraw fails.
+        faults = await checking.check(original_png, result, depth=depth,
+                                      plan_text=plan_text, settings=settings)
+        if not faults:
+            return result, ""
+        try:
+            return await draw(checking.with_faults(text, faults)), \
+                "Redrawn once to fix: " + " ".join(faults)
+        except Exception as exc:     # noqa: BLE001 — the first attempt stands
+            log.warning("Redraw after self-check failed (%s); keeping the first", exc)
+            return result, ""
+
+    drawn = await asyncio.gather(*(one(i) for i in range(count)),
+                                 return_exceptions=True)
 
     mask_b64 = encode_mask(inpaint_mask)
     generations: list[GenerationResult] = []
@@ -297,7 +335,9 @@ async def _run_openai(data, style, settings, *, extra_prompt, variants, room="",
             log.warning("Option %d failed: %s", index, result)
             failures.append(result)
             continue
-        if index == 0 and openai_images.looks_inverted(image, result, inpaint_mask):
+        result, checked = result
+        if (index == 0 and settings.use_inpaint_mask
+                and openai_images.looks_inverted(image, result, inpaint_mask)):
             log.warning(
                 "The locked regions changed more than the editable ones. The "
                 "inpainting mask is probably the wrong way round for this "
@@ -308,6 +348,8 @@ async def _run_openai(data, style, settings, *, extra_prompt, variants, room="",
             inpaint_mask_base64=mask_b64,
             prompt=prompt,
             variant_index=variant_offset + index,
+            changes=planning.changes_of(plan),
+            checked=checked,
         ))
 
     if not generations:

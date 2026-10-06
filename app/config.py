@@ -236,6 +236,11 @@ class Settings(BaseSettings):
     #
     # Kept as a switch because a mask is the right tool for weaker inpainting
     # models, which is what the Replicate path still uses.
+    # Look at each finished design next to the original and redraw it once if
+    # it broke a hard rule (camera moved, door added, second bed, or a full
+    # redesign that mostly kept the old furniture). One extra vision call per
+    # design, plus one extra drawing when it fails. SELF_CHECK=false turns it off.
+    self_check: bool = True
     use_inpaint_mask: bool = False
 
     # Most Stable-Diffusion inpainting endpoints treat WHITE as "repaint this".

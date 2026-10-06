@@ -330,6 +330,19 @@ def effective_keep(keep: str, items: list[dict] | None, contents: str,
     return ", ".join(kept)
 
 
+CLIENT_MARKER = "\n\nThe client asks:"
+
+
+def before_client(prompt: str, note: str) -> str:
+    """Add a paragraph without letting it become the last thing read: the
+    client's own words, when there are any, stay at the very end."""
+    note = note.strip()
+    if CLIENT_MARKER in prompt:
+        head, tail = prompt.split(CLIENT_MARKER, 1)
+        return f"{head}\n\n{note}{CLIENT_MARKER}{tail}"
+    return f"{prompt}\n\n{note}"
+
+
 def depth_clause(depth: str) -> str:
     return DEPTHS.get((depth or "").strip().lower(), "")
 

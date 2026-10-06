@@ -97,6 +97,12 @@ class GenerationResult(BaseModel):
     prompt: str
     seed: int | None = None
     variant_index: int = 0
+    # What the design changed, one line per piece ("desk -> a walnut writing
+    # desk"), from the redesign plan. Empty for a light restyle.
+    changes: list[str] = Field(default_factory=list)
+    # What the self-check did: "" if it did not run or passed, otherwise what
+    # it fixed by redrawing.
+    checked: str = ""
 
 
 class AnalyzeResponse(BaseModel):

@@ -89,6 +89,14 @@ def _no_such_model(exc: Exception) -> bool:
         "404" in text and "model" in text)
 
 
+def is_transient(exc: Exception) -> bool:
+    """Worth one more try: the model returned nothing, timed out, or failed in a
+    way explain() had no specific fix for. Not worth it: a key, billing, ID
+    verification or safety-filter problem, which a second attempt cannot fix."""
+    text = str(exc)
+    return text.startswith(("No picture came back", "Could not draw"))
+
+
 def explain(exc: Exception) -> str:
     """Turn an OpenAI error into the sentence that says what to go and do.
 

@@ -181,8 +181,9 @@ class TestThePipeline:
 
         buf = io.BytesIO()
         Image.new("RGB", (200, 150), (180, 170, 160)).save(buf, "PNG")
+        # Structure is only looked for when the mask will actually be sent.
         analysis, generations = await run_pipeline(
-            buf.getvalue(), "japandi", settings(), variants=2)
+            buf.getvalue(), "japandi", settings(use_inpaint_mask=True), variants=2)
 
         labels = {o.label for o in analysis.objects}
         assert labels == {"door", "window"}
