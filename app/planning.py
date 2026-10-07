@@ -46,6 +46,49 @@ _cache: dict[str, tuple[float, dict | None]] = {}
 _inflight: dict[str, asyncio.Future] = {}
 
 
+# Every layer of a space a full redesign must address. A redesign that does the
+# ceiling and the TV unit and leaves the walls as they were is half a job, and
+# an image model told only "finishes" will happily do whichever few it likes.
+# So the plan has a slot for each, the planner is told every slot is mandatory,
+# and anything it leaves blank is filled with a default instruction below —
+# the drawing is never left to forget a layer.
+LAYERS = (
+    ("walls", "Walls"),
+    ("wall_features", "Wall design"),
+    ("wall_decor", "Wall decor"),
+    ("ceiling", "Ceiling"),
+    ("floor", "Floor"),
+    ("lighting", "Lighting"),
+    ("window_dressing", "Window dressing"),
+    ("textiles", "Soft furnishings"),
+)
+
+DEFAULT_LAYER = {
+    "walls": "a new colour or finish on every wall, clearly different from now",
+    "wall_features": ("a real design on the main wall: fluted or slatted wood, "
+                      "panelling, textured plaster or a wallpaper feature, not "
+                      "just paint"),
+    "wall_decor": "a few chosen pieces on the walls: framed art, a mirror or shelves",
+    "ceiling": ("a visible ceiling treatment: a false ceiling with cove "
+                "lighting, or coving and a new colour (the height is unchanged)"),
+    "floor": "a new floor finish or a new large rug, clearly different from now",
+    "lighting": ("layered lighting: ambient, a task light, and one accent light, "
+                 "in new fittings"),
+    "window_dressing": "new curtains, sheers or blinds, different from now",
+    "textiles": "new cushions, throws, bedding or upholstery fabrics",
+}
+# The same layers for a space people work or shop in: the walls carry the
+# brand, the lighting carries the mood, and "soft furnishings" is upholstery.
+DEFAULT_LAYER_COMMERCIAL = {
+    **DEFAULT_LAYER,
+    "wall_features": ("a feature wall that carries the brand: panelling, a "
+                      "textured or colour-blocked finish, or a signage wall"),
+    "wall_decor": "wall graphics, framed work, mirrors or display shelving",
+    "lighting": ("a lighting scheme for the space: ambient, task or display "
+                 "lighting, and feature pendants"),
+    "textiles": "upholstery, acoustic panels and soft seating fabrics",
+}
+
 PLANNER = """\
 You are a senior interior designer briefing a renovation of the room in the \
 attached photograph(s). The photographs show the room as it is now; several \
@@ -54,7 +97,9 @@ photographs are the SAME room from different corners.
 Write the plan as JSON only, exactly this shape:
 {{"replace": [{{"current": "", "new": ""}}],
   "add": [{{"piece": "", "where": ""}}],
-  "finishes": {{"walls": "", "floor": "", "ceiling": "", "lighting": "", "textiles": ""}},
+  "finishes": {{"walls": "", "wall_features": "", "wall_decor": "", "ceiling": "",
+               "floor": "", "lighting": "", "window_dressing": "", "textiles": ""}},
+  "zones": [{{"zone": "", "changes": ""}}],
   "fixed": [""]}}
 
 The brief:
@@ -78,10 +123,28 @@ Clutter, bags, clothes and bottles are simply removed: put "removed" as "new".
 right height). Say where each goes, on a wall or floor you can actually see, \
 clear of every door, window and walkway. Size it for the space: a small room \
 gets small pieces. Never a second bed, and never anything that fills the room.
-3. "finishes": all five are changed, together, in one palette that suits the \
-direction. The ceiling may be given a real treatment (false ceiling, cove \
-lighting, a colour) but its height does not change. Describe the actual finish \
-("warm limewash in pale sand", "wide-plank oak floor, matte").
+3. "finishes": EVERY one of the eight must be filled in with a concrete, \
+visible design. A layer left as it is now counts as a failure, and a colour \
+alone is not a design. All together, in one palette that suits the direction:
+   - walls: the colour or finish of the walls overall;
+   - wall_features: a REAL DESIGN on at least one wall, not just paint: fluted \
+or slatted wood, panelling, textured plaster, wallpaper, a stone or tile \
+feature, built-in niches. Say which wall;
+   - wall_decor: what hangs or sits on the walls (art, mirror, shelves);
+   - ceiling: a real treatment (false ceiling with cove lighting, coving, a \
+colour); its height does not change;
+   - floor: the actual finish or a new large rug ("matte wide-plank oak");
+   - lighting: new fittings at ambient, task and accent level;
+   - window_dressing: curtains, sheers or blinds;
+   - textiles: bedding, cushions, throws or upholstery fabrics.
+   Describe each as something a builder could price ("fluted oak slats behind \
+the headboard, floor to ceiling").
+   SCALE: judge the size of the space. In a small or ordinary room, do all of \
+the above. In a LARGE space (a big living area, open plan, an office floor, a \
+shop floor, a lobby, a studio) also fill "zones": one row per distinct area \
+(reception, seating cluster, workstations, display wall, dining end, entrance) \
+saying what changes there, so no part of the space is left untouched. \
+Commercial spaces: the walls carry the brand, so the feature wall matters.
 4. "fixed": things that do not move or change: every door and window (say where \
 each is), the air conditioner, ceiling fan and light switches where mounted, \
 built-in storage. List them so the drawing knows what to leave alone.
@@ -143,12 +206,13 @@ def _clean(plan: object) -> dict | None:
         return out[:14]
 
     finishes = plan.get("finishes") if isinstance(plan.get("finishes"), dict) else {}
+    keys = tuple(k for k, _ in LAYERS)
     cleaned = {
         "replace": rows("replace", "current", "new"),
         "add": rows("add", "piece", "where"),
         "finishes": {k: str(v).strip()[:160] for k, v in finishes.items()
-                     if k in ("walls", "floor", "ceiling", "lighting", "textiles")
-                     and str(v).strip()},
+                     if k in keys and str(v).strip()},
+        "zones": rows("zones", "zone", "changes")[:8],
         "fixed": [str(x).strip()[:120] for x in (plan.get("fixed") or [])
                   if str(x).strip()][:12],
     }
@@ -156,7 +220,7 @@ def _clean(plan: object) -> dict | None:
 
 
 async def ask_json(prompt: str, photos: list[bytes], settings: Settings,
-                   seed: int = 0, max_tokens: int = 1400) -> dict:
+                   seed: int = 0, max_tokens: int = 2600) -> dict:
     """One vision question, JSON back, on whichever engine is configured.
 
     Shared by the planner here and the self-check (app/checking.py), so both
@@ -255,10 +319,22 @@ async def make_plan(photos: list[bytes], *, style_text: str, room_text: str,
     return plan
 
 
-def render_plan(plan: dict | None) -> str:
-    """The plan as an instruction the image model can follow."""
+def missing_layers(plan: dict | None) -> list[str]:
+    """Layers the planner left blank (and which render_plan will fill)."""
+    done = (plan or {}).get("finishes", {})
+    return [k for k, _ in LAYERS if not done.get(k)]
+
+
+def render_plan(plan: dict | None, commercial: bool = False) -> str:
+    """The plan as an instruction the image model can follow.
+
+    Every layer in LAYERS appears, planner's own words where it gave them and a
+    default instruction where it did not, so a layer can be neglected by the
+    planner but never silently dropped from what the drawing is told to do.
+    """
     if not plan:
         return ""
+    fallback = DEFAULT_LAYER_COMMERCIAL if commercial else DEFAULT_LAYER
     lines = ["THE REDESIGN — carry out every line of this. Each piece named "
              "below is taken out of the room and replaced; the new piece is "
              "not a cleaner version of the old one."]
@@ -270,10 +346,13 @@ def render_plan(plan: dict | None) -> str:
             lines.append(f"- Take out the {row['current']}. In its place: {new}.")
     for row in plan["add"]:
         lines.append(f"- Add {row['piece']}, {row['where']}.")
-    finishes = plan["finishes"]
-    if finishes:
-        lines.append("Finishes: " + "; ".join(
-            f"{k} — {v}" for k, v in finishes.items()) + ".")
+    for row in plan.get("zones", []):
+        lines.append(f"- {row['zone'].capitalize()}: {row['changes']}.")
+    lines.append("EVERY layer of the space changes — none is left as it was, "
+                 "and the walls change by design, not only by colour:")
+    done = plan["finishes"]
+    for key, label in LAYERS:
+        lines.append(f"- {label}: {done.get(key) or fallback[key]}.")
     if plan["fixed"]:
         lines.append("Leave exactly where they are: " + "; ".join(plan["fixed"]) + ".")
     return "\n".join(lines)
@@ -290,4 +369,6 @@ def changes_of(plan: dict | None) -> list[str]:
         else:
             lines.append(f"{row['current']} \u2192 {row['new']}")
     lines += [f"Added {row['piece']}, {row['where']}" for row in plan["add"]]
+    lines += [f"{label}: {plan['finishes'][key]}" for key, label in LAYERS
+              if plan["finishes"].get(key)]
     return lines

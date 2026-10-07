@@ -35,6 +35,7 @@ Answer as JSON only:
   "structure_ok": true,
   "counts_ok": true,
   "unchanged_pieces": [""],
+  "unchanged_layers": [""],
   "invented": [""],
   "problems": [""]}}
 
@@ -50,6 +51,11 @@ Answer as JSON only:
   sofa, table, rug, curtains...) that look like the SAME piece as in the
   original, only cleaner or recoloured. Empty if each was genuinely replaced.
   Only list real, clearly visible ones.
+- unchanged_layers: which of these look essentially as they were in the original
+  (only name ones you can see clearly): "walls" (colour AND any design on
+  them), "ceiling", "floor", "lighting", "window dressing" (curtains or
+  blinds), "soft furnishings". Empty if each visibly changed. For a light
+  restyle leave this empty.
 - invented: things that should not be there: a second bed, a duplicated object,
   melted or distorted furniture, text, a watermark, more than two plants.
 - problems: the faults to fix, as short imperative sentences ("Keep one bed
@@ -100,6 +106,20 @@ def verdict(raw: dict | None, depth: str) -> list[str]:
             faults.append("These are still the old pieces and must be replaced "
                           "with genuinely different designs: "
                           + "; ".join(left[:4]) + ".")
+        layers = [str(x).strip().lower() for x in (raw.get("unchanged_layers") or [])
+                  if str(x).strip()]
+        # The walls are the biggest surface in the room, so they get their own
+        # rule: one layer left alone is a miss if it is the walls, and a miss
+        # otherwise only when it is more than one.
+        if any("wall" in l for l in layers):
+            faults.append("The walls look unchanged. Give them a clear design, "
+                          "not just a new colour: fluted or slatted wood, "
+                          "panelling, textured plaster, wallpaper or a feature "
+                          "wall, plus framed art or a mirror.")
+        others = [l for l in layers if "wall" not in l]
+        if len(others) >= 2:
+            faults.append("These layers still look as they were and must visibly "
+                          "change: " + ", ".join(others[:4]) + ".")
     # Only keep specific, imperative sentences it wrote itself if a hard fault
     # is already there; on their own they are taste.
     if faults:

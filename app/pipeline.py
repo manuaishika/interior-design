@@ -17,7 +17,7 @@ from . import checking, planning, store
 from .config import (DEFAULT_PROFILE, Settings, is_locked, resolve_backend,
                      tier_of)
 from .describe import count_instances, describe_room, keep_clause
-from .generation import (PRESERVE, GenerationError, before_client, build_prompt,
+from .generation import (COMMERCIAL_ROOMS, PRESERVE, GenerationError, before_client, build_prompt,
                          effective_keep, encode_mask)
 from .imaging import (
     build_inpaint_mask,
@@ -177,7 +177,7 @@ async def _run_free(data, style, settings, *, extra_prompt, variants, room="",
     photo = image_to_png_bytes(image)
     plan = await _plan_for(data, references, style, room, depth, keep,
                            extra_prompt, variant_offset, settings)
-    plan_text = planning.render_plan(plan)
+    plan_text = planning.render_plan(plan, room in COMMERCIAL_ROOMS)
     # views stays 0 here: the free engine is sent one photograph, so the prompt
     # must not tell it that several were supplied.
     prompt = build_prompt(style, extra_prompt, room=room, contents=contents,
@@ -279,7 +279,7 @@ async def _run_openai(data, style, settings, *, extra_prompt, variants, room="",
     # in the picture it paints.
     plan = await _plan_for(data, references, style, room, depth, keep,
                            extra_prompt, variant_offset, settings)
-    plan_text = planning.render_plan(plan)
+    plan_text = planning.render_plan(plan, room in COMMERCIAL_ROOMS)
     prompt = build_prompt(style, extra_prompt, room=room, contents=contents,
                           keep=keep, depth=depth, plan=plan_text,
                           views=len(references or []))

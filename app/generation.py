@@ -146,6 +146,12 @@ ROOM_BRIEFS: dict[str, str] = {
 }
 
 
+# Spaces people work, shop or are treated in. The plan's defaults for the walls
+# and lighting differ here (the walls carry the brand).
+COMMERCIAL_ROOMS = frozenset({"retail", "cafe", "salon", "office", "reception",
+                              "clinic", "studio-space", "fitness"})
+
+
 def room_brief(room: str) -> str:
     """What this kind of room has to be, regardless of how it is decorated."""
     return ROOM_BRIEFS.get((room or "").strip().lower(), "")
@@ -246,10 +252,18 @@ DEPTHS: dict[str, str] = {
         "different bed, the new desk a different desk, the same for the "
         "seating, storage, tables, lighting, curtains, rug and bedding: "
         "different silhouettes, different materials, different colours. "
-        "Walls, floor covering, ceiling treatment, lighting and textiles are "
-        "new as well. The ceiling's own treatment is part of this — a false "
-        "ceiling, cove lighting, coving or simply a different colour are real "
-        "options, not just a repaint of what was there.\n\n"
+        "A full redesign works through EVERY layer of the space, and leaving "
+        "one out is a failure just as polishing the furniture is: the "
+        "furniture; the ceiling (a false ceiling, cove lighting, coving or a "
+        "new colour — not a repaint of what was there); the walls, which get "
+        "a real design and not only a new colour (fluted or slatted wood, "
+        "panelling, textured plaster, wallpaper, a feature wall, wall art or "
+        "mirrors); the floor or a large rug; the lighting; the curtains or "
+        "blinds; and the soft furnishings. Doing the ceiling and the TV unit "
+        "and leaving the walls as they were is half a redesign. The same "
+        "goes for a large room, an office, a shop or any commercial space: "
+        "go through every zone of it, not just the part nearest the camera."
+        "\n\n"
         "A result in which the furniture is still recognisably the same pieces, "
         "only cleaner, brighter, shinier or better finished, has FAILED this "
         "instruction: that is what a light restyle is, and this is not one. "
