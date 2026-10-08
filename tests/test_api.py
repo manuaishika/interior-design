@@ -84,12 +84,15 @@ class TestMetaEndpoints:
         assert "Second Draft" in res.text
 
     def test_the_site_is_five_pages_in_one_file(self, client):
-        """Nav, studio, gallery, method, pricing — routed in the page so this
-        deploys anywhere that can serve a static file."""
+        """Studio, gallery, method, pricing — routed in the page so this
+        deploys anywhere that can serve a static file. For launch only the
+        studio and the method are linked; the gallery and pricing pages are
+        still there for anyone with the address."""
         html = client.get("/").text
         for page in ("studio", "explore", "how", "pricing"):
-            assert 'data-go="' + page + '"' in html
             assert 'id="v-' + page + '"' in html
+        for page in ("studio", "how"):
+            assert 'data-go="' + page + '"' in html
         assert 'id="v-home"' in html
         assert "/api/generate" in html
 
@@ -498,13 +501,16 @@ class TestHowItWorksIsTrue:
         assert "redraws the whole photograph" in how
         assert "what stays" in how
         assert "prices the work" in how
+        # and says it in a customer's words, not an engineer's
+        assert "vision model" not in how and "Under the hood" not in how
 
-    def test_the_change_is_owned_not_hidden(self, client):
-        """Somebody who read the old page should find out what happened to it
-        rather than wondering whether they misremembered."""
+    def test_it_ends_with_the_one_thing_to_do(self, client):
+        """Launch trim: the engineering history note is gone; the page ends
+        with the button that starts a redesign."""
         html = client.get("/").text
         how = html[html.index('id="v-how"'):html.index('id="v-pricing"')]
-        assert "Earlier versions masked" in how
+        assert "Earlier versions masked" not in how
+        assert 'data-go="studio">Redesign my room' in how
 
     def test_no_decorative_drawings_are_left_on_it(self, client):
         """Two 500px room drawings filled half the page and illustrated none of

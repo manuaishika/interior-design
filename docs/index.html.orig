@@ -992,9 +992,7 @@
     <button class="brand" id="brand" type="button">Second Draft.</button>
     <nav id="nav">
       <button type="button" data-go="studio">Studio</button>
-      <button type="button" data-go="explore">Explore</button>
       <button type="button" data-go="how">How it works</button>
-      <button type="button" data-go="pricing">Pricing</button>
     </nav>
     <button class="cta ghost" id="login" type="button">Log in</button>
   </div>
@@ -1004,13 +1002,12 @@
 <main class="view" id="v-home">
   <div class="wrap">
     <p class="kick">The studio</p>
-    <h1 class="big">Show it a room. Get it back several ways.</h1>
-    <p class="lede">It reads the photograph first — names what is in the room and
-       counts it — then redraws only what is allowed to change. Doors, windows
-       and the floor people walk on stay where the building put them.</p>
+    <h1 class="big">Your room, redesigned from one photo.</h1>
+    <p class="lede">The same room, the same doors and windows — new furniture,
+       walls, ceiling and light. Free, no sign-up.</p>
     <p class="hero-do">
-      <button class="cta" type="button" data-go="studio">Try the studio</button>
-      <span>Take a photo of a room and see it come back.</span>
+      <button class="cta" type="button" data-go="studio">Redesign my room</button>
+      <span>Takes about a minute.</span>
     </p>
     <div class="strip" id="heroStrip"></div>
   </div>
@@ -1020,7 +1017,6 @@
   <div class="wrap">
     <div class="sec-head">
       <h2 class="sec">Six looks, drawn out</h2>
-      <button class="link" type="button" data-go="explore">See the full gallery &rarr;</button>
     </div>
     <p class="lede" style="max-width:56ch;margin-top:-.6rem;margin-bottom:1.6rem">
        Style names are jargon. These are the colours, materials and shapes behind
@@ -1049,8 +1045,8 @@
       <div>
         <span class="n">03</span>
         <h3>Live with the result</h3>
-        <p>Several designs of your room — not a stock photo of someone else's —
-           plus the list of what changed.</p>
+        <p>Up to three designs of your own room, not a stock photo of someone
+           else's. Compare before and after, then talk to a designer.</p>
       </div>
     </div>
   </div>
@@ -1306,47 +1302,42 @@
 <!-- ============================ HOW IT WORKS ============================ -->
 <main class="view hidden" id="v-how">
   <div class="wrap">
-    <p class="kick">Under the hood</p>
-    <h1 class="big">Four passes between your photo and a room you would build.</h1>
+    <p class="kick">How it works</p>
+    <h1 class="big">From one photo to a room you could build.</h1>
+
     <div class="passes">
       <div class="pass">
         <span class="n">01</span>
         <h3>It reads the room</h3>
-        <p>A vision model surveys the photograph and writes down what is in it —
-           every piece of furniture, how many there are, and where the doors and
-           windows sit. Two single beds come back as two, not one double, which
-           is the difference between a design of your room and a design of a
-           room.</p>
+        <p>It looks at your photo and notes what is there: every piece of
+           furniture, how many, and where the doors and windows are. Two
+           single beds stay two beds.</p>
       </div>
       <div class="pass">
         <span class="n">02</span>
         <h3>You say what stays</h3>
-        <p>Everything it found starts as something that must still be there. Let
-           the bed go if you want a new bed; keep the desk if you work at it.
-           Doors, windows, the ceiling height and the camera position are never
-           yours to lose — those are the building, not the furnishing.</p>
+        <p>Keep the desk you love, let the rest go. Doors, windows, the ceiling
+           height and the view never move: they are the building, not the
+           furniture.</p>
       </div>
       <div class="pass">
         <span class="n">03</span>
         <h3>It redraws the whole photograph</h3>
-        <p>Not a patch over part of it. The image model is given the entire
-           room, at its real proportions, and told in detail what must survive:
-           this wardrobe is a wardrobe and never a doorway, the air conditioner
-           stays on the wall it is bolted to, one bed remains one bed.</p>
+        <p>A full redesign plans every layer: new furniture, walls, ceiling,
+           floor, lighting and curtains. Each design is checked against your
+           photo before you see it, and redrawn if a door moved or a second
+           bed appeared.</p>
       </div>
       <div class="pass">
         <span class="n">04</span>
         <h3>It prices the work</h3>
-        <p>The same reading becomes an itemised range — storage, finishes,
-           lighting, labour — so the picture arrives with a number beside it.
-           Indicative, not a quotation, and it says so.</p>
+        <p>An indicative cost range at local rates, so the picture arrives
+           with a number beside it. A guide, not a quotation.</p>
       </div>
     </div>
-
-    <p class="foot-note">Earlier versions masked the doors and windows and let
-       the generator repaint everything else. That erased the furniture it was
-       never told about, so the protection moved into words, where it can name
-       a wardrobe rather than draw a box round it.</p>
+    <p class="hero-do" style="margin-top:2.2rem">
+      <button class="cta" type="button" data-go="studio">Redesign my room</button>
+    </p>
   </div>
 </main>
 
@@ -1425,9 +1416,7 @@
       <p class="cap">Product</p>
       <ul>
         <li><button type="button" data-go="studio">Studio</button></li>
-        <li><button type="button" data-go="explore">Explore</button></li>
         <li><button type="button" data-go="how">How it works</button></li>
-        <li><button type="button" data-go="pricing">Pricing</button></li>
       </ul>
     </div>
     <div>
@@ -2177,11 +2166,8 @@
   };
 
   function engineLine(h) {
-    if (h.engine === 'openai') {
-      return h.locks_are_enforced
-        ? 'Doors and windows are masked off'
-        : 'What must stay is named in the instructions, not masked off';
-    }
+    // Shown to customers, so it says whether it works, not how.
+    if (h.engine === 'openai') { return 'Ready'; }
     return ENGINES[h.engine] || 'Ready';
   }
 

@@ -29,10 +29,14 @@ class TestTheTopBarIsJustTheProduct:
         assert "Your chats" not in nav
         assert "Your designs" not in nav
 
-    def test_the_four_real_sections_are_still_there(self):
+    def test_the_launch_nav_is_just_studio_and_how_it_works(self):
+        """Explore (drawings, not rooms) and Pricing (plans not on sale yet)
+        are off the nav for launch."""
         nav = nav_block(page())
-        for section in ("studio", "explore", "how", "pricing"):
+        for section in ("studio", "how"):
             assert f'data-go="{section}"' in nav
+        for section in ("explore", "pricing"):
+            assert f'data-go="{section}"' not in nav
 
 
 class TestHistoryLivesInThePanelHeader:
