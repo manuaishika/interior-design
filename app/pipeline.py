@@ -91,27 +91,24 @@ async def edit_design(design: bytes, instruction: str, settings: Settings,
     if not _is_openai(settings):
         raise ValueError("Apply this change needs the OpenAI engine.")
 
-    from . import openai_images
+    from . import editing, openai_images
 
     image = load_image(design)
-    mask = None
     if mask_image is not None:
-        mask = (mask_image if mask_image.size == image.size
-                else mask_image.resize(image.size))
+        area = editing.area_for(image, drawn=mask_image)
     elif region is not None:
-        mask = build_region_mask(image.size, region)
-
-    if mask is not None:
-        prompt = (
-            f"{instruction.strip()}\n\nOnly change what is inside the "
-            "marked area. Blend it naturally with what is around it — "
-            "matching light, perspective and material — rather than "
-            f"leaving a visible seam at its edge.\n\n{PRESERVE}"
-        )
+        area = editing.area_for(image, drawn=build_region_mask(image.size, region))
     else:
-        prompt = f"{instruction.strip()}\n\n{PRESERVE}"
-    return await openai_images.redraw(image, mask, prompt, settings,
-                                      quality=tier_of(tier)["quality"])
+        # A typed change: find where it is about, so it can be held there.
+        area = editing.area_for(
+            image, boxes=await editing.locate(design, instruction, settings))
+
+    prompt = editing.EDIT.format(instruction=instruction.strip(),
+                                 area=editing.AREA if area is not None else "")
+    result = await openai_images.redraw(image, area, prompt, settings,
+                                        quality=tier_of(tier)["quality"],
+                                        keep_detail=True)
+    return editing.finish(image, result, area)
 
 
 async def _plan_for(data: bytes, references, style: str, room: str,

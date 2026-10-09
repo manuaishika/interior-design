@@ -304,3 +304,82 @@ def fit_generation_size(size: tuple[int, int], target_pixels: int = 512 * 512,
     nw = max(multiple, int(round(w * scale / multiple)) * multiple)
     nh = max(multiple, int(round(h * scale / multiple)) * multiple)
     return nw, nh
+
+
+# ---------------------------------------------------------------------------
+# Keeping an edit to the area it was asked for
+# ---------------------------------------------------------------------------
+
+def fill_enclosed(mask: Image.Image) -> Image.Image:
+    """A circle drawn round a lamp means the lamp, not the ring of ink.
+
+    The brush mask is only where the pen went, so "circle the thing you want
+    changed" produced a ring with the thing itself unmarked inside it. Any
+    area completely enclosed by strokes is filled in: the background is
+    flood-filled from outside (through a 1px border, so every edge is
+    reachable) and whatever that fill could not reach is part of the mark.
+    """
+    binary = mask.convert("L").point(lambda v: 255 if v > 127 else 0)
+    w, h = binary.size
+    padded = Image.new("L", (w + 2, h + 2), 0)
+    padded.paste(binary, (1, 1))
+    ImageDraw.floodfill(padded, (0, 0), 128)
+    inside = padded.crop((1, 1, w + 1, h + 1)).point(lambda v: 0 if v == 128 else 255)
+    return inside
+
+
+def grow(mask: Image.Image, fraction: float) -> Image.Image:
+    """Widen the marked area by `fraction` of the image's width — room for a
+    turned or moved piece's new footprint and its shadow."""
+    px = max(1, int(round(mask.size[0] * fraction)))
+    size = px * 2 + 1
+    # MaxFilter needs an odd size; big filters are slow, so do it in steps.
+    out = mask
+    while size > 1:
+        step = min(size, 31)
+        if step % 2 == 0:
+            step -= 1
+        out = out.filter(ImageFilter.MaxFilter(step))
+        size -= step - 1
+    return out
+
+
+def keep_outside(original: Image.Image, edited: Image.Image,
+                 mask: Image.Image, feather: float = 0.012) -> Image.Image:
+    """The edited picture inside `mask`, the original everywhere else.
+
+    Image models regenerate the whole picture even when given a mask, so a
+    "turn the bed" also nudged the curtains, recoloured the rug and redrew
+    the lamp. Pasting the original back outside the marked area makes that
+    impossible: nothing the person did not mark can change. The seam is
+    feathered so the join is not a hard line.
+    """
+    size = original.size
+    edited = edited.convert("RGB").resize(size, Image.LANCZOS) \
+        if edited.size != size else edited.convert("RGB")
+    soft = mask.convert("L").resize(size)
+    radius = max(1.0, size[0] * feather)
+    soft = soft.filter(ImageFilter.GaussianBlur(radius))
+    return Image.composite(edited, original.convert("RGB"), soft)
+
+
+def mask_from_boxes(size: tuple[int, int],
+                    boxes: list[list[float]]) -> Image.Image:
+    """White rectangles from [left, top, right, bottom] fractions."""
+    w, h = size
+    mask = Image.new("L", size, 0)
+    draw = ImageDraw.Draw(mask)
+    for box in boxes:
+        try:
+            l, t, r, b = (max(0.0, min(1.0, float(v))) for v in box)
+        except (TypeError, ValueError):
+            continue
+        if r > l and b > t:
+            draw.rectangle([l * w, t * h, r * w, b * h], fill=255)
+    return mask
+
+
+def coverage(mask: Image.Image) -> float:
+    """Share of the picture that is marked, 0-1."""
+    arr = np.asarray(mask.convert("L")) > 127
+    return float(arr.mean()) if arr.size else 0.0

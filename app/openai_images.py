@@ -351,7 +351,7 @@ def looks_inverted(original: Image.Image, drawn: bytes,
 async def redraw(image: Image.Image, inpaint_mask: Image.Image | None,
                  prompt: str, settings: Settings,
                  references: list[bytes] | None = None,
-                 quality: str = "medium") -> bytes:
+                 quality: str = "medium", keep_detail: bool = False) -> bytes:
     """Redraw the room.
 
     With no mask — the default, and what ChatGPT does — the model edits the
@@ -403,8 +403,22 @@ async def redraw(image: Image.Image, inpaint_mask: Image.Image | None,
         if mask is not None:
             mask.seek(0)
             call["mask"] = ("mask.png", mask, "image/png")
+        if keep_detail:
+            # Follow-up edits: match the input picture as closely as the model
+            # can. Not every model accepts it, so it is dropped on refusal.
+            call["input_fidelity"] = "high"
         try:
-            response = await client.images.edit(**call)
+            try:
+                response = await client.images.edit(**call)
+            except Exception as exc:
+                if not keep_detail or "fidelity" not in str(exc).lower():
+                    raise
+                call.pop("input_fidelity", None)
+                for _name, stream, _type in views:
+                    stream.seek(0)
+                if mask is not None:
+                    mask.seek(0)
+                response = await client.images.edit(**call)
         except Exception as exc:
             last = exc
             if _no_such_model(exc):

@@ -513,8 +513,13 @@ class TestApplyThisChange:
 
     @pytest.mark.asyncio
     async def test_preserve_still_rides_along(self, monkeypatch):
-        """Or the second edit reintroduces the doorway the first avoided."""
-        from app.generation import PRESERVE
+        """Or the second edit reintroduces the doorway the first avoided. The
+        edit prompt carries its own short version: the long redesign PRESERVE
+        talks about full redesigns and adding pieces, which is the wrong
+        thing to tell an edit."""
+        from app.editing import EDIT as PRESERVE_LINE
+        PRESERVE = "Never add, remove or move a door, window or other fixed part of the room."
+        assert PRESERVE in PRESERVE_LINE.replace("\n", " ")
         from app.pipeline import edit_design
 
         seen = {}
@@ -525,7 +530,7 @@ class TestApplyThisChange:
 
         monkeypatch.setattr("app.openai_images.redraw", redraw)
         await edit_design(self._png(), "make the wall deep olive", settings())
-        assert PRESERVE in seen["prompt"]
+        assert PRESERVE in seen["prompt"].replace("\n", " ")
 
     @pytest.mark.asyncio
     async def test_three_edits_chain(self, monkeypatch):
@@ -588,6 +593,8 @@ class TestMarkingAnAreaToEdit:
 
     @pytest.mark.asyncio
     async def test_a_region_becomes_a_mask_white_inside_black_outside(self, monkeypatch):
+        """Widened a touch (a mark is a little tighter than what it means),
+        but the far side of the picture is still untouchable."""
         import numpy as np
         from app.pipeline import edit_design
 
@@ -595,54 +602,58 @@ class TestMarkingAnAreaToEdit:
 
         async def redraw(image, mask, prompt, s, **kw):
             seen["mask"] = mask
-            return self._png()
+            return self._png((200, 100))
 
         monkeypatch.setattr("app.openai_images.redraw", redraw)
-        # Right half of a 40x20 image.
-        await edit_design(self._png(), "add a window", settings(),
+        await edit_design(self._png((200, 100)), "add a window", settings(),
                           region=(0.5, 0.0, 0.5, 1.0))
 
         arr = np.array(seen["mask"])
-        assert arr.shape == (20, 40)
-        assert (arr[:, :20] == 0).all()      # left half: preserved
-        assert (arr[:, 20:] == 255).all()    # right half: editable
+        assert arr.shape == (100, 200)
+        assert (arr[:, :90] == 0).all()       # left side: preserved
+        assert (arr[:, 100:] == 255).all()    # the marked half: editable
 
     @pytest.mark.asyncio
     async def test_the_prompt_says_to_blend_and_touch_nothing_else(self, monkeypatch):
-        from app.generation import PRESERVE
         from app.pipeline import edit_design
 
         seen = {}
 
         async def redraw(image, mask, prompt, s, **kw):
             seen["prompt"] = prompt
+            seen["kw"] = kw
             return self._png()
 
         monkeypatch.setattr("app.openai_images.redraw", redraw)
         await edit_design(self._png(), "add a window", settings(),
-                          region=(0.1, 0.1, 0.2, 0.2))
+                          region=(0.1, 0.1, 0.4, 0.4))
 
         assert "add a window" in seen["prompt"]
-        assert "Only change what is inside the marked area" in seen["prompt"]
-        assert PRESERVE in seen["prompt"]     # still rides along, region or not
+        assert "Only the marked area may change" in seen["prompt"]
+        assert "Everything else stays exactly as it is" in seen["prompt"]
+        assert seen["kw"]["keep_detail"] is True
 
     @pytest.mark.asyncio
-    async def test_a_real_drawing_is_used_as_is(self, monkeypatch):
-        """A freehand mask has already been decided by the person who drew
-        it — an arbitrary shape, not a box the code has to construct."""
+    async def test_a_circle_drawn_round_something_marks_its_inside(self, monkeypatch):
+        """People circle the lamp. The ink is a ring; the lamp is inside it."""
+        import numpy as np
+        from PIL import ImageDraw
         from app.pipeline import edit_design
         seen = {}
 
         async def redraw(image, mask, prompt, s, **kw):
             seen["mask"] = mask
-            return self._png()
+            return self._png((200, 100))
 
         monkeypatch.setattr("app.openai_images.redraw", redraw)
-        drawn = Image.new("L", (40, 20), 0)
-        drawn.paste(255, (5, 5, 15, 15))    # a blob, not a rectangle spanning either half
-        await edit_design(self._png(), "add a lamp", settings(), mask_image=drawn)
+        drawn = Image.new("L", (200, 100), 0)
+        ImageDraw.Draw(drawn).ellipse([40, 20, 100, 80], outline=255, width=4)
+        await edit_design(self._png((200, 100)), "a better lamp", settings(),
+                          mask_image=drawn)
 
-        assert seen["mask"] is drawn
+        arr = np.array(seen["mask"])
+        assert arr[50, 70] == 255          # the middle of the circle
+        assert arr[50, 180] == 0           # well outside it
 
     @pytest.mark.asyncio
     async def test_a_drawing_the_wrong_size_is_resized_to_match(self, monkeypatch):
@@ -658,25 +669,47 @@ class TestMarkingAnAreaToEdit:
 
         monkeypatch.setattr("app.openai_images.redraw", redraw)
         drawn = Image.new("L", (400, 200), 0)   # 10x the design's actual size
+        drawn.paste(255, (50, 50, 150, 150))
         await edit_design(self._png(), "add a lamp", settings(), mask_image=drawn)
 
         assert seen["mask"].size == (40, 20)
 
     @pytest.mark.asyncio
     async def test_a_drawing_wins_over_a_region_if_both_somehow_arrive(self, monkeypatch):
+        import numpy as np
         from app.pipeline import edit_design
         seen = {}
 
         async def redraw(image, mask, prompt, s, **kw):
             seen["mask"] = mask
-            return self._png()
+            return self._png((200, 100))
 
         monkeypatch.setattr("app.openai_images.redraw", redraw)
-        drawn = Image.new("L", (40, 20), 128)   # distinguishable from a region mask
-        await edit_design(self._png(), "add a lamp", settings(),
+        drawn = Image.new("L", (200, 100), 0)
+        drawn.paste(255, (10, 10, 40, 40))             # top-left blob
+        await edit_design(self._png((200, 100)), "add a lamp", settings(),
                           region=(0.5, 0.0, 0.5, 1.0), mask_image=drawn)
 
-        assert seen["mask"] is drawn
+        arr = np.array(seen["mask"])
+        assert arr[25, 25] == 255 and arr[50, 180] == 0
+
+    @pytest.mark.asyncio
+    async def test_nothing_outside_the_area_can_change(self, monkeypatch):
+        """The model returns a whole new picture; outside the mark the
+        original is pasted back, pixel for pixel."""
+        import numpy as np
+        from app.pipeline import edit_design
+
+        async def redraw(image, mask, prompt, s, **kw):
+            return self._png((200, 100), colour=(250, 0, 0))   # everything red
+
+        monkeypatch.setattr("app.openai_images.redraw", redraw)
+        out = await edit_design(self._png((200, 100), colour=(10, 20, 30)),
+                                "a better lamp", settings(),
+                                region=(0.05, 0.1, 0.2, 0.3))
+        arr = np.array(Image.open(io.BytesIO(out)).convert("RGB"))
+        assert tuple(arr[90, 190]) == (10, 20, 30)     # far corner untouched
+        assert arr[30, 30][0] > 200                    # inside: the edit
 
 
 def _isolated(tmp_path, **kw):
