@@ -25,7 +25,7 @@ from fastapi.staticfiles import StaticFiles
 
 from . import auth, catalogue, google_login, store
 from .openai_images import image_models as openai_images_chain
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 
 from .config import (DEFAULT_TIER, LOCK_PROFILES, Settings, TIERS,
                      get_settings, resolve_backend)
@@ -213,7 +213,8 @@ def _land(request: Request, response: Response, settings: Settings,
 
 def _card(user) -> dict:
     return {"email": user.email, "name": user.name,
-            "google": bool(user.google_id), "tier": user.tier}
+            "google": bool(user.google_id), "tier": user.tier,
+            "kind": user.kind or "customer", "company": user.company or ""}
 
 
 def _tier_card(tier: str) -> dict:
@@ -314,15 +315,22 @@ def _contact(settings) -> dict | None:
 @app.post("/api/signup")
 async def signup(request: Request, response: Response,
                  email: str = Form(...), password: str = Form(...),
-                 name: str = Form("")):
+                 name: str = Form(""), kind: str = Form("customer"),
+                 company: str = Form("")):
     settings = get_settings()
+    if kind not in store.ACCOUNT_KINDS:
+        raise HTTPException(400, "Choose customer or firm.")
+    if not name.strip():
+        raise HTTPException(400, "Tell us your name.")
+    if kind == "firm" and not company.strip():
+        raise HTTPException(400, "Tell us your company's name.")
     if len(password) < 8:
         raise HTTPException(400, "Use at least 8 characters.")
     if "@" not in email or "." not in email.split("@")[-1]:
         raise HTTPException(400, "That does not look like an email address.")
     async with store.session() as db:
         try:
-            user = await store.sign_up(db, email, password, name)
+            user = await store.sign_up(db, email, password, name, kind, company)
         except ValueError as exc:
             raise HTTPException(409, str(exc)) from exc
         card = _card(user)
@@ -376,7 +384,8 @@ def _redirect_uri(request: Request) -> str:
 
 
 @app.get("/api/auth/google")
-async def google_start(request: Request):
+async def google_start(request: Request, kind: str = "customer",
+                       company: str = ""):
     settings = get_settings()
     if not google_login.configured(settings):
         raise HTTPException(503, "Google sign-in is not set up on this server.")
@@ -388,6 +397,12 @@ async def google_start(request: Request):
     # the way back. That is what stops somebody else's sign-in being replayed
     # at you to land you in their account.
     response.set_cookie(google_login.STATE_COOKIE, state, max_age=600,
+                        httponly=True, samesite="lax",
+                        secure=auth.over_https(request), path="/")
+    # Who they said they are, kept for the callback. It only ever applies when
+    # this sign-in creates a new account; an existing one is left as it is.
+    who = json.dumps({"kind": store.tidy_kind(kind), "company": company[:160]})
+    response.set_cookie("sd_google_who", quote(who), max_age=600,
                         httponly=True, samesite="lax",
                         secure=auth.over_https(request), path="/")
     return response
@@ -423,12 +438,19 @@ async def google_callback(request: Request, code: str = "", state: str = "",
         log.warning("Google sign-in failed: %s", exc)
         return back(str(exc))
 
+    try:
+        who = json.loads(unquote(request.cookies.get("sd_google_who", "") or "{}"))
+    except ValueError:
+        who = {}
     async with store.session() as db:
         user = await store.from_google(db, profile["google_id"],
-                                       profile["email"], profile["name"])
+                                       profile["email"], profile["name"],
+                                       str(who.get("kind", "customer")),
+                                       str(who.get("company", "")))
         user_id = user.id
 
     out = back()
+    out.delete_cookie("sd_google_who", path="/")
     _land(request, out, settings, user_id)
     return out
 

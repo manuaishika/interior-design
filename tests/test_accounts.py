@@ -63,12 +63,12 @@ class TestSigningUp:
 
     def test_a_short_password_is_refused(self, client):
         res = client.post("/api/signup",
-                          data={"email": "a@b.test", "password": "short"})
+                          data={"email": "a@b.test", "password": "short", "name": "A"})
         assert res.status_code == 400
 
     def test_a_nonsense_email_is_refused(self, client):
         res = client.post("/api/signup",
-                          data={"email": "anna", "password": "a-good-password"})
+                          data={"email": "anna", "password": "a-good-password", "name": "A"})
         assert res.status_code == 400
 
     def test_the_same_email_twice_is_refused(self, client):
@@ -82,7 +82,7 @@ class TestSigningUp:
         join(client, email="Anna@Example.test")
         client.post("/api/logout")
         again = client.post("/api/signup",
-                            data={"email": "anna@example.test",
+                            data={"email": "anna@example.test", "name": "Anna",
                                   "password": "another-password"})
         assert again.status_code == 409
 

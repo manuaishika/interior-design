@@ -118,7 +118,8 @@
   @media (max-width: 760px) {
     nav { margin: 0; overflow-x: auto; }
     .top-in { gap: .8rem; }
-    .top-in .cta { display: none; }
+    .top-in .cta { padding: .35rem .65rem; font-size: .78rem; flex-shrink: 0;
+      max-width: 9.5rem; overflow: hidden; text-overflow: ellipsis; }
   }
 
   .view { padding: clamp(2.2rem, 6vw, 4.4rem) 0 5rem; }
@@ -802,6 +803,11 @@
     justify-content: center; gap: .5rem; margin-bottom: .8rem; }
   .dialog .or { text-align: center; font-size: .74rem; color: var(--muted);
     margin: 0 0 .8rem; }
+  .kind-pick { display: flex; gap: .4rem; margin: .2rem 0 .3rem; }
+  .kind-pick button { flex: 1; padding: .5rem; border: 1px solid var(--line);
+    background: var(--raise); border-radius: 2px; cursor: pointer; font-size: .85rem;
+    color: var(--muted); }
+  .kind-pick button.on { background: var(--dark); border-color: var(--dark); color: #fff; }
   .swap-mode { margin: .8rem 0 0; display: flex; gap: .9rem;
     justify-content: center; }
   .dialog-row { display: flex; gap: .5rem; margin-top: 1rem; }
@@ -1446,6 +1452,12 @@
   <div class="dialog">
     <h2 id="dlgTitle">Sign in</h2>
     <p id="dlgNote">So your designs are here next time.</p>
+
+    <div class="kind-pick hidden" id="dlgKind" role="group" aria-label="Account type">
+      <button type="button" class="on" data-kind="customer">I'm a customer</button>
+      <button type="button" data-kind="firm">I'm a firm</button>
+    </div>
+    <input id="dlgCompany" class="hidden" placeholder="Company name" autocomplete="organization">
 
     <button class="cta ghost google hidden" id="googleGo" type="button">
       <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
@@ -2204,7 +2216,7 @@
   // anyone, so nothing in the page asks people to sign in. Flip this to
   // false to bring the Sign in button and "Sign in to save" back. A studio
   // that needs an access code still shows Sign in, since that is how it opens.
-  var SIGN_IN_OFF = true;
+  var SIGN_IN_OFF = false;
   function signInVisible() { return !SIGN_IN_OFF || needsCode || Boolean(account); }
   var tier = null;
   // A WhatsApp number to hand finished designs to, when the deployment has
@@ -2295,6 +2307,8 @@
       : up ? 'So your designs are still here next time.'
            : 'So your designs are here next time.';
     $('dlgName').classList.toggle('hidden', !up);
+    $('dlgKind').classList.toggle('hidden', !up);
+    $('dlgCompany').classList.toggle('hidden', !up || kind !== 'firm');
     $('dlgEmail').classList.toggle('hidden', code);
     $('dlgPass').type = code ? 'text' : 'password';
     $('dlgPass').placeholder = code ? 'Access code' : 'Password';
@@ -2310,8 +2324,32 @@
     $('loginMsg').textContent = '';
   }
 
+  /* Who is signing up: a customer redesigning their own space, or a firm that
+     will use this for its clients. Asked when creating an account, by
+     password or by "Continue with Google". */
+  var kind = 'customer';
+  function setKind(k) {
+    kind = k;
+    Array.prototype.forEach.call($('dlgKind').children, function (b) {
+      b.classList.toggle('on', b.getAttribute('data-kind') === k);
+    });
+    $('dlgCompany').classList.toggle('hidden', k !== 'firm' ||
+      $('dlgKind').classList.contains('hidden'));
+    if (k === 'firm' && !$('dlgKind').classList.contains('hidden')) {
+      $('dlgCompany').focus();
+    }
+  }
+  $('dlgKind').onclick = function (e) {
+    var b = e.target.closest('[data-kind]');
+    if (b) { setKind(b.getAttribute('data-kind')); }
+  };
+
   function openDialog() {
     $('dlgEmail').value = ''; $('dlgPass').value = ''; $('dlgName').value = '';
+    $('dlgCompany').value = ''; kind = 'customer';
+    Array.prototype.forEach.call($('dlgKind').children, function (b) {
+      b.classList.toggle('on', b.getAttribute('data-kind') === 'customer');
+    });
     setMode('in');
     $('veil').classList.remove('hidden');
     $('dlgEmail').focus();
@@ -2333,7 +2371,16 @@
   };
   $('googleGo').onclick = function () {
     // A full navigation, not fetch: Google will not be framed or XHR'd.
-    window.location.href = api('/api/auth/google');
+    // Signing in never needs the question; only creating an account does.
+    var k = mode === 'up' ? kind : 'customer';
+    var q = 'kind=' + encodeURIComponent(k);
+    if (k === 'firm') { q += '&company=' + encodeURIComponent($('dlgCompany').value.trim()); }
+    if (k === 'firm' && !$('dlgCompany').value.trim()) {
+      $('loginMsg').textContent = "Add your company's name first.";
+      $('loginMsg').classList.add('bad');
+      return;
+    }
+    window.location.href = api('/api/auth/google?' + q);
   };
 
   $('loginGo').onclick = function () {
@@ -2344,7 +2391,21 @@
     } else {
       body.append('email', $('dlgEmail').value.trim());
       body.append('password', $('dlgPass').value);
-      if (mode === 'up') { body.append('name', $('dlgName').value.trim()); }
+      if (mode === 'up') {
+        if (!$('dlgName').value.trim()) {
+          $('loginMsg').textContent = 'Tell us your name.';
+          $('loginMsg').classList.add('bad');
+          return;
+        }
+        if (kind === 'firm' && !$('dlgCompany').value.trim()) {
+          $('loginMsg').textContent = "Tell us your company's name.";
+          $('loginMsg').classList.add('bad');
+          return;
+        }
+        body.append('name', $('dlgName').value.trim());
+        body.append('kind', kind);
+        body.append('company', $('dlgCompany').value.trim());
+      }
       where = mode === 'up' ? '/api/signup' : '/api/login';
     }
     $('loginMsg').classList.remove('bad');
@@ -2365,7 +2426,7 @@
         $('loginMsg').classList.add('bad');
       });
   };
-  ['dlgEmail', 'dlgPass', 'dlgName'].forEach(function (id) {
+  ['dlgEmail', 'dlgPass', 'dlgName', 'dlgCompany'].forEach(function (id) {
     $(id).addEventListener('keydown', function (e) {
       if (e.key === 'Enter') { e.preventDefault(); $('loginGo').click(); }
     });

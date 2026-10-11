@@ -63,7 +63,7 @@ def png():
 
 
 def join(client, email, password="a-good-password"):
-    return client.post("/api/signup", data={"email": email, "password": password})
+    return client.post("/api/signup", data={"email": email, "password": password, "name": "Test"})
 
 
 def draw_stub(monkeypatch, fail_times=0):

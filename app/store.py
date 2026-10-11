@@ -89,6 +89,10 @@ class User(Base):
     # is already where quality and design count are read from, not from one
     # Settings value shared by everyone who opens the studio.
     tier: Mapped[str] = mapped_column(String(16), default="free")
+    # "customer" (a person redesigning their own space) or "firm" (an interior
+    # or fit-out business, which also gives a company name). Chosen at sign-up.
+    kind: Mapped[str] = mapped_column(String(16), default="customer")
+    company: Mapped[str] = mapped_column(String(160), default="")
     created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True),
                                                     default=now)
 
@@ -269,6 +273,14 @@ def _add_missing_columns(sync_conn) -> None:
             sync_conn.execute(text(
                 "ALTER TABLE users ADD COLUMN tier VARCHAR(16) "
                 "DEFAULT 'free'"))
+        if "kind" not in existing:
+            sync_conn.execute(text(
+                "ALTER TABLE users ADD COLUMN kind VARCHAR(16) "
+                "DEFAULT 'customer'"))
+        if "company" not in existing:
+            sync_conn.execute(text(
+                "ALTER TABLE users ADD COLUMN company VARCHAR(160) "
+                "DEFAULT ''"))
 
 
 async def create_tables() -> None:
@@ -312,13 +324,23 @@ async def by_id(db: AsyncSession, user_id: int) -> User | None:
     return await db.get(User, user_id)
 
 
+ACCOUNT_KINDS = ("customer", "firm")
+
+
+def tidy_kind(kind: str) -> str:
+    return kind if kind in ACCOUNT_KINDS else "customer"
+
+
 async def sign_up(db: AsyncSession, email: str, password: str,
-                  name: str = "") -> User:
+                  name: str = "", kind: str = "customer",
+                  company: str = "") -> User:
     email = tidy_email(email)
     if await by_email(db, email):
         raise ValueError("There is already an account with that email.")
+    kind = tidy_kind(kind)
     user = User(email=email, name=name.strip(),
-                password_hash=hash_password(password))
+                password_hash=hash_password(password), kind=kind,
+                company=company.strip() if kind == "firm" else "")
     db.add(user)
     await db.commit()
     return user
@@ -334,7 +356,8 @@ async def sign_in(db: AsyncSession, email: str, password: str) -> User | None:
 
 
 async def from_google(db: AsyncSession, google_id: str, email: str,
-                      name: str = "") -> User:
+                      name: str = "", kind: str = "customer",
+                      company: str = "") -> User:
     """Find or make the account behind a Google sign-in.
 
     Matching on the email as well as the Google id is what lets someone who
@@ -346,7 +369,9 @@ async def from_google(db: AsyncSession, google_id: str, email: str,
     if user is None:
         user = await by_email(db, email)
     if user is None:
-        user = User(email=email, name=name.strip(), google_id=google_id)
+        kind = tidy_kind(kind)
+        user = User(email=email, name=name.strip(), google_id=google_id,
+                    kind=kind, company=company.strip() if kind == "firm" else "")
         db.add(user)
     else:
         user.google_id = google_id

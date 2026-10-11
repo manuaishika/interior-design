@@ -302,17 +302,15 @@ class TestTheLaptopStudioFitsOneScreen:
         assert "max-width" not in source[start:source.index("{", start)]
 
 
-class TestSignInIsQuietForNow:
-    def test_the_button_and_the_save_prompt_are_hidden_while_accounts_are_off(self):
+class TestSignInIsOn:
+    def test_the_button_and_the_save_prompt_show_again(self):
         source = page()
-        assert "var SIGN_IN_OFF = true;" in source
+        assert "var SIGN_IN_OFF = false;" in source
         assert "$('login').classList.toggle('hidden', !signInVisible());" in source
-        assert "keep.classList.add('hidden')" in source
 
-    def test_an_access_code_studio_still_shows_it(self):
-        assert "return !SIGN_IN_OFF || needsCode || Boolean(account);" in page()
+    def test_a_phone_keeps_the_sign_in_button(self):
+        top = page()[page().index("@media (max-width: 760px) {"):][:600]
+        assert ".top-in .cta { display: none; }" not in top
 
-    def test_the_pricing_page_stops_promising_a_sign_in_difference(self):
-        source = page()
-        assert "Up to 12 designs a day, no account needed" in source
-        assert "when signed in, 2 without" not in source
+    def test_the_pricing_page_still_says_no_account_needed(self):
+        assert "Up to 12 designs a day, no account needed" in page()
