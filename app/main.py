@@ -10,6 +10,7 @@ Endpoints:
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import hmac
 import json
@@ -18,7 +19,8 @@ import os
 from pathlib import Path
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, Response, UploadFile
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
+from sqlalchemy.exc import OperationalError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -111,11 +113,62 @@ async def _open_the_books() -> None:
     """
     settings = get_settings()
     store.configure(settings.database_url)
-    await store.create_tables()
+    try:
+        await store.create_tables()
+    except Exception as exc:        # noqa: BLE001 — see below
+        # A database that is down (suspended, restarting, wrong URL) used to
+        # stop the whole site from booting, so even the home page and the
+        # health check were gone. Boot anyway, say so in the log, and keep
+        # trying in the background; requests that need the database get a
+        # plain 503 meanwhile (see _database_down).
+        log.error("Database not reachable at startup (%s); retrying", exc)
+        _TABLE_RETRY.append(asyncio.create_task(_create_tables_when_possible()))
+
+
+_TABLE_RETRY: list[asyncio.Task] = []
+
+
+async def _create_tables_when_possible(every: float = 30.0) -> None:
+    while True:
+        await asyncio.sleep(every)
+        try:
+            await store.create_tables()
+        except Exception as exc:    # noqa: BLE001
+            log.warning("Database still not reachable (%s)", exc)
+        else:
+            log.info("Database reachable; tables are ready")
+            return
+
+
+@app.exception_handler(OperationalError)
+async def _database_down(request: Request, exc: OperationalError):
+    log.error("Database error on %s: %s", request.url.path, exc)
+    return JSONResponse(
+        {"detail": "Saving and sign-in are unavailable for a moment. "
+                   "Please try again shortly."}, status_code=503)
+
+
+@app.get("/privacy", include_in_schema=False)
+async def privacy():
+    return _legal("privacy.html")
+
+
+@app.get("/terms", include_in_schema=False)
+async def terms():
+    return _legal("terms.html")
+
+
+def _legal(name: str):
+    page = STATIC_DIR / name
+    if not page.is_file():
+        raise HTTPException(404, "Not found")
+    return FileResponse(page)
 
 
 @app.on_event("shutdown")
 async def _close_the_books() -> None:
+    for task in _TABLE_RETRY:
+        task.cancel()
     await store.dispose()
 
 
