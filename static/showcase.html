@@ -816,6 +816,8 @@
   footer { border-top: 1px solid var(--line); padding: 2.6rem 0 3.4rem; }
   .foot { display: grid; gap: 1.8rem; }
   @media (min-width: 780px) { .foot { grid-template-columns: 2fr 1fr 1fr; } }
+  .foot a { color: inherit; text-decoration: none; }
+  .foot a:hover { text-decoration: underline; }
   .foot h4 { font-family: var(--display);
     font-weight: var(--display-weight); font-size: 1.3rem; letter-spacing: -.01em; margin: 0 0 .5rem; }
   .foot p, .foot li { font-size: .84rem; color: var(--muted); margin: 0; }
@@ -836,8 +838,9 @@
   @media (max-width: 760px) {
     body { font-size: 14px; line-height: 1.55; }
     .top-in { height: 52px; gap: .6rem; }
-    .brand { font-size: 1.15rem; }
-    nav button { font-size: .8rem; padding: .35rem .45rem; }
+    .brand { font-size: 1.05rem; }
+    nav { gap: 0; }
+    nav button { font-size: .76rem; padding: .35rem .3rem; }
     .view { padding: 1.4rem 0 3rem; }
     .kick { font-size: .62rem; margin: 0 0 .55rem; }
     h1.big { font-size: 1.7rem; }
@@ -991,6 +994,57 @@
     #v-studio .controls #lookHint, #v-studio .controls #tierNote { display: none; }
     #v-studio .controls .lab { margin: .55rem 0 .25rem; }
   }
+  /* ---------- designs: a scroll-driven before / after ---------- */
+  button.link { background: none; border: 0; cursor: pointer; color: var(--ink);
+    font: inherit; text-decoration: underline; text-underline-offset: 3px; padding: 0 .3rem; }
+  #v-designs { padding: 0; }
+  .reel { height: 260vh; position: relative; background: #14130F; color: #F2EFE6; }
+  .reel-stick { position: sticky; top: 62px; height: calc(100vh - 62px); overflow: hidden; }
+  .reel-bg { position: absolute; inset: -6%; background: url(static/designs/bedroom-before.jpg) center/cover;
+    filter: blur(46px) brightness(.34) saturate(1.2); transition: background-image .3s; }
+  .reel-grid { position: relative; height: 100%; display: grid; grid-template-columns: 1fr auto;
+    align-items: center; gap: clamp(2rem, 7vw, 6rem); }
+  .reel-copy .kick { color: #E0693B; }
+  .reel-words { position: relative; min-height: 15rem; }
+  .reel-words > div { position: absolute; inset: 0 auto auto 0; transition: opacity .35s, transform .35s; }
+  #reelB { opacity: 0; transform: translateY(14px); }
+  .reel .big { color: #F2EFE6; margin: .4rem 0 .8rem; }
+  .reel .lede { color: #B9B2A3; }
+  .reel-did { list-style: none; padding: 0; margin: 1.2rem 0 0; max-width: 30rem; }
+  .reel-did li { padding: .6rem 0 .6rem 1.5rem; border-top: 1px solid rgba(242,239,230,.2);
+    position: relative; color: #E8E2D6; }
+  .reel-did li::before { content: ''; position: absolute; left: 0; top: 1.05rem; width: .6rem; height: .6rem;
+    border-radius: 50%; background: #E0693B; }
+  .reel-photo { position: relative; margin: 0; height: min(78vh, 46rem); max-height: calc(100vh - 62px - 3rem);
+    aspect-ratio: 3/4; border-radius: 6px; overflow: hidden;
+    box-shadow: 0 2.4rem 5rem -1.2rem rgba(0,0,0,.75), 0 0 0 1px rgba(242,239,230,.16); }
+  .reel-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+    transform-origin: 62% 55%; will-change: transform, clip-path; }
+  .r-line { position: absolute; top: 0; bottom: 0; left: 0; width: 3px; background: #fff;
+    box-shadow: 0 0 14px rgba(0,0,0,.5); opacity: 0; }
+  .r-tag { position: absolute; top: 12px; font-size: .68rem; font-weight: 600; letter-spacing: .2em;
+    text-transform: uppercase; background: rgba(20,19,15,.85); color: #fff; padding: .4rem .6rem; border-radius: 3px;
+    transition: opacity .3s; }
+  .r-tag.l { left: 12px; } .r-tag.r { right: 12px; opacity: 0; }
+  .reel-hint { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); margin: 0;
+    font-size: .72rem; letter-spacing: .24em; text-transform: uppercase; color: #B9B2A3;
+    transition: opacity .3s; }
+  .reel-end { text-align: center; padding: 3.5rem 16px 4.5rem; }
+  .reel-end .lede { max-width: 38rem; margin: 0 auto 1.4rem; }
+  @media (max-width: 780px) {
+    .reel-grid { grid-template-columns: 1fr; grid-template-rows: auto 1fr; justify-items: center;
+      align-content: start; gap: 1rem; padding-top: 1rem; }
+    .reel-photo { height: min(52vh, 28rem); order: 0; }
+    .reel-copy { order: 1; width: 100%; text-align: center; }
+    .reel-copy .kick { display: none; }
+    .reel-words { min-height: 11rem; }
+    .reel-words > div { inset: 0 0 auto 0; }
+    .reel .big { font-size: 1.7rem; margin: 0 0 .4rem; }
+    .reel-did { margin: .6rem auto 0; text-align: left; display: inline-block; }
+    .reel-did li { font-size: .88rem; padding: .35rem 0 .35rem 1.3rem; }
+    .reel-did li::before { top: .7rem; }
+  }
+  @media (prefers-reduced-motion: reduce) { .reel-words > div { transition: none; } }
 </style>
 
 <header class="top">
@@ -998,6 +1052,7 @@
     <button class="brand" id="brand" type="button">Second Draft.</button>
     <nav id="nav">
       <button type="button" data-go="studio">Studio</button>
+      <button type="button" data-go="designs">Designs</button>
       <button type="button" data-go="how">How it works</button>
     </nav>
     <button class="cta ghost" id="login" type="button">Log in</button>
@@ -1014,6 +1069,7 @@
     <p class="hero-do">
       <button class="cta" type="button" data-go="studio">Redesign my room</button>
       <span>Takes about a minute.</span>
+      <button class="link" type="button" data-go="designs">See a real redesign &rarr;</button>
     </p>
     <div class="strip" id="heroStrip"></div>
   </div>
@@ -1032,30 +1088,6 @@
   </div>
 
   <div class="wrap"><hr class="rule"></div>
-
-  <div class="wrap">
-    <h2 class="sec" style="margin-bottom:1.8rem">Three steps, one afternoon</h2>
-    <div class="steps how">
-      <div>
-        <span class="n">01</span>
-        <h3>Photograph the space</h3>
-        <p>One phone snapshot is enough. Daylight helps, mess is fine — the mess
-           is part of what it is looking at.</p>
-      </div>
-      <div>
-        <span class="n">02</span>
-        <h3>It reads the room</h3>
-        <p>Names what is there and counts it. Two beds stay two beds. Doors and
-           windows get marked as untouchable.</p>
-      </div>
-      <div>
-        <span class="n">03</span>
-        <h3>Live with the result</h3>
-        <p>Up to three designs of your own room, not a stock photo of someone
-           else's. Compare before and after, then talk to a designer.</p>
-      </div>
-    </div>
-  </div>
 
   <div class="band">
     <h2>Your next room is one photo away</h2>
@@ -1305,6 +1337,47 @@
   </div>
 </main>
 
+<!-- ============================ DESIGNS ============================ -->
+<main class="view hidden" id="v-designs">
+  <section class="reel" id="reel">
+    <div class="reel-stick">
+      <div class="reel-bg" id="reelBg"></div>
+      <div class="wrap reel-grid">
+        <div class="reel-copy">
+          <p class="kick">Designs</p>
+          <div class="reel-words">
+            <div id="reelA">
+              <h2 class="big">The room as it is.</h2>
+              <p class="lede">One phone photo. Scroll to see what happens next.</p>
+            </div>
+            <div id="reelB">
+              <h2 class="big">Its second draft.</h2>
+              <ul class="reel-did">
+                <li>Same window, bed and desk, in the same place</li>
+                <li>New curtains, lamps and ceiling light</li>
+                <li>New rug, bedding and shelves</li>
+                <li>Warmer light, drawn into the same photograph</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <figure class="reel-photo" id="reelPhoto">
+          <img class="r-after" src="static/designs/bedroom-after.jpg" alt="The bedroom after its redesign">
+          <img class="r-before" id="reelBefore" src="static/designs/bedroom-before.jpg" alt="The bedroom before">
+          <span class="r-line" id="reelLine"></span>
+          <span class="r-tag l">Before</span><span class="r-tag r">After</span>
+        </figure>
+      </div>
+      <p class="reel-hint" id="reelHint">Scroll</p>
+    </div>
+  </section>
+  <div class="wrap reel-end">
+    <p class="lede">A student bedroom, redrawn from a single photograph. More rooms
+       are added here as they are drawn.</p>
+    <button class="cta" type="button" data-go="studio">Redesign my room</button>
+  </div>
+</main>
+
 <!-- ============================ HOW IT WORKS ============================ -->
 <main class="view hidden" id="v-how">
   <div class="wrap">
@@ -1422,6 +1495,7 @@
       <p class="cap">Product</p>
       <ul>
         <li><button type="button" data-go="studio">Studio</button></li>
+        <li><button type="button" data-go="designs">Designs</button></li>
         <li><button type="button" data-go="how">How it works</button></li>
       </ul>
     </div>
@@ -1789,6 +1863,43 @@
     return plate(s, LOOK_ROOMS[i], true);
   }).join('');
 
+  /* ---- designs: scroll drives the before / after ---- */
+  (function () {
+    var reel = $('reel'), before = $('reelBefore'), line = $('reelLine'),
+        photo = $('reelPhoto'), A = $('reelA'), B = $('reelB'), hint = $('reelHint'),
+        bg = $('reelBg'), tagR = photo.querySelector('.r-tag.r'), ticking = false;
+    var clamp = function (x) { return Math.max(0, Math.min(1, x)); };
+    var ease = function (x) { return x * x * (3 - 2 * x); };
+    function paintReel() {
+      ticking = false;
+      if (reel.offsetParent === null) return;        // page is hidden
+      var span = reel.offsetHeight - (window.innerHeight - 62);
+      var p = clamp(-(reel.getBoundingClientRect().top - 62) / Math.max(span, 1));
+      var t = ease(clamp((p - .08) / .62));          // 0 = before, 1 = after
+      var x = (t * 100).toFixed(2);
+      before.style.clipPath = 'inset(0 0 0 ' + x + '%)';
+      line.style.left = 'calc(' + x + '% - 1px)';
+      line.style.opacity = (t > .01 && t < .99) ? 1 : 0;
+      var zoom = 1 + .07 * p;
+      photo.querySelectorAll('img').forEach(function (im) { im.style.transform = 'scale(' + zoom + ')'; });
+      var done = t > .5;
+      A.style.opacity = done ? 0 : 1;
+      A.style.transform = done ? 'translateY(-14px)' : 'none';
+      B.style.opacity = done ? 1 : 0;
+      B.style.transform = done ? 'none' : 'translateY(14px)';
+      tagR.style.opacity = t > .55 ? 1 : 0;
+      photo.querySelector('.r-tag.l').style.opacity = t < .45 ? 1 : 0;
+      hint.style.opacity = p < .04 ? 1 : 0;
+      bg.style.backgroundImage = 'url(static/designs/bedroom-' + (done ? 'after' : 'before') + '.jpg)';
+    }
+    function on() { if (!ticking) { ticking = true; requestAnimationFrame(paintReel); } }
+    window.addEventListener('scroll', on, { passive: true });
+    window.addEventListener('resize', on);
+    window.addEventListener('hashchange', function () { setTimeout(paintReel, 0); });
+    setTimeout(paintReel, 0);
+    window.__reelPaint = paintReel;
+  })();
+
   /* ---- explore: every look on every room, filterable ---- */
   var filter = 'all';
   function drawExplore() {
@@ -1818,7 +1929,7 @@
      Routing. Five pages in one file, so this deploys anywhere that can
      serve a static file — no server-side routes to configure.
      ------------------------------------------------------------------ */
-  var VIEWS = ['home','studio','explore','how','pricing'];
+  var VIEWS = ['home','studio','explore','designs','how','pricing'];
   function show(v) {
     if (VIEWS.indexOf(v) < 0) v = 'home';
     VIEWS.forEach(function (n) { $('v-' + n).classList.toggle('hidden', n !== v); });
@@ -1827,6 +1938,7 @@
     });
     if (location.hash !== '#/' + v) location.hash = '#/' + v;
     window.scrollTo(0, 0);
+    if (window.__reelPaint) window.__reelPaint();
   }
   document.addEventListener('click', function (e) {
     var b = e.target.closest('[data-go]');

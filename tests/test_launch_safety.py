@@ -39,3 +39,17 @@ def test_footer_links_to_them_on_both_pages():
     for page in ("static/showcase.html", "docs/index.html"):
         text = open(page).read()
         assert 'href="/privacy"' in text and 'href="/terms"' in text
+
+
+def test_designs_page_is_in_the_nav_and_has_its_pictures():
+    from pathlib import Path
+    root = Path(__file__).resolve().parent.parent
+    for page, base in (("static/showcase.html", "static"), ("docs/index.html", "docs")):
+        text = (root / page).read_text()
+        assert 'id="v-designs"' in text
+        assert text.count('data-go="designs"') >= 2          # nav + footer
+        assert "'designs'" in text                              # routed
+        for name in ("bedroom-before.jpg", "bedroom-after.jpg"):
+            assert f"static/designs/{name}" in text
+            assert (root / base / "static" / "designs" / name).exists() or \
+                   (root / "static" / "designs" / name).exists()

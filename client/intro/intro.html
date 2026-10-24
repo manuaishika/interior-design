@@ -2,152 +2,211 @@
 <html><head><meta charset="utf-8">
 <link href="https://fonts.googleapis.com/css2?family=Gloock&family=Rubik:wght@400;500;600&display=block" rel="stylesheet">
 <style>
-  :root { --bone:#F2EFE6; --ink:#14130F; --muted:#6A6459; --clay:#B04A24; --line:#D8D1C1; }
+  /* Cinematic intro. Every animation is paused and scrubbed by render.py, so
+     the times below (seconds) are exact, frame for frame. */
+  :root { --bone:#F2EFE6; --ink:#14130F; --muted:#B9B2A3; --clay:#E0693B; --line:rgba(242,239,230,.22); }
   * { box-sizing: border-box; margin: 0; }
-  html, body { width: 100%; height: 100%; background: var(--bone); overflow: hidden; }
-  body { font-family: Rubik, system-ui, sans-serif; color: var(--ink);
-    -webkit-font-smoothing: antialiased; }
+  html, body { width: 100%; height: 100%; background: var(--ink); overflow: hidden; }
+  body { font-family: Rubik, system-ui, sans-serif; color: var(--bone); -webkit-font-smoothing: antialiased; }
   .serif { font-family: Gloock, Georgia, serif; font-weight: 400; letter-spacing: -.015em; }
 
-  /* stage: wide = text left, photo right; square = photo top, text below */
-  .stage { position: absolute; inset: 0; display: grid;
-    grid-template-columns: 1fr auto; align-items: center;
-    padding: 0 10vh 0 14vh; gap: 10vh; }
-  .photo { position: relative; height: 82vh; aspect-ratio: 3/4; border-radius: 1.6vh;
-    overflow: hidden; box-shadow: 0 3vh 7vh -3vh rgba(20,19,15,.35); }
-  .photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-  .copy { position: relative; height: 40vh; }
-  .cap { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); }
-  .num { font-size: 2.1vh; letter-spacing: .3em; color: var(--clay); font-weight: 600; }
-  .cap h2 { font-size: 8.6vh; line-height: 1.05; margin-top: 1.6vh; }
-  .cap p { font-size: 3vh; line-height: 1.5; color: var(--muted); margin-top: 2.2vh; max-width: 30ch; }
+  /* soft, dark echo of the photo fills the frame behind everything */
+  .bg { position: absolute; inset: -8%; background: url(before.jpg) center/cover;
+    filter: blur(7vh) brightness(.32) saturate(1.2); }
+  .bg.after { background-image: url(after.jpg); opacity: 0; }
+  .vig { position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0) 45%, rgba(0,0,0,.55) 100%); }
+  .bars::before, .bars::after { content: ''; position: absolute; left: 0; right: 0; height: 6vh;
+    background: #000; z-index: 9; }
+  .bars::before { top: 0; } .bars::after { bottom: 0; }
+
+  .stage { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr auto;
+    align-items: center; padding: 0 11vh 0 15vh; gap: 11vh; }
+  .photo { position: relative; height: 80vh; aspect-ratio: 3/4; border-radius: 1.2vh; overflow: hidden;
+    box-shadow: 0 4vh 10vh -2vh rgba(0,0,0,.7), 0 0 0 .15vh rgba(242,239,230,.18); }
+  .imgs { position: absolute; inset: 0; transform-origin: 62% 55%; }
+  .imgs img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .copy { position: relative; height: 60vh; }
+  .cap { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); opacity: 0; }
+  .num { font-size: 2vh; letter-spacing: .32em; color: var(--clay); font-weight: 600; }
+  .cap h2 { font-size: 9vh; line-height: 1.04; margin-top: 1.8vh; }
+  .cap p { font-size: 3vh; line-height: 1.5; color: var(--muted); margin-top: 2.2vh; max-width: 28ch; }
 
   @media (max-aspect-ratio: 6/5) {
-    .stage { grid-template-columns: 1fr; grid-template-rows: auto 1fr;
-      padding: 6vh 7vh 0; gap: 3vh; justify-items: center; align-items: start; }
-    .photo { height: 60vh; order: 0; }
-    .copy { order: 1; width: 100%; height: 26vh; text-align: center; }
+    .stage { grid-template-columns: 1fr; grid-template-rows: auto 1fr; padding: 8vh 7vh 0;
+      gap: 3vh; justify-items: center; align-items: start; }
+    .photo { height: 58vh; }
+    .copy { width: 100%; height: 28vh; text-align: center; }
     .cap h2 { font-size: 5.6vh; margin-top: 1vh; }
-    .cap p { font-size: 2.3vh; margin: 1.4vh auto 0; }
+    .cap p { font-size: 2.3vh; margin: 1.2vh auto 0; max-width: 34ch; }
+    .bars::before, .bars::after { height: 3vh; }
   }
 
-  /* overlays on the photo */
+  /* wipe + scan */
   .before { clip-path: inset(0 0 0 0); }
-  .line { position: absolute; top: 0; bottom: 0; left: 100%; width: .35vh;
-    background: #fff; box-shadow: 0 0 1.2vh rgba(0,0,0,.35); opacity: 0; }
-  .line::after { content: ''; position: absolute; top: 50%; left: 50%; width: 5vh; height: 5vh;
-    transform: translate(-50%,-50%); border-radius: 50%; background: #fff;
-    box-shadow: 0 .4vh 1.4vh rgba(0,0,0,.35); }
+  .before.wipe { clip-path: inset(0 100% 0 0); }
+  .scan { position: absolute; left: 0; right: 0; height: 16%; top: -20%; opacity: 0;
+    background: linear-gradient(to bottom, rgba(224,105,59,0), rgba(224,105,59,.35) 70%, rgba(255,255,255,.95) 100%);
+    mix-blend-mode: screen; }
+  .line { position: absolute; top: 0; bottom: 0; left: 0; width: .35vh; background: #fff; opacity: 0;
+    box-shadow: 0 0 1.4vh rgba(0,0,0,.5); }
+  .line::after { content: ''; position: absolute; top: 50%; left: 50%; width: 5.2vh; height: 5.2vh;
+    transform: translate(-50%,-50%); border-radius: 50%; background: #fff; box-shadow: 0 .4vh 1.6vh rgba(0,0,0,.45); }
   .line::before { content: '‹ ›'; position: absolute; top: 50%; left: 50%; z-index: 1;
-    transform: translate(-50%,-52%); font: 600 2.4vh Rubik, sans-serif; color: var(--ink);
-    letter-spacing: .1em; white-space: nowrap; }
-  .edge { position: absolute; top: 2.2vh; font-size: 1.6vh; font-weight: 600; letter-spacing: .2em;
+    transform: translate(-50%,-52%); font: 600 2.4vh Rubik, sans-serif; color: var(--ink); letter-spacing: .1em; white-space: nowrap; }
+  .edge { position: absolute; top: 2vh; font-size: 1.6vh; font-weight: 600; letter-spacing: .22em;
     background: rgba(20,19,15,.85); color: #fff; padding: .7vh 1.2vh; border-radius: .6vh; opacity: 0; }
-  .edge.l { left: 2.2vh; } .edge.r { right: 2.2vh; }
-  .scan { position: absolute; left: 0; right: 0; height: 18%; top: -20%;
-    background: linear-gradient(to bottom, rgba(176,74,36,0), rgba(176,74,36,.28) 70%, rgba(255,255,255,.9) 100%);
-    mix-blend-mode: screen; opacity: 0; }
-  .tag { position: absolute; display: flex; align-items: center; gap: .9vh; transform: translate(-50%,-50%) scale(.6);
-    background: rgba(250,248,242,.96); color: var(--ink); font-size: 1.9vh; font-weight: 500;
-    padding: .8vh 1.4vh .8vh 1.1vh; border-radius: 99px; box-shadow: 0 .6vh 1.8vh rgba(0,0,0,.25); opacity: 0; white-space: nowrap; }
-  .tag i { width: 1.2vh; height: 1.2vh; border-radius: 50%; background: var(--clay); }
-  .tag b { font-weight: 600; color: var(--clay); margin-left: .3vh; }
+  .edge.l { left: 2vh; } .edge.r { right: 2vh; }
 
-  /* title + end cards cover the whole frame */
-  .card { position: absolute; inset: 0; background: var(--bone); display: flex; flex-direction: column;
-    align-items: center; justify-content: center; text-align: center; }
-  .card .brand { font-size: 13vh; line-height: 1; }
+  /* "reading the room" boxes */
+  .box { position: absolute; border: .28vh solid rgba(255,255,255,.95); border-radius: .7vh; opacity: 0;
+    box-shadow: 0 0 1.4vh rgba(0,0,0,.35); }
+  .box span { position: absolute; left: 1vh; top: 1vh; white-space: nowrap;
+    background: rgba(250,248,242,.96); color: var(--ink); font-size: 1.9vh; font-weight: 500;
+    padding: .7vh 1.3vh; border-radius: 99px; box-shadow: 0 .6vh 1.8vh rgba(0,0,0,.3); }
+  .box span b { color: #B04A24; font-weight: 600; }
+
+  /* lists in the captions */
+  .feat { list-style: none; padding: 0; margin-top: 3vh; }
+  .feat li { font-size: 3vh; line-height: 1.3; padding: 1.3vh 0; border-top: .15vh solid var(--line);
+    display: flex; align-items: center; gap: 1.8vh; opacity: 0; }
+  .feat li::before { content: ''; width: 2.4vh; height: 2.4vh; border-radius: 50%; border: .25vh solid var(--clay); flex: none; }
+  .feat li.ok::before { content: '✓'; display: grid; place-items: center; background: var(--clay); color: var(--ink);
+    font-size: 1.6vh; font-weight: 700; border: 0; }
+  .feat.tick li::before { animation: fillIn .3s var(--t, 0s) both; }
+  @media (max-aspect-ratio: 6/5) { .feat { display: inline-block; text-align: left; margin-top: 1vh; }
+    .feat li { font-size: 2.1vh; padding: .7vh 0; } .feat li::before { width: 2vh; height: 2vh; } }
+
+  /* title + end cards */
+  .card { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; text-align: center; background: var(--ink); z-index: 8; }
+  .card .brand { font-size: 14vh; line-height: 1; }
   .card .brand span { color: var(--clay); }
   .card p { font-size: 3vh; color: var(--muted); margin-top: 2.6vh; }
   .card .rule { width: 0; height: .3vh; background: var(--clay); margin-top: 3vh; }
-  .card .go { margin-top: 4vh; font-size: 2.4vh; font-weight: 500; color: #fff; background: var(--ink);
-    padding: 1.6vh 3.6vh; border-radius: .8vh; }
-  .feat { list-style: none; padding: 0; margin-top: 3vh; }
-  .feat li { font-size: 3.1vh; line-height: 1.3; padding: 1.5vh 0; border-top: .15vh solid var(--line);
-    display: flex; align-items: center; gap: 1.6vh; opacity: 0; }
-  .feat li::before { content: ''; width: 1.2vh; height: 1.2vh; border-radius: 50%; background: var(--clay); flex: none; }
-  @media (max-aspect-ratio: 6/5) { .feat { display: inline-block; text-align: left; margin-top: 1.6vh; }
-    .feat li { font-size: 2.3vh; padding: 1vh 0; } }
+  .card .go { margin-top: 4.4vh; font-size: 2.5vh; font-weight: 500; color: var(--ink); background: var(--bone);
+    padding: 1.7vh 4vh; border-radius: 99px; }
 
-  /* ---- timeline (seconds). Every animation is paused and scrubbed by the
-     recorder, so these times are exact, frame for frame. ---- */
-  .anim { animation-fill-mode: both; animation-timing-function: cubic-bezier(.2,.7,.2,1); }
+  .anim { animation-fill-mode: both; }
   @keyframes fadeUp { from { opacity: 0; transform: translateY(3vh); } to { opacity: 1; transform: none; } }
   @keyframes fadeOut { to { opacity: 0; } }
+  @keyframes show { from { opacity: 0; } to { opacity: 1; } }
   @keyframes capIn  { from { opacity: 0; transform: translateY(calc(-50% + 3vh)); } to { opacity: 1; transform: translateY(-50%); } }
   @keyframes capOut { from { opacity: 1; transform: translateY(-50%); } to { opacity: 0; transform: translateY(calc(-50% - 2vh)); } }
   @keyframes grow { to { width: 18vh; } }
-  @keyframes photoIn { from { opacity: 0; transform: translateX(6vh) scale(.96); } to { opacity: 1; transform: none; } }
-  @keyframes scan { 0% { top: -20%; opacity: 1; } 90% { opacity: 1; } 100% { top: 105%; opacity: 0; } }
-  @keyframes tagIn { from { opacity: 0; transform: translate(-50%,-50%) scale(.6); } to { opacity: 1; transform: translate(-50%,-50%) scale(1); } }
-  @keyframes tagOut { to { opacity: 0; transform: translate(-50%,-50%) scale(.9); } }
+  @keyframes photoIn { from { opacity: 0; transform: translateY(4vh) scale(.97); } to { opacity: 1; transform: none; } }
+  @keyframes push { from { transform: scale(1); } to { transform: scale(1.09); } }
+  @keyframes boxIn { from { opacity: 0; transform: scale(1.08); } to { opacity: 1; transform: none; } }
+  @keyframes boxOut { to { opacity: 0; } }
+  @keyframes fillIn { from { background: transparent; color: transparent; } to { background: var(--clay); } }
+  @keyframes scanDown { 0% { top: -20%; opacity: 1; } 92% { opacity: 1; } 100% { top: 104%; opacity: 0; } }
+  @keyframes unveil { from { clip-path: inset(0 0 0 0); } to { clip-path: inset(100% 0 0 0); } }
+  @keyframes bgSwap { from { opacity: 0; } to { opacity: 1; } }
   @keyframes wipe {
-    0%   { clip-path: inset(0 0% 0 0); }
-    50%  { clip-path: inset(0 100% 0 0); }
-    78%  { clip-path: inset(0 50% 0 0); }
+    0%   { clip-path: inset(0 100% 0 0); }
+    36%  { clip-path: inset(0 0% 0 0); }
+    46%  { clip-path: inset(0 0% 0 0); }
     100% { clip-path: inset(0 50% 0 0); } }
   @keyframes wipeLine {
-    0%   { left: 100%; opacity: 0; }
-    4%   { left: 96%; opacity: 1; }
-    50%  { left: 0%; opacity: 1; }
-    78%  { left: 50%; opacity: 1; }
+    0%   { left: 0%; opacity: 1; }
+    36%  { left: 100%; opacity: 1; }
+    46%  { left: 100%; opacity: 1; }
     100% { left: 50%; opacity: 1; } }
-  @keyframes show { from { opacity: 0; } to { opacity: 1; } }
-  @keyframes zoom { from { transform: scale(1); } to { transform: scale(1.05); } }
+  @keyframes lineOut { to { opacity: 0; } }
 
-  #title       { animation: fadeOut .6s 2.2s both; }
-  #title .brand{ animation: fadeUp 1s .2s both; }
-  #title .rule { animation: grow .9s .7s both cubic-bezier(.6,0,.2,1); }
-  #title p     { animation: fadeUp .9s 1s both; }
+  /* ---- timeline ---- */
+  #title        { animation: fadeOut .6s 2.0s both; }
+  #title .brand { animation: fadeUp 1s .2s both; }
+  #title .rule  { animation: grow .9s .7s both cubic-bezier(.6,0,.2,1); }
+  #title p      { animation: fadeUp .9s 1s both; }
 
-  .photo       { animation: photoIn 1s 2.5s both; }
-  .photo .after{ animation: zoom 9s 6.2s both linear; }
-  #c1 { animation: capIn .7s 2.8s both, capOut .5s 5.0s forwards; }
-  .scan        { animation: scan 1.5s 5.1s both linear; }
-  #t1 { animation: tagIn .45s 5.4s both, tagOut .35s 7.2s forwards; }
-  #t2 { animation: tagIn .45s 5.75s both, tagOut .35s 7.2s forwards; }
-  #t3 { animation: tagIn .45s 6.1s both, tagOut .35s 7.2s forwards; }
-  #c2 { animation: capIn .7s 5.4s both, capOut .5s 7.4s forwards; }
-  .before      { animation: wipe 3.6s 7.6s both cubic-bezier(.65,0,.3,1); }
-  .line        { animation: wipeLine 3.6s 7.6s both cubic-bezier(.65,0,.3,1); }
-  .edge        { animation: show .4s 7.6s both; }
-  #c3 { animation: capIn .7s 7.8s both, capOut .5s 11.3s forwards; }
-  #c4 { animation: capIn .7s 11.6s both; }
-  #f1 { animation: fadeUp .5s 12.0s both; }
-  #f2 { animation: fadeUp .5s 12.3s both; }
-  #f3 { animation: fadeUp .5s 12.6s both; }
-  #end         { animation: show .8s 14.4s both; }
-  #end .brand  { animation: fadeUp .9s 14.6s both; }
-  #end p       { animation: fadeUp .9s 15.0s both; }
-  #end .go     { animation: fadeUp .9s 15.3s both; }
+  .photo        { animation: photoIn 1s 2.1s both cubic-bezier(.2,.7,.2,1); }
+  .imgs         { animation: push 15s 2.4s both linear; }
+  .bg.after     { animation: bgSwap 1.2s 10.4s both; }
+
+  #c1 { animation: capIn .7s 2.5s both, capOut .5s 4.0s forwards; }
+  #c2 { animation: capIn .7s 4.2s both, capOut .5s 6.9s forwards; }
+  #c3 { animation: capIn .7s 7.1s both, capOut .5s 9.6s forwards; }
+  #c4 { animation: capIn .7s 9.8s both, capOut .5s 11.2s forwards; }
+  #c5 { animation: capIn .7s 11.4s both, capOut .5s 15.0s forwards; }
+  #c6 { animation: capIn .7s 15.2s both, capOut .5s 17.3s forwards; }
+
+  #b1 { animation: boxIn .4s 4.6s both, boxOut .4s 6.8s forwards; }
+  #b2 { animation: boxIn .4s 5.0s both, boxOut .4s 6.8s forwards; }
+  #b3 { animation: boxIn .4s 5.4s both, boxOut .4s 6.8s forwards; }
+  #b4 { animation: boxIn .4s 5.8s both, boxOut .4s 6.8s forwards; }
+
+  #l1 { animation: fadeUp .4s 7.6s both; --t: 8.0s; }
+  #l2 { animation: fadeUp .4s 7.9s both; --t: 8.3s; }
+  #l3 { animation: fadeUp .4s 8.2s both; --t: 8.6s; }
+  #l4 { animation: fadeUp .4s 8.5s both; --t: 8.9s; }
+  #l5 { animation: fadeUp .4s 8.8s both; --t: 9.2s; }
+  #l1::before { animation: fillIn .3s 8.0s both; } #l2::before { animation: fillIn .3s 8.3s both; }
+  #l3::before { animation: fillIn .3s 8.6s both; } #l4::before { animation: fillIn .3s 8.9s both; }
+  #l5::before { animation: fillIn .3s 9.2s both; }
+
+  .scan   { animation: scanDown 1.5s 9.9s both linear; }
+  .before { animation: unveil 1.5s 9.9s both linear; }
+  .before.wipe { animation: wipe 3.4s 11.5s forwards cubic-bezier(.65,0,.3,1); }
+  .line   { animation: wipeLine 3.4s 11.5s forwards cubic-bezier(.65,0,.3,1), lineOut .4s 14.9s forwards; }
+  .edge   { animation: show .4s 11.6s forwards; }
+
+  #k1 { animation: fadeUp .5s 15.5s both; } #k2 { animation: fadeUp .5s 15.8s both; }
+  #k3 { animation: fadeUp .5s 16.1s both; }
+
+  #end         { animation: show .9s 17.6s both; }
+  #end .brand  { animation: fadeUp .9s 17.9s both; }
+  #end p       { animation: fadeUp .9s 18.4s both; }
+  #end .go     { animation: fadeUp .9s 18.8s both; }
 </style></head>
-<body>
+<body class="bars">
+  <div class="bg"></div><div class="bg after"></div><div class="vig"></div>
+
   <div class="stage">
     <div class="copy">
       <div class="cap" id="c1"><div class="num">01</div>
-        <h2 class="serif">Snap your room.</h2>
-        <p>One photo from your phone. That's the whole brief.</p></div>
+        <h2 class="serif">One photo.</h2>
+        <p>Straight from your phone. That is the whole brief.</p></div>
+
       <div class="cap" id="c2"><div class="num">02</div>
-        <h2 class="serif">It reads what's there.</h2>
-        <p>Every door, window and piece of furniture, counted and kept in place.</p></div>
+        <h2 class="serif">It reads the room.</h2>
+        <p>Every window, door and piece of furniture, found and counted.</p></div>
+
       <div class="cap" id="c3"><div class="num">03</div>
-        <h2 class="serif">Same room. New design.</h2>
-        <p>Same view, same walls. New finishes, furniture and light.</p></div>
-      <div class="cap" id="c4"><div class="num">04</div>
-        <h2 class="serif">Then make it yours.</h2>
+        <h2 class="serif">It plans every layer.</h2>
         <ul class="feat">
-          <li id="f1">Circle any spot to change it</li>
-          <li id="f2">Compare before and after</li>
-          <li id="f3">Talk to a designer about building it</li>
+          <li id="l1">Walls</li><li id="l2">Ceiling and light</li>
+          <li id="l3">Floor and rug</li><li id="l4">Curtains</li><li id="l5">Furniture</li>
+        </ul></div>
+
+      <div class="cap" id="c4"><div class="num">04</div>
+        <h2 class="serif">Then it redraws.</h2>
+        <p>The whole photograph, in one pass.</p></div>
+
+      <div class="cap" id="c5"><div class="num">05</div>
+        <h2 class="serif">Same room. New design.</h2>
+        <p>Same view, same walls and window. New finishes, furniture and light.</p></div>
+
+      <div class="cap" id="c6"><div class="num">06</div>
+        <h2 class="serif">Checked before you see it.</h2>
+        <ul class="feat">
+          <li class="ok" id="k1">Same window, same place</li>
+          <li class="ok" id="k2">Same bed, only one</li>
+          <li class="ok" id="k3">Everything else new</li>
         </ul></div>
     </div>
+
     <div class="photo">
-      <img class="after" src="after.jpg" alt="">
-      <img class="before" src="before.jpg" alt="">
-      <div class="scan"></div>
-      <span class="tag" id="t1" style="left:33%;top:41%"><i></i>Window <b>kept</b></span>
-      <span class="tag" id="t2" style="left:74%;top:58%"><i></i>1 bed <b>kept</b></span>
-      <span class="tag" id="t3" style="left:22%;top:62%"><i></i>Desk <b>kept</b></span>
+      <div class="imgs">
+        <img class="after" src="after.jpg" alt="">
+        <img class="before" src="before.jpg" alt="">
+        <img class="before wipe" src="before.jpg" alt="">
+        <div class="scan"></div>
+        <div class="box" id="b1" style="left:24%;top:17%;width:37%;height:26%"><span>Window <b>kept</b></span></div>
+        <div class="box" id="b2" style="left:56%;top:45%;width:43%;height:31%"><span>1 bed <b>kept</b></span></div>
+        <div class="box" id="b3" style="left:1%;top:47%;width:24%;height:38%"><span>Desk <b>kept</b></span></div>
+        <div class="box" id="b4" style="left:28%;top:79%;width:71%;height:20%"><span>Rug <b>new</b></span></div>
+      </div>
       <div class="line"></div>
       <span class="edge l">BEFORE</span><span class="edge r">AFTER</span>
     </div>

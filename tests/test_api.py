@@ -101,8 +101,13 @@ class TestMetaEndpoints:
         box means anything. An earlier edit dropped this silently, so it is
         pinned here."""
         html = client.get("/").text
-        assert 'class="steps how"' in html
-        assert "It reads the room" in html
+        home = html[html.index('id="v-home"'):html.index('id="v-studio"')]
+        assert "Your room, redesigned from one photo." in home
+        assert "Redesign my room" in home
+        # The three steps now live on their own page, not on the first screen.
+        assert 'class="steps how"' not in home
+        how = html[html.index('id="v-how"'):html.index('id="v-pricing"')]
+        assert "It reads the room" in how
 
     def test_results_have_somewhere_to_live(self, client):
         """Both reference products lead with results. Ours needed a place for a

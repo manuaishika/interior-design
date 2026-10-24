@@ -9,7 +9,7 @@ from playwright.async_api import async_playwright
 D = os.path.dirname(os.path.abspath(__file__))
 FF = os.environ.get("FFMPEG", "ffmpeg")
 CA = os.environ.get("CA_BUNDLE", True)
-FPS, SECONDS = 30, float(sys.argv[4]) if len(sys.argv) > 4 else 16.5
+FPS, SECONDS = 30, float(sys.argv[4]) if len(sys.argv) > 4 else 20
 W, H, out = int(sys.argv[1]), int(sys.argv[2]), sys.argv[3]
 only = None
 async def fonts(route):
