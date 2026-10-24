@@ -49,7 +49,7 @@ def test_designs_page_is_in_the_nav_and_has_its_pictures():
         assert 'id="v-designs"' in text
         assert text.count('data-go="designs"') >= 2          # nav + footer
         assert "'designs'" in text                              # routed
-        for name in ("bedroom-before.jpg", "bedroom-after.jpg"):
+        for name in ("design-1-before.jpg", "design-1-after.jpg"):
             assert f"static/designs/{name}" in text
             assert (root / base / "static" / "designs" / name).exists() or \
                    (root / "static" / "designs" / name).exists()

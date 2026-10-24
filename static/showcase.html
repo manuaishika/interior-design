@@ -1000,7 +1000,7 @@
   #v-designs { padding: 0; }
   .reel { height: 260vh; position: relative; background: #14130F; color: #F2EFE6; }
   .reel-stick { position: sticky; top: 62px; height: calc(100vh - 62px); overflow: hidden; }
-  .reel-bg { position: absolute; inset: -6%; background: url(static/designs/bedroom-before.jpg) center/cover;
+  .reel-bg { position: absolute; inset: -6%; background: url(static/designs/design-1-before.jpg) center/cover;
     filter: blur(46px) brightness(.34) saturate(1.2); transition: background-image .3s; }
   .reel-grid { position: relative; height: 100%; display: grid; grid-template-columns: 1fr auto;
     align-items: center; gap: clamp(2rem, 7vw, 6rem); }
@@ -1362,8 +1362,8 @@
           </div>
         </div>
         <figure class="reel-photo" id="reelPhoto">
-          <img class="r-after" src="static/designs/bedroom-after.jpg" alt="The bedroom after its redesign">
-          <img class="r-before" id="reelBefore" src="static/designs/bedroom-before.jpg" alt="The bedroom before">
+          <img class="r-after" src="static/designs/design-1-after.jpg" alt="The bedroom after its redesign">
+          <img class="r-before" id="reelBefore" src="static/designs/design-1-before.jpg" alt="The bedroom before">
           <span class="r-line" id="reelLine"></span>
           <span class="r-tag l">Before</span><span class="r-tag r">After</span>
         </figure>
@@ -1890,7 +1890,7 @@
       tagR.style.opacity = t > .55 ? 1 : 0;
       photo.querySelector('.r-tag.l').style.opacity = t < .45 ? 1 : 0;
       hint.style.opacity = p < .04 ? 1 : 0;
-      bg.style.backgroundImage = 'url(static/designs/bedroom-' + (done ? 'after' : 'before') + '.jpg)';
+      bg.style.backgroundImage = 'url(static/designs/design-1-' + (done ? 'after' : 'before') + '.jpg)';
     }
     function on() { if (!ticking) { ticking = true; requestAnimationFrame(paintReel); } }
     window.addEventListener('scroll', on, { passive: true });
