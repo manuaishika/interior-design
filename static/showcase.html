@@ -1045,6 +1045,63 @@
     .reel-did li::before { top: .7rem; }
   }
   @media (prefers-reduced-motion: reduce) { .reel-words > div { transition: none; } }
+  /* ---------- project: one property, space by space ---------- */
+  .proj { padding-top: 4.5rem; }
+  .proj-head { max-width: 46rem; margin-bottom: 2.6rem; }
+  .proj-meta { margin: .2rem 0 0; color: var(--muted); font-size: .85rem; letter-spacing: .02em; }
+  .proj-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3.2rem 4.5rem; align-items: start; }
+  .pcard { cursor: pointer; background: none; border: 0; padding: 0; text-align: left; color: inherit; font: inherit; }
+  .pcard:nth-child(3n) { grid-column: 1 / -1; width: min(100%, 30rem); justify-self: center; }
+  .pcard:nth-child(4n+2) { margin-top: 4rem; }
+  .pcard .ba { aspect-ratio: 3/2; }
+  .pcard:nth-child(3n) .ba { aspect-ratio: 4/5; }
+  .pcard hr { border: 0; border-top: 1px solid var(--line); margin: 1.1rem 0 .9rem; }
+  .pcard-t { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
+  .pcard-t h3 { margin: 0; font-family: var(--display); font-weight: var(--display-weight);
+    font-size: 1.45rem; letter-spacing: -.01em; }
+  .pcard-t span { color: var(--clay); font-size: .78rem; font-weight: 500; letter-spacing: .14em; }
+  .pcard .m { margin: .3rem 0 0; color: var(--muted); font-size: .8rem; }
+  .pcard .n { margin: .7rem 0 0; color: var(--muted); font-size: .93rem; line-height: 1.6; max-width: 34rem; }
+  .pcard:focus-visible { outline: 2px solid var(--ink); outline-offset: 6px; }
+
+  /* before / after: the after sits under, the before is clipped from the left */
+  .ba { position: relative; margin: 0; overflow: hidden; background: var(--card); touch-action: pan-y; }
+  .ba img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; user-select: none; -webkit-user-drag: none; }
+  .ba .b { clip-path: inset(0 calc(100% - var(--x, 50%)) 0 0); }
+  .ba .ln { position: absolute; top: 0; bottom: 0; left: var(--x, 50%); width: 2px; margin-left: -1px;
+    background: #fff; box-shadow: 0 0 10px rgba(0,0,0,.35); pointer-events: none; }
+  .ba .ln::after { content: '\2039 \203A'; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    width: 34px; height: 34px; border-radius: 50%; background: #fff; color: var(--ink); font-size: .8rem;
+    display: grid; place-items: center; box-shadow: 0 2px 8px rgba(0,0,0,.3); }
+  .ba .tg { position: absolute; top: 10px; font-size: .62rem; font-weight: 600; letter-spacing: .18em; text-transform: uppercase;
+    background: rgba(20,19,15,.82); color: #fff; padding: .32rem .5rem; border-radius: 2px; pointer-events: none; }
+  .ba .tg.l { left: 10px; } .ba .tg.r { right: 10px; }
+  .ba.solo .tg.r { background: rgba(250,248,242,.92); color: var(--ink); }
+
+  .lb { position: fixed; inset: 0; z-index: 80; background: #0E0D0A; color: #F2EFE6;
+    display: flex; flex-direction: column; padding: 12px 16px 16px; }
+  .lb-top { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 4px 0 10px; }
+  .lb-top b { font-family: var(--display); font-weight: var(--display-weight); font-size: 1.25rem; }
+  .lb-top span { color: #B9B2A3; font-size: .8rem; margin-left: .5rem; }
+  .lb-x { background: none; border: 0; color: #F2EFE6; font-size: 2rem; line-height: 1; cursor: pointer; padding: 0 .3rem; }
+  .lb-stage { flex: 1; min-height: 0; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; }
+  .lb-stage .ba { width: 100%; max-height: 100%; aspect-ratio: 3/2; justify-self: center; max-width: calc((100vh - 140px) * 1.5); }
+  .lb-nav { background: rgba(242,239,230,.1); border: 0; color: #F2EFE6; width: 44px; height: 44px;
+    border-radius: 50%; font-size: 1.6rem; cursor: pointer; }
+  .lb-nav:disabled { opacity: .25; cursor: default; }
+  .lb-note { margin: 10px auto 0; max-width: 46rem; text-align: center; color: #B9B2A3; font-size: .88rem; }
+  body.lb-open { overflow: hidden; }
+
+  @media (max-width: 780px) {
+    .proj { padding-top: 3rem; }
+    .proj-grid { grid-template-columns: 1fr; gap: 2.4rem; }
+    .pcard:nth-child(3n) { width: 100%; }
+    .pcard:nth-child(4n+2) { margin-top: 0; }
+    .pcard:nth-child(3n) .ba { aspect-ratio: 3/2; }
+    .pcard-t h3 { font-size: 1.2rem; }
+    .lb-stage { grid-template-columns: 1fr; }
+    .lb-nav { display: none; }
+  }
 </style>
 
 <header class="top">
@@ -1371,9 +1428,31 @@
       <p class="reel-hint" id="reelHint">Scroll</p>
     </div>
   </section>
+  <section class="wrap proj" id="proj" aria-labelledby="projName">
+    <header class="proj-head">
+      <p class="kick">Project</p>
+      <h2 class="big" id="projName">The villa</h2>
+      <p class="proj-meta" id="projMeta"></p>
+      <p class="lede" id="projConcept"></p>
+    </header>
+    <div class="proj-grid" id="projGrid"></div>
+  </section>
+
+  <div class="lb hidden" id="lb" role="dialog" aria-modal="true" aria-labelledby="lbTitle">
+    <div class="lb-top">
+      <div><b id="lbTitle"></b> <span id="lbCount"></span></div>
+      <button type="button" class="lb-x" id="lbClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="lb-stage">
+      <button type="button" class="lb-nav" id="lbPrev" aria-label="Previous photo">&lsaquo;</button>
+      <figure class="ba" id="lbFig"></figure>
+      <button type="button" class="lb-nav" id="lbNext" aria-label="Next photo">&rsaquo;</button>
+    </div>
+    <p class="lb-note" id="lbNote"></p>
+  </div>
+
   <div class="wrap reel-end">
-    <p class="lede">A student bedroom, redrawn from a single photograph. More rooms
-       are added here as they are drawn.</p>
+    <p class="lede">Every picture here started as one ordinary photograph.</p>
     <button class="cta" type="button" data-go="studio">Redesign my room</button>
   </div>
 </main>
@@ -1898,6 +1977,111 @@
     window.addEventListener('hashchange', function () { setTimeout(paintReel, 0); });
     setTimeout(paintReel, 0);
     window.__reelPaint = paintReel;
+  })();
+
+  /* ---- project: cards per space, each opens every photo with a slider ---- */
+  (function () {
+    var BASE = 'static/projects/villa/', P = null, open = null, at = 0;
+    function pad(n) { return (n < 10 ? '0' : '') + n; }
+    function esc(t) { var d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+    function hasAfter(n) { return P.after.indexOf(n) >= 0; }
+    /* The before is on top, showing from the left edge to --x, so dragging
+       left uncovers more of the redesign. With no after yet it is the before alone. */
+    function ba(n) {
+      var b = BASE + 'before/' + pad(n) + '.jpg';
+      if (!hasAfter(n)) {
+        return '<img src="' + b + '" alt="Photo ' + n + ', as it is" loading="lazy">' +
+               '<span class="tg l">Before</span><span class="tg r">Redesign in progress</span>';
+      }
+      return '<img src="' + BASE + 'after/' + pad(n) + '.jpg" alt="Photo ' + n + ', redesigned" loading="lazy">' +
+             '<img class="b" src="' + b + '" alt="Photo ' + n + ', as it is" loading="lazy">' +
+             '<span class="ln"></span><span class="tg l">Before</span><span class="tg r">After</span>';
+    }
+    /* A tap opens the space; a sideways drag moves the slider instead. */
+    function drag(fig) {
+      var x0 = null, moved = false;
+      function to(e) {
+        var r = fig.getBoundingClientRect();
+        var x = Math.max(0, Math.min(100, (e.clientX - r.left) / r.width * 100));
+        fig.style.setProperty('--x', x + '%');
+      }
+      fig.addEventListener('pointerdown', function (e) { x0 = e.clientX; moved = false; });
+      fig.addEventListener('pointermove', function (e) {
+        if (x0 === null || fig.classList.contains('solo')) return;
+        if (!moved && Math.abs(e.clientX - x0) > 6) { moved = true; fig.setPointerCapture(e.pointerId); }
+        if (moved) to(e);
+      });
+      fig.addEventListener('pointerup', function () { x0 = null; });
+      fig.addEventListener('pointercancel', function () { x0 = null; });
+      fig.addEventListener('click', function (e) { if (moved) { e.stopPropagation(); moved = false; } });
+    }
+    function paintGrid() {
+      $('projName').textContent = P.name;
+      $('projMeta').textContent = P.meta;
+      $('projConcept').textContent = P.concept;
+      $('projGrid').innerHTML = P.spaces.map(function (s, i) {
+        var lead = s.shots.filter(hasAfter)[0] || s.shots[0];
+        return '<div class="pcard" role="button" tabindex="0" data-space="' + i + '">' +
+          '<figure class="ba' + (hasAfter(lead) ? '' : ' solo') + '">' + ba(lead) + '</figure><hr>' +
+          '<div class="pcard-t"><h3>' + esc(s.title) + '</h3><span>' + pad(i + 1) + '</span></div>' +
+          '<p class="m">' + esc(s.meta) + '</p><p class="n">' + esc(s.note) + '</p></div>';
+      }).join('');
+      Array.prototype.forEach.call($('projGrid').querySelectorAll('.ba'), drag);
+    }
+    function show() {
+      var s = P.spaces[open], n = s.shots[at], fig = $('lbFig');
+      $('lbTitle').textContent = s.title;
+      $('lbCount').textContent = (at + 1) + ' of ' + s.shots.length;
+      $('lbNote').textContent = s.note;
+      fig.className = 'ba' + (hasAfter(n) ? '' : ' solo');
+      fig.style.removeProperty('--x');
+      fig.innerHTML = ba(n);
+      $('lbPrev').disabled = at === 0;
+      $('lbNext').disabled = at === s.shots.length - 1;
+    }
+    function go(d) {
+      var s = P.spaces[open];
+      at = Math.max(0, Math.min(s.shots.length - 1, at + d));
+      show();
+    }
+    function close() { $('lb').classList.add('hidden'); document.body.classList.remove('lb-open'); open = null; }
+    function pick(c) {
+      open = +c.getAttribute('data-space'); at = 0;
+      $('lb').classList.remove('hidden'); document.body.classList.add('lb-open');
+      show(); $('lbClose').focus();
+    }
+    $('projGrid').addEventListener('click', function (e) {
+      var c = e.target.closest('.pcard'); if (c) pick(c);
+    });
+    $('projGrid').addEventListener('keydown', function (e) {
+      var c = e.target.closest('.pcard');
+      if (c && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); pick(c); }
+    });
+    drag($('lbFig'));
+    $('lbPrev').onclick = function () { go(-1); };
+    $('lbNext').onclick = function () { go(1); };
+    $('lbClose').onclick = close;
+    $('lb').addEventListener('click', function (e) { if (e.target === $('lb')) close(); });
+    document.addEventListener('keydown', function (e) {
+      if (open === null) return;
+      if (e.key === 'Escape') close();
+      else if (e.key === 'ArrowLeft') go(-1);
+      else if (e.key === 'ArrowRight') go(1);
+    });
+    /* swipe between photos on a phone; a drag on the slider itself doesn't count */
+    var sx = null;
+    $('lb').addEventListener('touchstart', function (e) {
+      sx = e.target.closest('.ba:not(.solo)') ? null : e.touches[0].clientX;
+    }, { passive: true });
+    $('lb').addEventListener('touchend', function (e) {
+      if (sx === null) return;
+      var dx = e.changedTouches[0].clientX - sx; sx = null;
+      if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1);
+    });
+    fetch(BASE + 'project.json', { cache: 'no-cache' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (p) { if (p) { P = p; P.after = P.after || []; paintGrid(); } else $('proj').classList.add('hidden'); })
+      .catch(function () { $('proj').classList.add('hidden'); });
   })();
 
   /* ---- explore: every look on every room, filterable ---- */
