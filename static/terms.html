@@ -2,9 +2,11 @@
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Terms — Second Draft</title>
+<script>try{var t=localStorage.getItem('sd-theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<meta name="color-scheme" content="light dark">
 <style>
-  :root { --bg:#fbf8f3; --ink:#26211c; --muted:#6b6258; --line:#e4dccf; --accent:#8a5a2b; }
-  @media (prefers-color-scheme: dark) { :root { --bg:#1a1714; --ink:#efe8de; --muted:#a79d90; --line:#3a342d; --accent:#d3a46b; } }
+  :root { --bg:#FFFFFF; --ink:#0A0A0A; --muted:#6B6B6B; --line:#E2E2E2; --accent:#0A0A0A; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#0A0A0A; --ink:#F5F5F5; --muted:#9A9A9A; --line:#2A2A2A; --accent:#F5F5F5; } } :root[data-theme="dark"] { --bg:#0A0A0A; --ink:#F5F5F5; --muted:#9A9A9A; --line:#2A2A2A; --accent:#F5F5F5; }
   body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif; }
   main { max-width:44rem; margin:0 auto; padding:2.2rem 16px 4rem; }
   h1 { font-size:1.7rem; margin:.2rem 0 .3rem; } h2 { font-size:1.1rem; margin:1.8rem 0 .3rem; }

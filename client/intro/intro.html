@@ -4,7 +4,7 @@
 <style>
   /* Cinematic intro. Every animation is paused and scrubbed by render.py, so
      the times below (seconds) are exact, frame for frame. */
-  :root { --bone:#F2EFE6; --ink:#14130F; --muted:#B9B2A3; --clay:#E0693B; --line:rgba(242,239,230,.22); }
+  :root { --bone:#F2F2F2; --ink:#0A0A0A; --muted:#A6A6A6; --clay:#FFFFFF; --line:rgba(255,255,255,.22); }
   * { box-sizing: border-box; margin: 0; }
   html, body { width: 100%; height: 100%; background: var(--ink); overflow: hidden; }
   body { font-family: Rubik, system-ui, sans-serif; color: var(--bone); -webkit-font-smoothing: antialiased; }
@@ -23,7 +23,7 @@
   .stage { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr auto;
     align-items: center; padding: 0 11vh 0 15vh; gap: 11vh; }
   .photo { position: relative; height: 80vh; aspect-ratio: 3/4; border-radius: 1.2vh; overflow: hidden;
-    box-shadow: 0 4vh 10vh -2vh rgba(0,0,0,.7), 0 0 0 .15vh rgba(242,239,230,.18); }
+    box-shadow: 0 4vh 10vh -2vh rgba(0,0,0,.7), 0 0 0 .15vh rgba(255,255,255,.18); }
   .imgs { position: absolute; inset: 0; transform-origin: 62% 55%; }
   .imgs img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
   .copy { position: relative; height: 60vh; }
@@ -46,7 +46,7 @@
   .before { clip-path: inset(0 0 0 0); }
   .before.wipe { clip-path: inset(0 100% 0 0); }
   .scan { position: absolute; left: 0; right: 0; height: 16%; top: -20%; opacity: 0;
-    background: linear-gradient(to bottom, rgba(224,105,59,0), rgba(224,105,59,.35) 70%, rgba(255,255,255,.95) 100%);
+    background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,.35) 70%, rgba(255,255,255,.95) 100%);
     mix-blend-mode: screen; }
   .line { position: absolute; top: 0; bottom: 0; left: 0; width: .35vh; background: #fff; opacity: 0;
     box-shadow: 0 0 1.4vh rgba(0,0,0,.5); }
@@ -55,16 +55,16 @@
   .line::before { content: '‹ ›'; position: absolute; top: 50%; left: 50%; z-index: 1;
     transform: translate(-50%,-52%); font: 600 2.4vh Rubik, sans-serif; color: var(--ink); letter-spacing: .1em; white-space: nowrap; }
   .edge { position: absolute; top: 2vh; font-size: 1.6vh; font-weight: 600; letter-spacing: .22em;
-    background: rgba(20,19,15,.85); color: #fff; padding: .7vh 1.2vh; border-radius: .6vh; opacity: 0; }
+    background: rgba(0,0,0,.85); color: #fff; padding: .7vh 1.2vh; border-radius: .6vh; opacity: 0; }
   .edge.l { left: 2vh; } .edge.r { right: 2vh; }
 
   /* "reading the room" boxes */
   .box { position: absolute; border: .28vh solid rgba(255,255,255,.95); border-radius: .7vh; opacity: 0;
     box-shadow: 0 0 1.4vh rgba(0,0,0,.35); }
   .box span { position: absolute; left: 1vh; top: 1vh; white-space: nowrap;
-    background: rgba(250,248,242,.96); color: var(--ink); font-size: 1.9vh; font-weight: 500;
+    background: rgba(255,255,255,.96); color: var(--ink); font-size: 1.9vh; font-weight: 500;
     padding: .7vh 1.3vh; border-radius: 99px; box-shadow: 0 .6vh 1.8vh rgba(0,0,0,.3); }
-  .box span b { color: #B04A24; font-weight: 600; }
+  .box span b { color: #0A0A0A; font-weight: 600; }
 
   /* lists in the captions */
   .feat { list-style: none; padding: 0; margin-top: 3vh; }
