@@ -16,36 +16,18 @@
 <meta name="color-scheme" content="light dark">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Gloock&family=Rubik:wght@300;400;500&display=swap">
-<!-- NEW SPIRIT lives here. It is a Newlyn typeface, licensed for web use
-     through Adobe Fonts. Anyone with a Creative Cloud plan already has the
-     right to it: fonts.adobe.com/fonts/new-spirit -> Add to Web Project ->
-     copy the kit id out of the stylesheet link Adobe gives back. Then
-     delete the two comment markers on the line below and put the id in
-     place of KITID.
-     Nothing else changes; the CSS already asks for new-spirit first. -->
-<!-- <link rel="stylesheet" href="https://use.typekit.net/KITID.css"> -->
-
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..700&family=Schibsted+Grotesk:wght@400..800&display=swap">
 <style>
   /* One committed light palette. The room drawings supply the colour; the
      page around them stays out of the way. */
   :root {
-    /* One place to change the display face.
-       Gloock is the live pick for headings — high-contrast, tall, reads as
-       a premium interiors brand rather than a warm one. new-spirit and
-       "New Spirit" sit ahead of it, so an Adobe Fonts kit id (see the
-       commented link in the head) or the desktop font takes over the
-       moment either exists, no other change needed. Fraunces trails as
-       the last fallback, from before Gloock was chosen.
-
-       Gloock ships one weight. --display-weight lets every heading ask
-       for it in one place: 400 while Gloock is what actually renders,
-       600 for New Spirit or Fraunces, which both carry a real 600 —
-       hardcoding 600 on each heading would have the browser fake it
-       (synthetic bold), which smudges a serif this fine. */
-    --display: "new-spirit", "New Spirit", "Gloock", "Fraunces", Georgia,
-               "Times New Roman", serif;
-    --display-weight: 400;
+    /* One place to change the display face. Headings use Schibsted Grotesk
+       and the text Instrument Sans: the pairing vestigoworks.com uses, both
+       from Google Fonts. Schibsted is a variable font, so 600 is a real
+       weight, not a faked bold. */
+    --display: "Schibsted Grotesk", "Helvetica Neue", Arial, sans-serif;
+    --display-weight: 600;
+    --body: "Instrument Sans", "Helvetica Neue", Arial, sans-serif;
 
     --bg:     #FFFFFF;
     --raise:  #FAFAFA;
@@ -82,7 +64,7 @@
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
   body { margin: 0; background: var(--bg); color: var(--ink);
-    font-family: "Rubik", ui-sans-serif, system-ui, sans-serif; font-size: 15px;
+    font-family: var(--body); font-size: 15px;
     line-height: 1.6; -webkit-font-smoothing: antialiased; }
   h1, h2, h3, .serif { font-family: var(--display);
     font-weight: var(--display-weight); margin: 0; line-height: 1.12;
@@ -113,7 +95,7 @@
      actually broke. nav already scrolls sideways on mobile (below) once
      its buttons are told to hold their width rather than fold it. */
   .brand { font-family: var(--display);
-    font-size: 1.45rem; font-weight: var(--display-weight); letter-spacing: -.015em;
+    font-size: 1.45rem; font-weight: var(--display-weight); letter-spacing: -.025em;
     background: none; border: 0; cursor: pointer; padding: 0;
     white-space: nowrap; flex-shrink: 0; }
   nav { display: flex; gap: .3rem; margin: 0 auto; min-width: 0; }
@@ -746,7 +728,7 @@
   /* ---------- pricing ---------- */
   .tiers.three { grid-template-columns: 1fr; }
   @media (min-width: 860px) { .tiers.three { grid-template-columns: repeat(3, 1fr); } }
-  .tier .price small { font-family: Rubik, system-ui, sans-serif; font-size: .9rem; color: var(--muted); letter-spacing: 0; margin-left: .3rem; }
+  .tier .price small { font-family: var(--body); font-size: .9rem; color: var(--muted); letter-spacing: 0; margin-left: .3rem; }
   .tier.pick .price small { color: #ADADAD; }
   .tier.pick { border-color: var(--ink); position: relative; }
   .tier.pick .flag { position: absolute; top: -.7rem; left: 1.4rem; background: var(--ink); color: var(--on-ink); font-size: .66rem;
@@ -1052,6 +1034,21 @@
     #v-studio .controls #go { position: static; box-shadow: none; margin-top: .6rem; }
     #v-studio .controls .wiz-nav { display: none; }
   }
+  /* Laptop: the controls fill the panel instead of leaving the bottom of it
+     empty. The comments box and the look list take the spare height, and the
+     button sits at the foot. */
+  @media (min-width: 1100px) {
+    #v-studio .controls { padding: 1.1rem 1.3rem 1.3rem; gap: 1.6rem; }
+    #v-studio .controls .col { gap: .5rem; }
+    #v-studio .controls .step[data-part="note"] { flex: 1; display: flex; flex-direction: column; }
+    #v-studio .controls .step[data-part="note"] textarea.brief { flex: 1; min-height: 140px; font-size: .95rem; }
+    #v-studio .controls .step[data-g="photos"] .drop { min-height: 118px; }
+    #v-studio .controls .step[data-g="look"] { flex: 1; }
+    #v-studio .controls .step[data-part="go"] { margin-top: auto; }
+    #v-studio .controls .pill { padding: .55rem .95rem; font-size: .9rem; }
+    #v-studio .controls #go { padding: 1rem; font-size: 1rem; }
+    #v-studio .controls .lab { font-size: .7rem; }
+  }
   /* A short laptop screen: give the panel the height the heading was using,
      and drop the explanatory lines that the labels already carry. */
   @media (min-width: 860px) and (max-height: 780px) {
@@ -1063,57 +1060,59 @@
     #v-studio .controls #lookHint, #v-studio .controls #tierNote { display: none; }
     #v-studio .controls .lab { margin: .55rem 0 .25rem; }
   }
-  /* ---------- how it works: a scroll-driven walk-through you can also drag ---------- */
+  /* ---------- how it works: a walk-through that plays itself and can be dragged ---------- */
   button.link { background: none; border: 0; cursor: pointer; color: var(--ink);
     font: inherit; text-decoration: underline; text-underline-offset: 3px; padding: 0 .3rem; }
-  #v-designs, #v-how { padding-bottom: 0; }
-  .reel { height: 440vh; position: relative; background: #0A0A0A; color: #F2F2F2; margin-top: 1.6rem; }
-  .reel-stick { position: sticky; top: var(--hdr, 62px); height: calc(100vh - var(--hdr, 62px)); overflow: hidden; }
-  .reel-bg { position: absolute; inset: -6%; background: url(static/designs/design-1-before.jpg) center/cover;
-    filter: blur(46px) brightness(.32); }
-  .reel-grid { position: relative; height: 100%; display: grid; grid-template-columns: 1fr auto;
-    align-items: center; gap: clamp(2rem, 7vw, 6rem); }
-  .reel-copy .kick { color: #fff; }
-  .reel-copy h2 { color: #F2F2F2; font-size: clamp(1.9rem, 3.6vw, 2.8rem); margin: .2rem 0 1.4rem; max-width: 18ch; }
-  .rsteps { list-style: none; margin: 0; padding: 0; max-width: 34rem; }
-  .rstep { display: grid; grid-template-columns: 2.6rem 1fr; padding: 1rem 0; border-top: 1px solid rgba(255,255,255,.2);
-    opacity: .38; transition: opacity .3s; cursor: pointer; }
+  #v-how.view { padding-top: 1.4rem; }
+  .demo { background: #0A0A0A; color: #F2F2F2; border-radius: 16px; padding: clamp(1.4rem, 4vw, 3rem);
+    margin: 0 0 3.4rem; position: relative; overflow: hidden; }
+  html[data-theme="dark"] .demo { background: #161616; }
+  @media (prefers-color-scheme: dark) { html:not([data-theme="light"]) .demo { background: #161616; } }
+  .demo-grid { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: clamp(2rem, 6vw, 5rem); }
+  .demo .kick { color: #fff; margin: 0 0 .5rem; }
+  .demo h2 { color: #F2F2F2; font-size: clamp(1.6rem, 3.4vw, 2.6rem); margin: 0 0 1.2rem; max-width: 18ch; line-height: 1.08; }
+  .rsteps { list-style: none; margin: 0; padding: 0; max-width: 32rem; }
+  .rstep { display: grid; grid-template-columns: 2.6rem 1fr; padding: .8rem 0; border-top: 1px solid rgba(255,255,255,.16);
+    opacity: .4; transition: opacity .3s; cursor: pointer; }
   .rstep.on { opacity: 1; }
-  .rstep .n { font-size: .72rem; letter-spacing: .2em; font-weight: 600; padding-top: .55rem; }
-  .rstep h3 { margin: 0; font-family: var(--display); font-weight: var(--display-weight); font-size: 1.5rem; color: #F2F2F2; }
-  .rstep p { grid-column: 2; margin: 0; color: #ABABAB; font-size: .92rem; line-height: 1.55;
+  .rstep .n { font-size: .7rem; letter-spacing: .2em; font-weight: 600; padding-top: .45rem; }
+  .rstep h3 { margin: 0; font-family: var(--display); font-weight: var(--display-weight); font-size: clamp(1.1rem, 2.4vh + .4rem, 1.4rem); color: #F2F2F2; }
+  .rstep p { grid-column: 2; margin: 0; color: #B5B5B5; font-size: .9rem; line-height: 1.55;
     max-height: 0; overflow: hidden; opacity: 0; transition: max-height .4s, opacity .3s, margin .3s; }
-  .rstep.on p { max-height: 7rem; opacity: 1; margin-top: .4rem; }
-  .reel-photo { height: min(78vh, 46rem); max-height: calc(100vh - var(--hdr, 62px) - 3rem); aspect-ratio: 3/4;
-    border-radius: 6px; box-shadow: 0 2.4rem 5rem -1.2rem rgba(0,0,0,.75), 0 0 0 1px rgba(255,255,255,.16); cursor: ew-resize; }
-  .reel-photo img { transform-origin: 62% 55%; will-change: transform; }
-  .reel-photo .ln, .reel-photo .tg { transition: opacity .25s; }
+  .rstep.on p { max-height: 7rem; opacity: 1; margin-top: .35rem; }
+  .demo-ctl { display: flex; gap: .6rem; margin-top: 1.1rem; align-items: center; }
+  .demo-ctl button { background: none; border: 1px solid rgba(255,255,255,.3); color: #F2F2F2; border-radius: 99px;
+    padding: .4rem .95rem; font: inherit; font-size: .8rem; cursor: pointer; }
+  .demo-ctl button:hover { border-color: #fff; }
+  .demo-ctl span { font-size: .78rem; color: #B5B5B5; }
+  .reel-photo { height: min(68vh, 40rem); aspect-ratio: 3/4; border-radius: 12px;
+    box-shadow: 0 1.4rem 3rem -1rem rgba(0,0,0,.6); cursor: ew-resize; }
   .reel-photo.nolane .ln { opacity: 0; }
-  .rbox { position: absolute; border: 2px solid #fff; border-radius: 4px; opacity: 0; transition: opacity .35s;
-    box-shadow: 0 0 10px rgba(0,0,0,.4); pointer-events: none; }
+  .reel-photo .ln, .reel-photo .tg { transition: opacity .25s; }
+  .rbox { position: absolute; border: 2px solid #fff; border-radius: 6px; opacity: 0; transform: scale(1.04);
+    transition: opacity .35s, transform .35s; box-shadow: 0 0 10px rgba(0,0,0,.4); pointer-events: none; }
   .rbox span { position: absolute; left: 6px; top: 6px; background: #fff; color: #000; font-size: .68rem; font-weight: 500;
     padding: .18rem .5rem; border-radius: 99px; white-space: nowrap; }
-  .rbox.on { opacity: 1; }
+  .rbox.on { opacity: 1; transform: none; }
   .rlayers { position: absolute; left: 10px; bottom: 10px; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
   .rlayers span { align-self: flex-start; background: rgba(255,255,255,.95); color: #000; font-size: .72rem; font-weight: 500;
     padding: .25rem .65rem; border-radius: 99px; opacity: 0; transform: translateY(6px); transition: opacity .3s, transform .3s; }
   .rlayers span.on { opacity: 1; transform: none; }
-  .reel-hint { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); margin: 0; font-size: .72rem;
-    letter-spacing: .24em; text-transform: uppercase; color: #ABABAB; transition: opacity .3s; white-space: nowrap; }
-  .reel-end { text-align: center; padding: 3.5rem 16px 4.5rem; }
-  .reel-end .lede { max-width: 38rem; margin: 0 auto 1.4rem; }
+  .rhint { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%) translateY(4px); background: rgba(255,255,255,.95);
+    color: #000; font-size: .74rem; font-weight: 500; padding: .35rem .8rem; border-radius: 99px; opacity: 0;
+    transition: opacity .3s, transform .3s; pointer-events: none; white-space: nowrap; }
+  .rhint.on { opacity: 1; transform: translateX(-50%); }
   @media (max-width: 780px) {
-    .reel { height: 420vh; }
-    .reel-grid { grid-template-columns: 1fr; grid-template-rows: auto 1fr; justify-items: center; align-content: start;
-      gap: .9rem; padding-top: .8rem; }
+    .demo { border-radius: 12px; padding: 1rem; margin-bottom: 2rem; }
+    .demo-grid { grid-template-columns: 1fr; justify-items: center; gap: 1rem; }
     .reel-photo { height: min(46vh, 26rem); order: -1; }
-    .reel-copy { width: 100%; }
-    .reel-copy .kick, .reel-copy h2 { display: none; }
+    .demo-copy { width: 100%; }
+    .demo .kick, .demo h2 { display: none; }
     .rsteps { max-width: none; }
     .rstep:not(.on) { display: none; }
     .rstep { opacity: 1; padding: .2rem 0; border: 0; }
-    .rstep h3 { font-size: 1.3rem; }
-    .rstep p { font-size: .86rem; }
+    .rstep h3 { font-size: 1.2rem; }
+    .demo-ctl { justify-content: center; }
   }
 
   /* ---------- designs: the featured bedroom ---------- */
@@ -1152,7 +1151,7 @@
   .pcard:focus-visible { outline: 2px solid var(--ink); outline-offset: 6px; }
 
   /* before / after: the after sits under, the before is clipped from the left */
-  .ba { position: relative; margin: 0; overflow: hidden; background: var(--card); touch-action: pan-y; }
+  .ba { position: relative; margin: 0; overflow: hidden; background: var(--card); touch-action: pan-y; border-radius: 12px; }
   .ba img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; user-select: none; -webkit-user-drag: none; }
   .ba .b { clip-path: inset(0 calc(100% - var(--x, 50%)) 0 0); }
   .ba .ln { position: absolute; top: 0; bottom: 0; left: var(--x, 50%); width: 2px; margin-left: -1px;
@@ -1547,11 +1546,10 @@
 
 <!-- ============================ HOW IT WORKS ============================ -->
 <main class="view hidden" id="v-how">
-  <section class="reel" id="reel">
-    <div class="reel-stick">
-      <div class="reel-bg" id="reelBg"></div>
-      <div class="wrap reel-grid">
-        <div class="reel-copy">
+  <section class="wrap" aria-label="How it works, played step by step">
+    <div class="demo" id="demo">
+      <div class="demo-grid">
+        <div class="demo-copy">
           <p class="kick">How it works</p>
           <h2 class="big">From one photo to a room you could build.</h2>
           <ol class="rsteps" id="rsteps">
@@ -1561,6 +1559,7 @@
             <li class="rstep"><span class="n">04</span><h3>It redraws the photograph</h3><p>A new design of your own room, checked against your photo and redrawn if a door moved or a second bed appeared.</p></li>
             <li class="rstep"><span class="n">05</span><h3>Compare, then change anything</h3><p>Drag the line to compare. Circle a spot or type a change, and only that spot changes.</p></li>
           </ol>
+          <div class="demo-ctl"><button type="button" id="demoPlay">Pause</button><button type="button" id="demoReplay">Replay</button><span id="demoStep">Step 1 of 5</span></div>
         </div>
         <figure class="ba reel-photo nolane" id="reelPhoto">
           <img src="static/designs/design-1-after.jpg" alt="The bedroom after its redesign">
@@ -1570,9 +1569,9 @@
           <div class="rbox" id="rb2" style="left:56%;top:45%;width:43%;height:31%"><span>Bed · keep</span></div>
           <div class="rbox" id="rb3" style="left:1%;top:47%;width:24%;height:38%"><span>Desk · keep</span></div>
           <div class="rlayers" id="rlayers"><span>Walls</span><span>Ceiling and light</span><span>Floor and rug</span><span>Curtains</span><span>Furniture</span></div>
+          <div class="rhint" id="rhint">Drag the line to compare</div>
         </figure>
       </div>
-      <p class="reel-hint" id="reelHint">Scroll</p>
     </div>
   </section>
 
@@ -1648,6 +1647,7 @@
           <li>60 designs a day</li>
           <li>High image quality</li>
           <li>Saved history of designs and chats</li>
+          <li>3D room view (coming soon)</li>
           <li>Everything in Free</li>
         </ul>
         <button class="cta js-plan" type="button" data-plan="Pro">Get Pro</button>
@@ -1671,7 +1671,7 @@
     <div class="cmp-wrap">
       <table class="cmp">
         <thead><tr><th></th><th>Free</th><th>Pro</th><th>Plus</th></tr></thead>
-        <tbody><tr class="grp"><th colspan="4">Designs</th></tr><tr><th scope="row">Designs per day</th><td>12 (20 with an account)</td><td>60</td><td>150</td></tr><tr><th scope="row">Designs per run</th><td>1 to 3</td><td>1 to 3</td><td>1 to 3</td></tr><tr><th scope="row">Image quality</th><td>Standard</td><td>High</td><td>Highest</td></tr><tr><th scope="row">Full redesign and light restyle</th><td class="y">&#10003;</td><td class="y">&#10003;</td><td class="y">&#10003;</td></tr><tr><th scope="row">Home and business spaces, every look or your own brief</th><td class="y">&#10003;</td><td class="y">&#10003;</td><td class="y">&#10003;</td></tr><tr><th scope="row">Checked against your photo before you see it</th><td class="y">&#10003;</td><td class="y">&#10003;</td><td class="y">&#10003;</td></tr><tr class="grp"><th colspan="4">Changing one spot</th></tr><tr><th scope="row">Circle an area or type a change</th><td class="y">&#10003;</td><td class="y">&#10003;</td><td class="y">&#10003;</td></tr><tr><th scope="row">Before and after compare, and download</th><td class="y">&#10003;</td><td class="y">&#10003;</td><td class="y">&#10003;</td></tr><tr class="grp"><th colspan="4">Saving and sharing</th></tr><tr><th scope="row">Saved history of your designs and chats</th><td>With an account</td><td class="y">&#10003;</td><td class="y">&#10003;</td></tr><tr><th scope="row">Send a design to a designer on WhatsApp</th><td class="y">&#10003;</td><td class="y">&#10003;</td><td class="y">&#10003;</td></tr><tr class="grp"><th colspan="4">Support</th></tr><tr><th scope="row">Priority replies</th><td class="no">&mdash;</td><td class="no">&mdash;</td><td class="y">&#10003;</td></tr><tr><th scope="row">Early access to new features</th><td class="no">&mdash;</td><td class="no">&mdash;</td><td class="y">&#10003;</td></tr><tr class="grp"><th colspan="4">Coming soon</th></tr><tr><th scope="row">Whole-home projects: every room in one scheme</th><td class="no">&mdash;</td><td class="no">&mdash;</td><td>Soon</td></tr><tr><th scope="row">Team seats for design firms</th><td class="no">&mdash;</td><td class="no">&mdash;</td><td>Soon</td></tr></tbody>
+        <tbody><tr class="grp"><th colspan="4">Designs</th></tr><tr><th scope="row">Designs per day</th><td>12 (20 with an account)</td><td>60</td><td>150</td></tr><tr><th scope="row">Designs per run</th><td>1 to 3</td><td>1 to 3</td><td>1 to 3</td></tr><tr><th scope="row">Image quality</th><td>Standard</td><td>High</td><td>Highest</td></tr><tr><th scope="row">Full redesign and light restyle</th><td class="y">&#10003;</td><td class="y">&#10003;</td><td class="y">&#10003;</td></tr><tr><th scope="row">Home and business spaces, every look or your own brief</th><td class="y">&#10003;</td><td class="y">&#10003;</td><td class="y">&#10003;</td></tr><tr><th scope="row">Checked against your photo before you see it</th><td class="y">&#10003;</td><td class="y">&#10003;</td><td class="y">&#10003;</td></tr><tr class="grp"><th colspan="4">Changing one spot</th></tr><tr><th scope="row">Circle an area or type a change</th><td class="y">&#10003;</td><td class="y">&#10003;</td><td class="y">&#10003;</td></tr><tr><th scope="row">Before and after compare, and download</th><td class="y">&#10003;</td><td class="y">&#10003;</td><td class="y">&#10003;</td></tr><tr class="grp"><th colspan="4">Saving and sharing</th></tr><tr><th scope="row">Saved history of your designs and chats</th><td>With an account</td><td class="y">&#10003;</td><td class="y">&#10003;</td></tr><tr><th scope="row">Send a design to a designer on WhatsApp</th><td class="y">&#10003;</td><td class="y">&#10003;</td><td class="y">&#10003;</td></tr><tr class="grp"><th colspan="4">Support</th></tr><tr><th scope="row">Priority replies</th><td class="no">&mdash;</td><td class="no">&mdash;</td><td class="y">&#10003;</td></tr><tr><th scope="row">Early access to new features</th><td class="no">&mdash;</td><td class="no">&mdash;</td><td class="y">&#10003;</td></tr><tr class="grp"><th colspan="4">Coming soon</th></tr><tr><th scope="row">3D room view and walkthrough</th><td class="no">&mdash;</td><td>Soon</td><td>Soon</td></tr><tr><th scope="row">Whole-home projects: every room in one scheme</th><td class="no">&mdash;</td><td class="no">&mdash;</td><td>Soon</td></tr><tr><th scope="row">Team seats for design firms</th><td class="no">&mdash;</td><td class="no">&mdash;</td><td>Soon</td></tr></tbody>
       </table>
     </div>
 
@@ -2141,58 +2141,72 @@
   }
   sliderDrag($('featBa'));
 
-  /* ---- how it works: scroll walks through the five steps and the picture
-     follows; at the last step the line is yours to drag ---- */
+  /* ---- how it works: plays by itself, step by step, then hands the line
+     to you. Dragging the picture takes over and pauses it. ---- */
   (function () {
-    var reel = $('reel'), photo = $('reelPhoto'), hint = $('reelHint'), bg = $('reelBg'),
+    var photo = $('reelPhoto'), demo = $('demo'),
         steps = Array.prototype.slice.call($('rsteps').children),
         boxes = [$('rb1'), $('rb2'), $('rb3')],
         layers = Array.prototype.slice.call($('rlayers').children),
-        tagR = $('reelAfterTag'), ticking = false, settled = false, last = -1;
+        tagR = $('reelAfterTag'), hint = $('rhint'), playBtn = $('demoPlay');
+    var START = [0, 2.6, 5.6, 8.8, 12.0], END = 16, HOLD = 6;      // seconds
+    var t = 0, playing = false, last = 0, visible = false, idle = 0, taken = false;
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     var clamp = function (x) { return Math.max(0, Math.min(1, x)); };
     var ease = function (x) { return x * x * (3 - 2 * x); };
     sliderDrag(photo);
-    function head() { return document.querySelector('header.top').offsetHeight; }
     function set(x) {
       photo.style.setProperty('--x', x.toFixed(2) + '%');
       photo.classList.toggle('nolane', x > 99 || x < 1);
       tagR.style.opacity = x > 85 ? 0 : 1;
     }
-    function paintReel() {
-      ticking = false;
-      if (reel.offsetParent === null) return;
-      var h = head();
-      document.documentElement.style.setProperty('--hdr', h + 'px');
-      var span = reel.offsetHeight - (window.innerHeight - h);
-      var p = clamp(-(reel.getBoundingClientRect().top - h) / Math.max(span, 1));
-      var n = Math.min(4, Math.floor(p / .2));
+    function frame() {
+      var n = 0; START.forEach(function (s0, i) { if (t >= s0) n = i; });
       steps.forEach(function (li, i) { li.classList.toggle('on', i === n); });
-      boxes.forEach(function (b) { b.classList.toggle('on', n === 1); });
-      layers.forEach(function (l, i) { l.classList.toggle('on', n === 2 && p >= .4 + i * .035); });
-      if (p < .6) { set(100); settled = false; }
-      else if (p < .8) { set(100 - 100 * ease((p - .6) / .2)); settled = false; }
-      else if (p < .9) { set(50 * ease((p - .8) / .1)); settled = false; }
-      else if (!settled) { set(50); settled = true; }
-      var z = 1 + .06 * p;
-      photo.querySelectorAll('img').forEach(function (im) { im.style.transform = 'scale(' + z + ')'; });
-      hint.textContent = p < .04 ? 'Scroll' : (p > .9 ? 'Drag the line to compare' : '');
-      hint.style.opacity = (p < .04 || p > .9) ? 1 : 0;
-      var after = n >= 3;
-      bg.style.backgroundImage = 'url(static/designs/design-1-' + (after ? 'after' : 'before') + '.jpg)';
+      $('demoStep').textContent = 'Step ' + (n + 1) + ' of 5';
+      boxes.forEach(function (b, i) { b.classList.toggle('on', n === 1 && t >= START[1] + .3 + i * .6); });
+      layers.forEach(function (l, i) { l.classList.toggle('on', n === 2 && t >= START[2] + .3 + i * .55); });
+      var x;
+      if (t < START[3] + .3) x = 100;
+      else if (t < START[3] + 2.6) x = 100 - 100 * ease((t - START[3] - .3) / 2.3);
+      else if (t < START[4] + .4) x = 0;
+      else x = 50 * ease(clamp((t - START[4] - .4) / 1.2));
+      if (!taken) set(x);
+      hint.classList.toggle('on', t >= START[4] + 1.8);
     }
-    function on() { if (!ticking) { ticking = true; requestAnimationFrame(paintReel); } }
-    /* a tap on a step jumps the page to it */
+    function tick(now) {
+      if (!playing) return;
+      var dt = Math.min(.1, (now - last) / 1000); last = now;
+      if (t < END) { t += dt; } else { idle += dt; if (idle > HOLD) { t = 0; idle = 0; taken = false; } }
+      frame(); requestAnimationFrame(tick);
+    }
+    function play() {
+      if (playing) return; playing = true; last = performance.now(); playBtn.textContent = 'Pause';
+      requestAnimationFrame(tick);
+    }
+    function pause() { playing = false; playBtn.textContent = 'Play'; }
+    function seek(sec) { t = sec; idle = 0; taken = false; frame(); }
+    playBtn.onclick = function () { if (playing) pause(); else { if (t >= END) seek(0); play(); } };
+    $('demoReplay').onclick = function () { seek(0); play(); };
     $('rsteps').addEventListener('click', function (e) {
       var li = e.target.closest('.rstep'); if (!li) return;
-      var i = steps.indexOf(li), h = head();
-      var span = reel.offsetHeight - (window.innerHeight - h);
-      window.scrollTo({ top: window.scrollY + reel.getBoundingClientRect().top - h + span * (i * .2 + .01),
-                        behavior: 'smooth' });
+      seek(START[steps.indexOf(li)] + .05); play();
     });
-    window.addEventListener('scroll', on, { passive: true });
-    window.addEventListener('resize', on);
-    setTimeout(paintReel, 0);
-    window.__reelPaint = paintReel;
+    /* touching the picture means the person wants to look for themselves */
+    photo.addEventListener('pointerdown', function () { taken = true; pause(); });
+    /* play while the card is on screen, rest when it is not */
+    function watchDemo() {
+      if (demo.offsetParent === null) { visible = false; pause(); return; }
+      var r = demo.getBoundingClientRect(), now = r.top < innerHeight * .65 && r.bottom > innerHeight * .35;
+      if (now === visible) return; visible = now;
+      if (visible && !taken && !reduce) { if (t >= END) seek(0); play(); } else if (!visible) pause();
+    }
+    window.addEventListener('scroll', watchDemo, { passive: true });
+    window.addEventListener('resize', watchDemo);
+    window.addEventListener('hashchange', function () { visible = false; setTimeout(watchDemo, 50); });
+    setTimeout(watchDemo, 0);
+    if (reduce) { seek(END); set(50); pause(); } else { frame(); }
+    window.__reelPaint = frame;
   })();
 
   /* ---- project: cards per space, each opens every photo with a slider ---- */
@@ -2321,7 +2335,6 @@
     });
     if (location.hash !== '#/' + v) location.hash = '#/' + v;
     window.scrollTo(0, 0);
-    if (window.__reelPaint) window.__reelPaint();
   }
   document.addEventListener('click', function (e) {
     var b = e.target.closest('[data-go]');
@@ -2662,6 +2675,7 @@
   function api(p) { return SERVER + p; }
 
   var canDraw = false;
+  var noServer = false;
 
   /* The status line says which engine is actually answering, and whether it
      can truly hold a door in place or is only asking nicely — worth knowing
@@ -2752,6 +2766,9 @@
         if (historyOpen) { loadHistoryPanel(); }
       })
       .catch(function () {
+        /* No server answered: this is the static preview, which cannot sign
+           anyone in or save anything. Say so, rather than let the form fail. */
+        noServer = true;
         needsCode = false; signedIn = true; account = null;
         tier = null;
         applyTierCap();
@@ -2848,6 +2865,10 @@
       b.classList.toggle('on', b.getAttribute('data-kind') === 'customer');
     });
     setMode('in');
+    if (noServer) {
+      $('dlgNote').textContent = 'Signing in and saving designs only work on the live site. This page is a preview, so nothing can be saved here.';
+      $('loginGo').disabled = true; $('googleGo').classList.add('hidden'); $('dlgOr').classList.add('hidden');
+    } else { $('loginGo').disabled = false; }
     $('veil').classList.remove('hidden');
     $('dlgEmail').focus();
   }
