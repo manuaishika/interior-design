@@ -1,6 +1,6 @@
 <!doctype html>
 <html><head><meta charset="utf-8">
-<link href="https://fonts.googleapis.com/css2?family=Gloock&family=Rubik:wght@400;500;600&display=block" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Schibsted+Grotesk:wght@500;600;700&display=block" rel="stylesheet">
 <style>
   /* "What you can do": a 32-second walk through the studio, in order. Every
      animation is paused and scrubbed by render.py (PAGE=features.html), so the
@@ -8,8 +8,8 @@
   :root { --bone:#F2F2F2; --ink:#0A0A0A; --muted:#A6A6A6; --line:rgba(255,255,255,.22); }
   * { box-sizing: border-box; margin: 0; }
   html, body { width: 100%; height: 100%; background: var(--ink); overflow: hidden; }
-  body { font-family: Rubik, system-ui, sans-serif; color: var(--bone); -webkit-font-smoothing: antialiased; }
-  .serif { font-family: Gloock, Georgia, serif; font-weight: 400; letter-spacing: -.015em; }
+  body { font-family: "Instrument Sans", system-ui, sans-serif; color: var(--bone); -webkit-font-smoothing: antialiased; }
+  .serif { font-family: Schibsted Grotesk, Georgia, serif; font-weight: 600; letter-spacing: -.03em; }
   .bg { position: absolute; inset: -8%; background: url(before.jpg) center/cover; filter: blur(7vh) brightness(.28); }
   .bg.after { background-image: url(after.jpg); opacity: 0; }
   .vig { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0) 45%, rgba(0,0,0,.6) 100%); }
@@ -40,7 +40,7 @@
   /* mock studio cards (light, like the real studio) */
   .ui { position: absolute; inset: 0; background: #fff; color: #0a0a0a; padding: 5vh 4.4vh; display: flex; flex-direction: column; gap: 2.4vh; }
   .ui .lab { font-size: 1.6vh; letter-spacing: .22em; font-weight: 600; color: #6b6b6b; text-transform: uppercase; }
-  .ui .q { font-family: Gloock, Georgia, serif; font-size: 3.6vh; line-height: 1.15; }
+  .ui .q { font-family: Schibsted Grotesk, Georgia, serif; font-size: 3.6vh; line-height: 1.15; }
   .row { display: flex; gap: 1.4vh; }
   .btn { flex: 1; border: .2vh solid #cfcfcf; border-radius: .6vh; padding: 1.9vh 2vh; font-size: 2.4vh; font-weight: 500; background: #fff; }
   .btn small { display: block; font-size: 1.8vh; font-weight: 400; color: #6b6b6b; margin-top: .6vh; line-height: 1.35; }
@@ -73,7 +73,7 @@
     padding: 2vh; font-size: 2.5vh; font-weight: 500; box-shadow: 0 1vh 3vh rgba(0,0,0,.45); opacity: 0; }
   .line { position: absolute; top: 0; bottom: 0; left: 0; width: .35vh; background: #fff; opacity: 0; box-shadow: 0 0 1.4vh rgba(0,0,0,.5); }
   .line::after { content: '‹ ›'; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 5.2vh; height: 5.2vh; border-radius: 50%;
-    background: #fff; color: #000; display: grid; place-items: center; font: 600 2.4vh Rubik, sans-serif; white-space: nowrap; }
+    background: #fff; color: #000; display: grid; place-items: center; font: 600 2.4vh Instrument Sans, sans-serif; white-space: nowrap; }
   .tag { position: absolute; top: 2vh; font-size: 1.6vh; font-weight: 600; letter-spacing: .22em; background: rgba(0,0,0,.85); color: #fff;
     padding: .7vh 1.2vh; border-radius: .6vh; opacity: 0; }
   .tag.l { left: 2vh; } .tag.r { right: 2vh; }
