@@ -103,17 +103,33 @@ class TestThePricingPageSellsWhatExists:
     """It used to sell Sketch / Studio / Practice — 100 designs a day,
     shareable boards, a priority queue — none of which existed."""
 
-    def test_the_plans_are_the_ones_config_runs_on(self):
-        from app.config import TIERS
+    def test_free_is_what_config_actually_gives(self):
+        """The Free card quotes the real limits: 12 a day with no account and
+        the free tier's 20 a day. Pro and Plus are priced plans that are not
+        wired to checkout yet, so they are not in config.TIERS."""
+        from app.config import Settings, TIERS
+        assert Settings().anon_daily_designs == 12 and TIERS["free"]["daily"] == 20
         pricing = page()[page().index('id="v-pricing"'):page().index("</main>", page().index('id="v-pricing"'))]
-        for tier in TIERS.values():
-            assert f"<h3>{tier['label']}</h3>" in pricing
+        assert "12 designs a day, 20 with a free account" in pricing
+        for name in ("Free", "Pro", "Plus"):
+            assert f"<h3>{name}</h3>" in pricing
         for gone in ("Sketch", "Practice", "100 designs a day", "Unlimited designs", "Priority queue"):
             assert f">{gone}<" not in pricing and f"<li>{gone}</li>" not in pricing
 
-    def test_paid_plans_do_not_pretend_to_be_buyable(self):
+    def test_paid_plans_go_to_a_message_not_a_checkout(self):
+        """There is no payment provider connected, so Get Pro and Get Plus
+        open WhatsApp with the plan typed in, and say so when there is no
+        number. Nothing here may pretend to take a payment."""
+        pricing = page()[page().index('id="v-pricing"'):page().index("</main>", page().index('id="v-pricing"'))]
+        assert pricing.count('class="cta js-plan"') == 2
+        for fake in ("stripe", "razorpay", "checkout", "<form"):
+            assert fake.lower() not in pricing.lower()
+
+    def test_yearly_is_thirty_percent_off(self):
         pricing = page()[page().index('id="v-pricing"'):]
-        assert pricing.count("disabled>Coming soon</button>") == 3
+        for monthly, yearly in ((19, 159), (30, 252)):
+            assert round(monthly * 12 * 0.7) in (yearly, yearly + 1, yearly - 1)
+            assert f"${yearly}" in pricing
 
     def test_the_draft_note_is_not_shown_to_customers(self):
         assert "Set your own before this page goes in front of a customer" not in page()

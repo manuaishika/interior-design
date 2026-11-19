@@ -53,3 +53,19 @@ def test_designs_page_is_in_the_nav_and_has_its_pictures():
             assert f"static/designs/{name}" in text
             assert (root / base / "static" / "designs" / name).exists() or \
                    (root / "static" / "designs" / name).exists()
+
+
+def test_how_it_works_has_the_draggable_walkthrough_and_home_has_the_video():
+    from pathlib import Path
+    root = Path(__file__).resolve().parent.parent
+    for page in ("static/showcase.html", "docs/index.html"):
+        text = (root / page).read_text()
+        how = text[text.index('id="v-how"'):text.index('id="v-pricing"')]
+        assert 'id="reelPhoto"' in how and "sliderDrag(photo)" in text
+        home = text[text.index('id="v-home"'):text.index('id="v-studio"')]
+        assert "static/videos/what-you-can-do.mp4" in home
+        designs = text[text.index('id="v-designs"'):text.index('id="v-how"')]
+        assert 'id="reel"' not in designs and 'id="featBa"' in designs
+    for name in ("what-you-can-do.mp4", "what-you-can-do.jpg"):
+        assert (root / "static" / "videos" / name).exists()
+        assert (root / "docs" / "static" / "videos" / name).exists()

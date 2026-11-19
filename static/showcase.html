@@ -104,6 +104,7 @@
   /* ---------- top bar ---------- */
   .top { position: sticky; top: 0; z-index: 40; background: var(--bg);
     border-bottom: 1px solid var(--line); }
+  :root { --hdr: 62px; }
   .top-in { display: flex; align-items: center; gap: 1.4rem; height: 62px; }
   /* flex-shrink defaults to 1 — without stopping it, .brand and every nav
      button are free to be squeezed narrower than their own text, and the
@@ -743,6 +744,38 @@
   .stack { display: grid; gap: .8rem; }
 
   /* ---------- pricing ---------- */
+  .tiers.three { grid-template-columns: 1fr; }
+  @media (min-width: 860px) { .tiers.three { grid-template-columns: repeat(3, 1fr); } }
+  .tier .price small { font-family: Rubik, system-ui, sans-serif; font-size: .9rem; color: var(--muted); letter-spacing: 0; margin-left: .3rem; }
+  .tier.pick .price small { color: #ADADAD; }
+  .tier.pick { border-color: var(--ink); position: relative; }
+  .tier.pick .flag { position: absolute; top: -.7rem; left: 1.4rem; background: var(--ink); color: var(--on-ink); font-size: .66rem;
+    letter-spacing: .16em; font-weight: 600; text-transform: uppercase; padding: .25rem .6rem; border-radius: 99px; }
+  .tier.pick .cta { background: #fff; color: #000; }
+  .tier.pick .cta:hover { background: #E6E6E6; }
+  .tier .per { min-height: 2.4em; }
+  .bill { display: inline-flex; margin-top: 1.6rem; border: 1px solid var(--line); border-radius: 99px; padding: 3px; }
+  .bill button { background: none; border: 0; border-radius: 99px; padding: .5rem 1.1rem; font: inherit; font-size: .88rem;
+    color: var(--muted); cursor: pointer; }
+  .bill button.on { background: var(--ink); color: var(--on-ink); }
+  .bill button span { font-size: .72rem; font-weight: 600; margin-left: .35rem; opacity: .85; }
+  .fine { font-size: .8rem; color: var(--muted); margin: 1rem 0 0; }
+  .cmp-wrap { overflow-x: auto; margin-top: 1.2rem; }
+  .cmp { width: 100%; border-collapse: collapse; font-size: .9rem; min-width: 34rem; }
+  .cmp th, .cmp td { padding: .75rem .8rem; border-bottom: 1px solid var(--line); text-align: center; }
+  .cmp thead th { font-family: var(--display); font-weight: var(--display-weight); font-size: 1.15rem; border-bottom: 1px solid var(--ink); }
+  .cmp th[scope="row"] { text-align: left; font-weight: 400; width: 44%; }
+  .cmp .grp th { text-align: left; font-size: .68rem; letter-spacing: .2em; text-transform: uppercase; color: var(--muted);
+    font-weight: 600; padding-top: 1.6rem; border-bottom: 1px solid var(--line); }
+  .cmp td.y { font-weight: 700; } .cmp td.no { color: var(--muted); }
+  .faq { margin-top: 1rem; border-top: 1px solid var(--line); max-width: 46rem; }
+  .faq details { border-bottom: 1px solid var(--line); padding: 1rem 0; }
+  .faq summary { cursor: pointer; font-weight: 500; list-style: none; display: flex; justify-content: space-between; gap: 1rem; }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary::after { content: '+'; font-size: 1.3rem; line-height: 1; color: var(--muted); }
+  .faq details[open] summary::after { content: '\2212'; }
+  .faq p { margin: .7rem 0 0; color: var(--muted); line-height: 1.6; max-width: 40rem; }
+  .faq-end a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
   .tiers { display: grid; gap: 1rem; margin-top: 2.4rem; }
   @media (min-width: 620px) { .tiers { grid-template-columns: repeat(2, 1fr); } }
   @media (min-width: 1080px) { .tiers { grid-template-columns: repeat(4, 1fr); } }
@@ -865,15 +898,18 @@
      nothing wider than 760px changes. */
   @media (max-width: 760px) {
     body { font-size: 14px; line-height: 1.55; }
-    .top-in { height: 52px; gap: .6rem; }
     .brand { font-size: 1rem; }
     nav { gap: 0; }
-    nav button { font-size: .74rem; padding: .35rem .22rem; }
-    .top-in { gap: .45rem; }
-    /* "How it works" doesn't fit beside the theme switch on a phone; the
-       full words stay in the button for screen readers. */
-    nav button[data-short] { font-size: 0; }
-    nav button[data-short]::after { content: attr(data-short); font-size: .74rem; }
+    nav button { font-size: .78rem; padding: .45rem .3rem; }
+    /* Four links plus the theme switch and Sign in do not fit on one row at
+       phone width, so the bar is two rows: brand and buttons above, the
+       four pages as a strip below. */
+    .top-in { flex-wrap: wrap; height: auto; gap: 0 .5rem; padding-top: 7px; }
+    .top-in .brand { margin-right: auto; }
+    .top-in .theme { order: 1; }
+    .top-in .cta { order: 2; }
+    .top-in nav { order: 3; flex: 0 0 100%; justify-content: space-between; margin: 6px 0 0;
+      border-top: 1px solid var(--line); padding-top: 2px; }
     .view { padding: 1.4rem 0 3rem; }
     .kick { font-size: .62rem; margin: 0 0 .55rem; }
     h1.big { font-size: 1.7rem; }
@@ -1027,57 +1063,75 @@
     #v-studio .controls #lookHint, #v-studio .controls #tierNote { display: none; }
     #v-studio .controls .lab { margin: .55rem 0 .25rem; }
   }
-  /* ---------- designs: a scroll-driven before / after ---------- */
+  /* ---------- how it works: a scroll-driven walk-through you can also drag ---------- */
   button.link { background: none; border: 0; cursor: pointer; color: var(--ink);
     font: inherit; text-decoration: underline; text-underline-offset: 3px; padding: 0 .3rem; }
-  #v-designs { padding: 0; }
-  .reel { height: 260vh; position: relative; background: #0A0A0A; color: #F2F2F2; }
-  .reel-stick { position: sticky; top: 62px; height: calc(100vh - 62px); overflow: hidden; }
+  #v-designs, #v-how { padding-bottom: 0; }
+  .reel { height: 440vh; position: relative; background: #0A0A0A; color: #F2F2F2; margin-top: 1.6rem; }
+  .reel-stick { position: sticky; top: var(--hdr, 62px); height: calc(100vh - var(--hdr, 62px)); overflow: hidden; }
   .reel-bg { position: absolute; inset: -6%; background: url(static/designs/design-1-before.jpg) center/cover;
-    filter: blur(46px) brightness(.34) saturate(1.2); transition: background-image .3s; }
+    filter: blur(46px) brightness(.32); }
   .reel-grid { position: relative; height: 100%; display: grid; grid-template-columns: 1fr auto;
     align-items: center; gap: clamp(2rem, 7vw, 6rem); }
-  .reel-copy .kick { color: #FFFFFF; }
-  .reel-words { position: relative; min-height: 15rem; }
-  .reel-words > div { position: absolute; inset: 0 auto auto 0; transition: opacity .35s, transform .35s; }
-  #reelB { opacity: 0; transform: translateY(14px); }
-  .reel .big { color: #F2F2F2; margin: .4rem 0 .8rem; }
-  .reel .lede { color: #ABABAB; }
-  .reel-did { list-style: none; padding: 0; margin: 1.2rem 0 0; max-width: 30rem; }
-  .reel-did li { padding: .6rem 0 .6rem 1.5rem; border-top: 1px solid rgba(255,255,255,.2);
-    position: relative; color: #E6E6E6; }
-  .reel-did li::before { content: ''; position: absolute; left: 0; top: 1.05rem; width: .6rem; height: .6rem;
-    border-radius: 50%; background: #FFFFFF; }
-  .reel-photo { position: relative; margin: 0; height: min(78vh, 46rem); max-height: calc(100vh - 62px - 3rem);
-    aspect-ratio: 3/4; border-radius: 6px; overflow: hidden;
-    box-shadow: 0 2.4rem 5rem -1.2rem rgba(0,0,0,.75), 0 0 0 1px rgba(255,255,255,.16); }
-  .reel-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
-    transform-origin: 62% 55%; will-change: transform, clip-path; }
-  .r-line { position: absolute; top: 0; bottom: 0; left: 0; width: 3px; background: #fff;
-    box-shadow: 0 0 14px rgba(0,0,0,.5); opacity: 0; }
-  .r-tag { position: absolute; top: 12px; font-size: .68rem; font-weight: 600; letter-spacing: .2em;
-    text-transform: uppercase; background: rgba(0,0,0,.85); color: #fff; padding: .4rem .6rem; border-radius: 3px;
-    transition: opacity .3s; }
-  .r-tag.l { left: 12px; } .r-tag.r { right: 12px; opacity: 0; }
-  .reel-hint { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); margin: 0;
-    font-size: .72rem; letter-spacing: .24em; text-transform: uppercase; color: #ABABAB;
-    transition: opacity .3s; }
+  .reel-copy .kick { color: #fff; }
+  .reel-copy h2 { color: #F2F2F2; font-size: clamp(1.9rem, 3.6vw, 2.8rem); margin: .2rem 0 1.4rem; max-width: 18ch; }
+  .rsteps { list-style: none; margin: 0; padding: 0; max-width: 34rem; }
+  .rstep { display: grid; grid-template-columns: 2.6rem 1fr; padding: 1rem 0; border-top: 1px solid rgba(255,255,255,.2);
+    opacity: .38; transition: opacity .3s; cursor: pointer; }
+  .rstep.on { opacity: 1; }
+  .rstep .n { font-size: .72rem; letter-spacing: .2em; font-weight: 600; padding-top: .55rem; }
+  .rstep h3 { margin: 0; font-family: var(--display); font-weight: var(--display-weight); font-size: 1.5rem; color: #F2F2F2; }
+  .rstep p { grid-column: 2; margin: 0; color: #ABABAB; font-size: .92rem; line-height: 1.55;
+    max-height: 0; overflow: hidden; opacity: 0; transition: max-height .4s, opacity .3s, margin .3s; }
+  .rstep.on p { max-height: 7rem; opacity: 1; margin-top: .4rem; }
+  .reel-photo { height: min(78vh, 46rem); max-height: calc(100vh - var(--hdr, 62px) - 3rem); aspect-ratio: 3/4;
+    border-radius: 6px; box-shadow: 0 2.4rem 5rem -1.2rem rgba(0,0,0,.75), 0 0 0 1px rgba(255,255,255,.16); cursor: ew-resize; }
+  .reel-photo img { transform-origin: 62% 55%; will-change: transform; }
+  .reel-photo .ln, .reel-photo .tg { transition: opacity .25s; }
+  .reel-photo.nolane .ln { opacity: 0; }
+  .rbox { position: absolute; border: 2px solid #fff; border-radius: 4px; opacity: 0; transition: opacity .35s;
+    box-shadow: 0 0 10px rgba(0,0,0,.4); pointer-events: none; }
+  .rbox span { position: absolute; left: 6px; top: 6px; background: #fff; color: #000; font-size: .68rem; font-weight: 500;
+    padding: .18rem .5rem; border-radius: 99px; white-space: nowrap; }
+  .rbox.on { opacity: 1; }
+  .rlayers { position: absolute; left: 10px; bottom: 10px; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
+  .rlayers span { align-self: flex-start; background: rgba(255,255,255,.95); color: #000; font-size: .72rem; font-weight: 500;
+    padding: .25rem .65rem; border-radius: 99px; opacity: 0; transform: translateY(6px); transition: opacity .3s, transform .3s; }
+  .rlayers span.on { opacity: 1; transform: none; }
+  .reel-hint { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); margin: 0; font-size: .72rem;
+    letter-spacing: .24em; text-transform: uppercase; color: #ABABAB; transition: opacity .3s; white-space: nowrap; }
   .reel-end { text-align: center; padding: 3.5rem 16px 4.5rem; }
   .reel-end .lede { max-width: 38rem; margin: 0 auto 1.4rem; }
   @media (max-width: 780px) {
-    .reel-grid { grid-template-columns: 1fr; grid-template-rows: auto 1fr; justify-items: center;
-      align-content: start; gap: 1rem; padding-top: 1rem; }
-    .reel-photo { height: min(52vh, 28rem); order: 0; }
-    .reel-copy { order: 1; width: 100%; text-align: center; }
-    .reel-copy .kick { display: none; }
-    .reel-words { min-height: 11rem; }
-    .reel-words > div { inset: 0 0 auto 0; }
-    .reel .big { font-size: 1.7rem; margin: 0 0 .4rem; }
-    .reel-did { margin: .6rem auto 0; text-align: left; display: inline-block; }
-    .reel-did li { font-size: .88rem; padding: .35rem 0 .35rem 1.3rem; }
-    .reel-did li::before { top: .7rem; }
+    .reel { height: 420vh; }
+    .reel-grid { grid-template-columns: 1fr; grid-template-rows: auto 1fr; justify-items: center; align-content: start;
+      gap: .9rem; padding-top: .8rem; }
+    .reel-photo { height: min(46vh, 26rem); order: -1; }
+    .reel-copy { width: 100%; }
+    .reel-copy .kick, .reel-copy h2 { display: none; }
+    .rsteps { max-width: none; }
+    .rstep:not(.on) { display: none; }
+    .rstep { opacity: 1; padding: .2rem 0; border: 0; }
+    .rstep h3 { font-size: 1.3rem; }
+    .rstep p { font-size: .86rem; }
   }
-  @media (prefers-reduced-motion: reduce) { .reel-words > div { transition: none; } }
+
+  /* ---------- designs: the featured bedroom ---------- */
+  .feat { display: grid; grid-template-columns: auto 1fr; gap: clamp(2rem, 6vw, 5rem); align-items: center; padding-top: 2.6rem; }
+  .feat .ba { height: min(74vh, 44rem); aspect-ratio: 3/4; border-radius: 4px; cursor: ew-resize; }
+  .feat .big { margin: .2rem 0 .8rem; }
+  .did { list-style: none; padding: 0; margin: 1.2rem 0 0; max-width: 30rem; }
+  .did li { padding: .6rem 0 .6rem 1.5rem; border-top: 1px solid var(--line); position: relative; }
+  .did li::before { content: ''; position: absolute; left: 0; top: 1.05rem; width: .55rem; height: .55rem; border-radius: 50%; background: var(--ink); }
+  @media (max-width: 780px) {
+    .feat { grid-template-columns: 1fr; padding-top: 1.4rem; }
+    .feat .ba { height: auto; width: 100%; max-height: 70vh; justify-self: center; }
+  }
+
+  /* ---------- the video on the first page ---------- */
+  .vid { margin: 2.4rem 0 0; }
+  .vid video { width: 100%; display: block; aspect-ratio: 16/9; background: #000; border-radius: 4px; }
+  .vid figcaption { margin-top: .6rem; font-size: .8rem; color: var(--muted); }
   /* ---------- project: one property, space by space ---------- */
   .proj { padding-top: 4.5rem; }
   .proj-head { max-width: 46rem; margin-bottom: 2.6rem; }
@@ -1148,7 +1202,8 @@
     <nav id="nav">
       <button type="button" data-go="studio">Studio</button>
       <button type="button" data-go="designs">Designs</button>
-      <button type="button" data-go="how" data-short="How">How it works</button>
+      <button type="button" data-go="how">How it works</button>
+      <button type="button" data-go="pricing">Pricing</button>
     </nav>
     <button class="theme" id="theme" type="button" aria-label="Switch to dark mode" title="Light / dark">
       <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor"/></svg>
@@ -1169,6 +1224,13 @@
       <span>Takes about a minute.</span>
       <button class="link" type="button" data-go="designs">See a real redesign &rarr;</button>
     </p>
+    <figure class="vid">
+      <video controls playsinline preload="metadata" poster="static/videos/what-you-can-do.jpg"
+             aria-label="Everything you can do with Second Draft">
+        <source src="static/videos/what-you-can-do.mp4" type="video/mp4">
+      </video>
+      <figcaption>Everything you can do with one photo, in 32 seconds.</figcaption>
+    </figure>
     <div class="strip" id="heroStrip"></div>
   </div>
 
@@ -1437,36 +1499,21 @@
 
 <!-- ============================ DESIGNS ============================ -->
 <main class="view hidden" id="v-designs">
-  <section class="reel" id="reel">
-    <div class="reel-stick">
-      <div class="reel-bg" id="reelBg"></div>
-      <div class="wrap reel-grid">
-        <div class="reel-copy">
-          <p class="kick">Designs</p>
-          <div class="reel-words">
-            <div id="reelA">
-              <h2 class="big">The room as it is.</h2>
-              <p class="lede">One phone photo. Scroll to see what happens next.</p>
-            </div>
-            <div id="reelB">
-              <h2 class="big">Its second draft.</h2>
-              <ul class="reel-did">
-                <li>Same window, bed and desk, in the same place</li>
-                <li>New curtains, lamps and ceiling light</li>
-                <li>New rug, bedding and shelves</li>
-                <li>Warmer light, drawn into the same photograph</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-        <figure class="reel-photo" id="reelPhoto">
-          <img class="r-after" src="static/designs/design-1-after.jpg" alt="The bedroom after its redesign">
-          <img class="r-before" id="reelBefore" src="static/designs/design-1-before.jpg" alt="The bedroom before">
-          <span class="r-line" id="reelLine"></span>
-          <span class="r-tag l">Before</span><span class="r-tag r">After</span>
-        </figure>
-      </div>
-      <p class="reel-hint" id="reelHint">Scroll</p>
+  <section class="wrap feat" aria-labelledby="featName">
+    <figure class="ba" id="featBa">
+      <img src="static/designs/design-1-after.jpg" alt="The bedroom after its redesign">
+      <img class="b" src="static/designs/design-1-before.jpg" alt="The bedroom before">
+      <span class="ln"></span><span class="tg l">Before</span><span class="tg r">After</span>
+    </figure>
+    <div class="feat-t">
+      <p class="kick">Design 01 · Bedroom</p>
+      <h2 class="big" id="featName">One phone photo, a whole new room.</h2>
+      <p class="lede">Drag the line to compare. Same window, same bed, same desk, in the same place. Everything else is new.</p>
+      <ul class="did">
+        <li>New curtains, lamps and ceiling light</li>
+        <li>New rug, bedding and shelves</li>
+        <li>Warmer light, drawn into the same photograph</li>
+      </ul>
     </div>
   </section>
   <section class="wrap proj" id="proj" aria-labelledby="projName">
@@ -1500,10 +1547,36 @@
 
 <!-- ============================ HOW IT WORKS ============================ -->
 <main class="view hidden" id="v-how">
-  <div class="wrap">
-    <p class="kick">How it works</p>
-    <h1 class="big">From one photo to a room you could build.</h1>
+  <section class="reel" id="reel">
+    <div class="reel-stick">
+      <div class="reel-bg" id="reelBg"></div>
+      <div class="wrap reel-grid">
+        <div class="reel-copy">
+          <p class="kick">How it works</p>
+          <h2 class="big">From one photo to a room you could build.</h2>
+          <ol class="rsteps" id="rsteps">
+            <li class="rstep on"><span class="n">01</span><h3>One photo</h3><p>Take it on your phone. Daylight helps, mess is fine. One photo is enough.</p></li>
+            <li class="rstep"><span class="n">02</span><h3>It reads the room</h3><p>It finds every window, door and piece of furniture and counts them, so nothing structural moves.</p></li>
+            <li class="rstep"><span class="n">03</span><h3>It plans every layer</h3><p>Walls, ceiling, floor, lighting, curtains and furniture, one by one, in the look you picked.</p></li>
+            <li class="rstep"><span class="n">04</span><h3>It redraws the photograph</h3><p>A new design of your own room, checked against your photo and redrawn if a door moved or a second bed appeared.</p></li>
+            <li class="rstep"><span class="n">05</span><h3>Compare, then change anything</h3><p>Drag the line to compare. Circle a spot or type a change, and only that spot changes.</p></li>
+          </ol>
+        </div>
+        <figure class="ba reel-photo nolane" id="reelPhoto">
+          <img src="static/designs/design-1-after.jpg" alt="The bedroom after its redesign">
+          <img class="b" id="reelBefore" src="static/designs/design-1-before.jpg" alt="The bedroom before">
+          <span class="ln"></span><span class="tg l">Before</span><span class="tg r" id="reelAfterTag">After</span>
+          <div class="rbox" id="rb1" style="left:24%;top:17%;width:37%;height:26%"><span>Window · keep</span></div>
+          <div class="rbox" id="rb2" style="left:56%;top:45%;width:43%;height:31%"><span>Bed · keep</span></div>
+          <div class="rbox" id="rb3" style="left:1%;top:47%;width:24%;height:38%"><span>Desk · keep</span></div>
+          <div class="rlayers" id="rlayers"><span>Walls</span><span>Ceiling and light</span><span>Floor and rug</span><span>Curtains</span><span>Furniture</span></div>
+        </figure>
+      </div>
+      <p class="reel-hint" id="reelHint">Scroll</p>
+    </div>
+  </section>
 
+  <div class="wrap">
     <div class="passes">
       <div class="pass">
         <span class="n">01</span>
@@ -1544,63 +1617,67 @@
 <main class="view hidden" id="v-pricing">
   <div class="wrap">
     <p class="kick">Pricing</p>
-    <h1 class="big">Cheaper than one wrong sofa.</h1>
-    <p class="lede">Start free, no card. Paid plans open soon — prices
-       will be listed here when they do.</p>
-    <!-- The same four plans config.TIERS actually runs on, and nothing
-         they do not do. This page used to sell "Sketch / Studio /
-         Practice" with 100 designs a day, shareable boards and a priority
-         queue — none of which existed. -->
-    <div class="tiers">
+    <h1 class="big">Start free. Pay when you need more.</h1>
+    <p class="lede">Free is free forever. Pro and Plus are for people who are redoing a room, or a home, for real.</p>
+
+    <div class="bill" id="bill" role="group" aria-label="Billing period">
+      <button type="button" class="on" data-bill="month">Monthly</button>
+      <button type="button" data-bill="year">Yearly <span>Save 30%</span></button>
+    </div>
+
+    <div class="tiers three">
       <div class="tier">
         <h3>Free</h3>
-        <div class="price">AED 0</div>
-        <span class="per">To see what your room could be</span>
+        <div class="price">$0</div>
+        <span class="per">Forever. No card needed.</span>
         <ul>
-          <li>Up to 12 designs a day, no account needed</li>
-          <li>Up to 2 designs per run, standard quality</li>
+          <li>12 designs a day, 20 with a free account</li>
+          <li>Up to 3 designs per run, standard quality</li>
           <li>Every look, or your own brief</li>
-          <li>Before and after, download, mark an area to change</li>
+          <li>Circle an area or type a change</li>
+          <li>Before and after, download</li>
         </ul>
         <button class="cta" type="button" data-go="studio">Start for free</button>
       </div>
       <div class="tier pick">
-        <h3>One Room</h3>
-        <div class="price">&mdash;</div>
-        <span class="per">For the room you are about to redo</span>
+        <span class="flag">Most popular</span>
+        <h3>Pro</h3>
+        <div class="price"><span class="amt" data-m="$19" data-y="$13">$19</span><small>/month</small></div>
+        <span class="per bn" data-m="Billed monthly. Cancel any time." data-y="Billed $159 once a year. Normally $228.">Billed monthly. Cancel any time.</span>
         <ul>
-          <li>No daily limit</li>
-          <li>Up to 3 designs per run</li>
-          <li>High quality</li>
+          <li>60 designs a day</li>
+          <li>High image quality</li>
+          <li>Saved history of designs and chats</li>
           <li>Everything in Free</li>
         </ul>
-        <button class="cta clay" type="button" disabled>Coming soon</button>
+        <button class="cta js-plan" type="button" data-plan="Pro">Get Pro</button>
       </div>
       <div class="tier">
-        <h3>Whole Home</h3>
-        <div class="price">&mdash;</div>
-        <span class="per">For more than one room</span>
+        <h3>Plus</h3>
+        <div class="price"><span class="amt" data-m="$30" data-y="$21">$30</span><small>/month</small></div>
+        <span class="per bn" data-m="Billed monthly. Cancel any time." data-y="Billed $252 once a year. Normally $360.">Billed monthly. Cancel any time.</span>
         <ul>
-          <li>No daily limit</li>
-          <li>Up to 4 designs per run</li>
-          <li>High quality</li>
-          <li>Everything in Free</li>
+          <li>150 designs a day</li>
+          <li>Highest image quality</li>
+          <li>Priority replies and early access to new features</li>
+          <li>Everything in Pro</li>
         </ul>
-        <button class="cta" type="button" disabled>Coming soon</button>
-      </div>
-      <div class="tier">
-        <h3>Studio</h3>
-        <div class="price">&mdash;</div>
-        <span class="per">For designers presenting to clients</span>
-        <ul>
-          <li>No daily limit</li>
-          <li>Up to 4 designs per run</li>
-          <li>Highest quality</li>
-          <li>Everything in Free</li>
-        </ul>
-        <button class="cta" type="button" disabled>Coming soon</button>
+        <button class="cta js-plan" type="button" data-plan="Plus">Get Plus</button>
       </div>
     </div>
+    <p class="fine" id="planNote">Prices are in US dollars.</p>
+
+    <h2 class="sec" style="margin-top:3.4rem">Compare plans</h2>
+    <div class="cmp-wrap">
+      <table class="cmp">
+        <thead><tr><th></th><th>Free</th><th>Pro</th><th>Plus</th></tr></thead>
+        <tbody><tr class="grp"><th colspan="4">Designs</th></tr><tr><th scope="row">Designs per day</th><td>12 (20 with an account)</td><td>60</td><td>150</td></tr><tr><th scope="row">Designs per run</th><td>1 to 3</td><td>1 to 3</td><td>1 to 3</td></tr><tr><th scope="row">Image quality</th><td>Standard</td><td>High</td><td>Highest</td></tr><tr><th scope="row">Full redesign and light restyle</th><td class="y">&#10003;</td><td class="y">&#10003;</td><td class="y">&#10003;</td></tr><tr><th scope="row">Home and business spaces, every look or your own brief</th><td class="y">&#10003;</td><td class="y">&#10003;</td><td class="y">&#10003;</td></tr><tr><th scope="row">Checked against your photo before you see it</th><td class="y">&#10003;</td><td class="y">&#10003;</td><td class="y">&#10003;</td></tr><tr class="grp"><th colspan="4">Changing one spot</th></tr><tr><th scope="row">Circle an area or type a change</th><td class="y">&#10003;</td><td class="y">&#10003;</td><td class="y">&#10003;</td></tr><tr><th scope="row">Before and after compare, and download</th><td class="y">&#10003;</td><td class="y">&#10003;</td><td class="y">&#10003;</td></tr><tr class="grp"><th colspan="4">Saving and sharing</th></tr><tr><th scope="row">Saved history of your designs and chats</th><td>With an account</td><td class="y">&#10003;</td><td class="y">&#10003;</td></tr><tr><th scope="row">Send a design to a designer on WhatsApp</th><td class="y">&#10003;</td><td class="y">&#10003;</td><td class="y">&#10003;</td></tr><tr class="grp"><th colspan="4">Support</th></tr><tr><th scope="row">Priority replies</th><td class="no">&mdash;</td><td class="no">&mdash;</td><td class="y">&#10003;</td></tr><tr><th scope="row">Early access to new features</th><td class="no">&mdash;</td><td class="no">&mdash;</td><td class="y">&#10003;</td></tr><tr class="grp"><th colspan="4">Coming soon</th></tr><tr><th scope="row">Whole-home projects: every room in one scheme</th><td class="no">&mdash;</td><td class="no">&mdash;</td><td>Soon</td></tr><tr><th scope="row">Team seats for design firms</th><td class="no">&mdash;</td><td class="no">&mdash;</td><td>Soon</td></tr></tbody>
+      </table>
+    </div>
+
+    <h2 class="sec" style="margin-top:3.4rem">Common questions</h2>
+    <div class="faq"><details><summary>Can I try Pro or Plus before paying?</summary><p>Free is the same studio at standard quality, with no card and no time limit, so you can see exactly what you get. If you want to try Pro or Plus first, message us and we will set up a short trial.</p></details><details><summary>Can I switch between plans?</summary><p>Yes. Upgrade whenever you like and it starts straight away. If you move down, the change happens at the end of the period you have already paid for. You can go between monthly and yearly in the same way.</p></details><details><summary>What payment methods do you accept?</summary><p>Major credit and debit cards, and local methods such as UPI where they are available. Payments go through a secure payment provider, so we never see or store your card number.</p></details><details><summary>Can I cancel anytime?</summary><p>Yes. Cancel whenever you want and you keep your plan until the end of the period you paid for. There is nothing to cancel on Free, and it stays free.</p></details><details><summary>Do you offer refunds?</summary><p>If it is not right for you, message us within 7 days of your first payment (14 days on a yearly plan) and we will refund it in full.</p></details><details><summary>What does &ldquo;billed annually&rdquo; mean?</summary><p>A yearly plan is charged once a year, at 30% less than twelve monthly payments. Pro is $159 a year and Plus is $252 a year, instead of $228 and $360.</p></details><details><summary>Is Free really free forever?</summary><p>Yes. No card, no trial that runs out. Free has a daily limit on designs, and the limit comes back every day.</p></details><details><summary>Which plan is right for a designer or a design firm?</summary><p>Plus. It has the highest image quality and the highest daily limit, and whole-home projects and team seats are coming to it.</p></details></div>
+    <p class="lede faq-end">Have a question that is not here? <a href="#" id="askUs">Reach out to us</a> and we will answer it.</p>
   </div>
 </main>
 
@@ -1617,6 +1694,7 @@
         <li><button type="button" data-go="studio">Studio</button></li>
         <li><button type="button" data-go="designs">Designs</button></li>
         <li><button type="button" data-go="how">How it works</button></li>
+        <li><button type="button" data-go="pricing">Pricing</button></li>
       </ul>
     </div>
     <div>
@@ -1983,6 +2061,44 @@
     return plate(s, LOOK_ROOMS[i], true);
   }).join('');
 
+  /* ---- pricing: monthly / yearly, and getting in touch ---- */
+  (function () {
+    var yearly = false;
+    function paintPrice() {
+      Array.prototype.forEach.call($('bill').children, function (b) {
+        b.classList.toggle('on', (b.getAttribute('data-bill') === 'year') === yearly);
+      });
+      Array.prototype.forEach.call(document.querySelectorAll('#v-pricing [data-m]'), function (el) {
+        el.textContent = el.getAttribute(yearly ? 'data-y' : 'data-m');
+      });
+    }
+    $('bill').onclick = function (e) {
+      var b = e.target.closest('[data-bill]'); if (!b) return;
+      yearly = b.getAttribute('data-bill') === 'year'; paintPrice();
+    };
+    /* WhatsApp opens with the message typed, not sent, the same way the
+       design hand-off does. Without a number configured it says so. */
+    function speak(text) {
+      if (!contact || !contact.whatsapp) return false;
+      window.open('https://wa.me/' + contact.whatsapp + '?text=' + encodeURIComponent(text), '_blank', 'noopener');
+      return true;
+    }
+    document.addEventListener('click', function (e) {
+      var plan = e.target.closest('.js-plan');
+      if (plan) {
+        var text = 'Hi ' + ((contact && contact.business) || 'there') + ', I would like the ' +
+          plan.getAttribute('data-plan') + ' plan on Second Draft (' + (yearly ? 'yearly' : 'monthly') + ').';
+        if (!speak(text)) $('planNote').textContent = 'Paid plans are opening soon. Start on Free and we will let you know.';
+      }
+      if (e.target.id === 'askUs') {
+        e.preventDefault();
+        if (!speak('Hi, I have a question about Second Draft pricing.'))
+          $('planNote').textContent = 'You can reach us on WhatsApp once it is switched on. For now, start on Free.';
+      }
+    });
+    paintPrice();
+  })();
+
   /* ---- light / dark switch ---- */
   (function () {
     var root = document.documentElement, btn = $('theme');
@@ -2002,39 +2118,79 @@
     label();
   })();
 
-  /* ---- designs: scroll drives the before / after ---- */
+  /* A before / after you can drag. The before sits on top, showing from the
+     left edge to --x; a drag moves --x, a tap does nothing (the project cards
+     use that tap to open). touch-action: pan-y on .ba keeps a vertical swipe
+     scrolling the page while a sideways one moves the line. */
+  function sliderDrag(fig) {
+    var x0 = null, moved = false;
+    function to(e) {
+      var r = fig.getBoundingClientRect();
+      fig.style.setProperty('--x', Math.max(0, Math.min(100, (e.clientX - r.left) / r.width * 100)) + '%');
+      fig.classList.remove('nolane');
+    }
+    fig.addEventListener('pointerdown', function (e) { x0 = e.clientX; moved = false; });
+    fig.addEventListener('pointermove', function (e) {
+      if (x0 === null || fig.classList.contains('solo')) return;
+      if (!moved && Math.abs(e.clientX - x0) > 6) { moved = true; fig.setPointerCapture(e.pointerId); }
+      if (moved) to(e);
+    });
+    fig.addEventListener('pointerup', function () { x0 = null; });
+    fig.addEventListener('pointercancel', function () { x0 = null; });
+    fig.addEventListener('click', function (e) { if (moved) { e.stopPropagation(); moved = false; } });
+  }
+  sliderDrag($('featBa'));
+
+  /* ---- how it works: scroll walks through the five steps and the picture
+     follows; at the last step the line is yours to drag ---- */
   (function () {
-    var reel = $('reel'), before = $('reelBefore'), line = $('reelLine'),
-        photo = $('reelPhoto'), A = $('reelA'), B = $('reelB'), hint = $('reelHint'),
-        bg = $('reelBg'), tagR = photo.querySelector('.r-tag.r'), ticking = false;
+    var reel = $('reel'), photo = $('reelPhoto'), hint = $('reelHint'), bg = $('reelBg'),
+        steps = Array.prototype.slice.call($('rsteps').children),
+        boxes = [$('rb1'), $('rb2'), $('rb3')],
+        layers = Array.prototype.slice.call($('rlayers').children),
+        tagR = $('reelAfterTag'), ticking = false, settled = false, last = -1;
     var clamp = function (x) { return Math.max(0, Math.min(1, x)); };
     var ease = function (x) { return x * x * (3 - 2 * x); };
+    sliderDrag(photo);
+    function head() { return document.querySelector('header.top').offsetHeight; }
+    function set(x) {
+      photo.style.setProperty('--x', x.toFixed(2) + '%');
+      photo.classList.toggle('nolane', x > 99 || x < 1);
+      tagR.style.opacity = x > 85 ? 0 : 1;
+    }
     function paintReel() {
       ticking = false;
-      if (reel.offsetParent === null) return;        // page is hidden
-      var span = reel.offsetHeight - (window.innerHeight - 62);
-      var p = clamp(-(reel.getBoundingClientRect().top - 62) / Math.max(span, 1));
-      var t = ease(clamp((p - .08) / .62));          // 0 = before, 1 = after
-      var x = (t * 100).toFixed(2);
-      before.style.clipPath = 'inset(0 0 0 ' + x + '%)';
-      line.style.left = 'calc(' + x + '% - 1px)';
-      line.style.opacity = (t > .01 && t < .99) ? 1 : 0;
-      var zoom = 1 + .07 * p;
-      photo.querySelectorAll('img').forEach(function (im) { im.style.transform = 'scale(' + zoom + ')'; });
-      var done = t > .5;
-      A.style.opacity = done ? 0 : 1;
-      A.style.transform = done ? 'translateY(-14px)' : 'none';
-      B.style.opacity = done ? 1 : 0;
-      B.style.transform = done ? 'none' : 'translateY(14px)';
-      tagR.style.opacity = t > .55 ? 1 : 0;
-      photo.querySelector('.r-tag.l').style.opacity = t < .45 ? 1 : 0;
-      hint.style.opacity = p < .04 ? 1 : 0;
-      bg.style.backgroundImage = 'url(static/designs/design-1-' + (done ? 'after' : 'before') + '.jpg)';
+      if (reel.offsetParent === null) return;
+      var h = head();
+      document.documentElement.style.setProperty('--hdr', h + 'px');
+      var span = reel.offsetHeight - (window.innerHeight - h);
+      var p = clamp(-(reel.getBoundingClientRect().top - h) / Math.max(span, 1));
+      var n = Math.min(4, Math.floor(p / .2));
+      steps.forEach(function (li, i) { li.classList.toggle('on', i === n); });
+      boxes.forEach(function (b) { b.classList.toggle('on', n === 1); });
+      layers.forEach(function (l, i) { l.classList.toggle('on', n === 2 && p >= .4 + i * .035); });
+      if (p < .6) { set(100); settled = false; }
+      else if (p < .8) { set(100 - 100 * ease((p - .6) / .2)); settled = false; }
+      else if (p < .9) { set(50 * ease((p - .8) / .1)); settled = false; }
+      else if (!settled) { set(50); settled = true; }
+      var z = 1 + .06 * p;
+      photo.querySelectorAll('img').forEach(function (im) { im.style.transform = 'scale(' + z + ')'; });
+      hint.textContent = p < .04 ? 'Scroll' : (p > .9 ? 'Drag the line to compare' : '');
+      hint.style.opacity = (p < .04 || p > .9) ? 1 : 0;
+      var after = n >= 3;
+      bg.style.backgroundImage = 'url(static/designs/design-1-' + (after ? 'after' : 'before') + '.jpg)';
     }
     function on() { if (!ticking) { ticking = true; requestAnimationFrame(paintReel); } }
+    /* a tap on a step jumps the page to it */
+    $('rsteps').addEventListener('click', function (e) {
+      var li = e.target.closest('.rstep'); if (!li) return;
+      var i = steps.indexOf(li), h = head();
+      var span = reel.offsetHeight - (window.innerHeight - h);
+      window.scrollTo({ top: window.scrollY + reel.getBoundingClientRect().top - h + span * (i * .2 + .01),
+                        behavior: 'smooth' });
+    });
     window.addEventListener('scroll', on, { passive: true });
     window.addEventListener('resize', on);
-    window.addEventListener('hashchange', function () { setTimeout(paintReel, 0); });
     setTimeout(paintReel, 0);
     window.__reelPaint = paintReel;
   })();
@@ -2057,24 +2213,7 @@
              '<img class="b" src="' + b + '" alt="Photo ' + n + ', as it is" loading="lazy">' +
              '<span class="ln"></span><span class="tg l">Before</span><span class="tg r">After</span>';
     }
-    /* A tap opens the space; a sideways drag moves the slider instead. */
-    function drag(fig) {
-      var x0 = null, moved = false;
-      function to(e) {
-        var r = fig.getBoundingClientRect();
-        var x = Math.max(0, Math.min(100, (e.clientX - r.left) / r.width * 100));
-        fig.style.setProperty('--x', x + '%');
-      }
-      fig.addEventListener('pointerdown', function (e) { x0 = e.clientX; moved = false; });
-      fig.addEventListener('pointermove', function (e) {
-        if (x0 === null || fig.classList.contains('solo')) return;
-        if (!moved && Math.abs(e.clientX - x0) > 6) { moved = true; fig.setPointerCapture(e.pointerId); }
-        if (moved) to(e);
-      });
-      fig.addEventListener('pointerup', function () { x0 = null; });
-      fig.addEventListener('pointercancel', function () { x0 = null; });
-      fig.addEventListener('click', function (e) { if (moved) { e.stopPropagation(); moved = false; } });
-    }
+    var drag = sliderDrag;
     function paintGrid() {
       $('projName').textContent = P.name;
       $('projMeta').textContent = P.meta;

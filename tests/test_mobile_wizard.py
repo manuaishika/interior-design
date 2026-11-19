@@ -313,4 +313,4 @@ class TestSignInIsOn:
         assert ".top-in .cta { display: none; }" not in top
 
     def test_the_pricing_page_still_says_no_account_needed(self):
-        assert "Up to 12 designs a day, no account needed" in page()
+        assert "12 designs a day, 20 with a free account" in page()

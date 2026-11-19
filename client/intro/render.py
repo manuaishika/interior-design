@@ -8,6 +8,8 @@ import asyncio, os, sys, shutil, subprocess, httpx
 from playwright.async_api import async_playwright
 D = os.path.dirname(os.path.abspath(__file__))
 FF = os.environ.get("FFMPEG", "ffmpeg")
+import glob
+CHROME = os.environ.get("CHROME") or sorted(glob.glob("/opt/pw-browsers/chromium-*/chrome-linux*/chrome"))[-1]
 CA = os.environ.get("CA_BUNDLE", True)
 FPS, SECONDS = 30, float(sys.argv[4]) if len(sys.argv) > 4 else 20
 W, H, out = int(sys.argv[1]), int(sys.argv[2]), sys.argv[3]
@@ -19,10 +21,10 @@ async def fonts(route):
 async def main():
     fr = f"{D}/frames_{W}x{H}"; shutil.rmtree(fr, ignore_errors=True); os.makedirs(fr)
     async with async_playwright() as p:
-        b = await p.chromium.launch(executable_path="/opt/pw-browsers/chromium-1194/chrome-linux/chrome")
+        b = await p.chromium.launch(executable_path=CHROME)
         pg = await b.new_page(viewport={"width": W, "height": H})
         await pg.route("**/fonts.googleapis.com/**", fonts); await pg.route("**/fonts.gstatic.com/**", fonts)
-        await pg.goto(f"file://{D}/intro.html"); await pg.evaluate("document.fonts.ready")
+        await pg.goto(f"file://{D}/{os.environ.get('PAGE', 'intro.html')}"); await pg.evaluate("document.fonts.ready")
         await pg.wait_for_timeout(500)
         print("fonts:", await pg.evaluate("[...document.fonts].filter(f=>f.status=='loaded').map(f=>f.family).join(',')"))
         await pg.evaluate("document.getAnimations().forEach(a => a.pause())")
