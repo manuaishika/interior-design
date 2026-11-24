@@ -8,6 +8,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Second Draft</title>
 <script>
+  /* The GitHub Pages copy has no server behind it, so sign-in, saved designs
+     and drawing cannot work there. Send it to the real site, keeping the page. */
+  if (/\.github\.io$/.test(location.hostname)) {
+    location.replace('https://second-draft-vkj4.onrender.com/' + location.hash);
+  }
+</script>
+<script>
   /* A saved choice from the header switch wins; otherwise the device decides
      (see the prefers-color-scheme block in the CSS). */
   try { var t = localStorage.getItem('sd-theme');
@@ -1006,7 +1013,10 @@
     #v-studio .lede { margin-top: .3rem; font-size: .95rem; }
     #v-studio .lede-more { display: none; }
     #v-studio .panel { margin-top: .9rem; }
-    #v-studio .panel-body { height: calc(100vh - 62px - 12.4rem); min-height: 470px; }
+    /* Height follows the content. A fixed height cut the first and last
+       questions off on short laptop screens, which matters more than the
+       panel being exactly one screen tall. */
+    #v-studio .panel-body { min-height: 470px; }
     #v-studio .controls { overflow-y: auto; min-height: 0; padding: .8rem 1rem 0;
       display: flex; flex-direction: column; }
     #v-studio .controls .lab { margin: .75rem 0 .3rem; }
@@ -1041,8 +1051,9 @@
     #v-studio .controls { padding: 1.1rem 1.3rem 1.3rem; gap: 1.6rem; }
     #v-studio .controls .col { gap: .5rem; }
     #v-studio .controls .step[data-part="note"] { flex: 1; display: flex; flex-direction: column; }
-    #v-studio .controls .step[data-part="note"] textarea.brief { flex: 1; min-height: 140px; font-size: .95rem; }
-    #v-studio .controls .step[data-g="photos"] .drop { min-height: 118px; }
+    #v-studio .controls .step[data-part="note"] textarea.brief { flex: 1; min-height: 120px; font-size: .95rem; }
+    #v-studio .controls .drop { min-height: 0; padding: .5rem .8rem; }
+    #v-studio .controls .drop b { font-size: .95rem; }
     #v-studio .controls .step[data-g="look"] { flex: 1; }
     #v-studio .controls .step[data-part="go"] { margin-top: auto; }
     #v-studio .controls .pill { padding: .55rem .95rem; font-size: .9rem; }
@@ -1056,7 +1067,7 @@
     #v-studio .kick, #v-studio .lede { display: none; }
     #v-studio h1.big { font-size: 1.7rem; }
     #v-studio .panel { margin-top: .6rem; }
-    #v-studio .panel-body { height: calc(100vh - 62px - 7.4rem); min-height: 430px; }
+    #v-studio .panel-body { min-height: 430px; }
     #v-studio .controls #lookHint, #v-studio .controls #tierNote { display: none; }
     #v-studio .controls .lab { margin: .55rem 0 .25rem; }
   }
@@ -1224,11 +1235,11 @@
       <button class="link" type="button" data-go="designs">See a real redesign &rarr;</button>
     </p>
     <figure class="vid">
-      <video controls playsinline preload="metadata" poster="static/videos/what-you-can-do.jpg"
+      <video id="homeVideo" autoplay muted loop playsinline disablepictureinpicture preload="auto" poster="static/videos/what-you-can-do.jpg"
              aria-label="Everything you can do with Second Draft">
         <source src="static/videos/what-you-can-do.mp4" type="video/mp4">
       </video>
-      <figcaption>Everything you can do with one photo, in 32 seconds.</figcaption>
+      <figcaption>Everything you can do with one photo. Click the video to pause it.</figcaption>
     </figure>
     <div class="strip" id="heroStrip"></div>
   </div>
@@ -2099,6 +2110,13 @@
     paintPrice();
   })();
 
+  /* the home video plays by itself with no player bar; a click pauses it */
+  (function () {
+    var v = $('homeVideo'); if (!v) return;
+    v.addEventListener('click', function () { if (v.paused) v.play(); else v.pause(); });
+    var p = v.play && v.play(); if (p && p.catch) p.catch(function () {});
+  })();
+
   /* ---- light / dark switch ---- */
   (function () {
     var root = document.documentElement, btn = $('theme');
@@ -2673,6 +2691,16 @@
     } catch (e) { return ''; }
   })();
   function api(p) { return SERVER + p; }
+
+  /* A reply that is not JSON (a crash page, a proxy error) used to surface as
+     "Unexpected token 'I'". Turn it into a sentence a person can read. */
+  async function readJson(r) {
+    try { return await r.json(); } catch (e) {
+      return { detail: r.status >= 500
+        ? 'Something went wrong on our side. Please try again in a moment.'
+        : 'The server sent a reply this page could not read (' + r.status + ').' };
+    }
+  }
 
   var canDraw = false;
   var noServer = false;
@@ -3554,7 +3582,7 @@
       f.append('photo', currentPhoto());
       f.append('room_type', room.name.toLowerCase());
       var r = await fetch(api('/api/read'), { method: 'POST', body: f, credentials: 'include' });
-      var d = await r.json();
+      var d = await readJson(r);
       if (!r.ok) throw new Error(d.detail || 'Could not read the room');
       return d;
     }
@@ -3805,7 +3833,7 @@
         f.append('instruction', instruction);
         f.append('mask', maskBlob, 'mask.png');
         var r = await fetch(api('/api/edit'), { method: 'POST', body: f, credentials: 'include' });
-        var d = await r.json();
+        var d = await readJson(r);
         if (!r.ok) throw new Error(d.detail || 'Could not change that.');
         // Compare on the edit shows the design it was made from, not the
         // original photograph.
@@ -4215,7 +4243,7 @@
 
     try {
       var r = await fetch(api('/api/generate'), { method: 'POST', body: f, credentials: 'include' });
-      var d = await r.json();
+      var d = await readJson(r);
       if (!r.ok) throw new Error(d.detail || 'Could not draw');
       if (!progress.cleared) { $('shots').innerHTML = ''; progress.cleared = true; }
       appendDesign(d.generations[0], i, saving, caption, primary);
@@ -4308,7 +4336,7 @@
         // So this exchange is still there on reload, not only in this tab.
         if (convId) { f.append('conversation_id', String(convId)); }
         var r = await fetch(api('/api/chat'), { method: 'POST', body: f, credentials: 'include' });
-        var d = await r.json();
+        var d = await readJson(r);
         if (!r.ok) throw new Error(d.detail || 'Could not answer');
         into.textContent = d.reply;
         turns.push({ role: 'assistant', content: d.reply });
@@ -4354,7 +4382,7 @@
       f.append('design', new Blob([buf], { type: 'image/png' }), 'design.png');
       f.append('instruction', instruction);
       var r = await fetch(api('/api/edit'), { method: 'POST', body: f, credentials: 'include' });
-      var d = await r.json();
+      var d = await readJson(r);
       if (!r.ok) throw new Error(d.detail || 'Could not apply that change');
       into.textContent = 'Applied — see the new design.';
       appendDesign({ image_base64: d.image_base64 },

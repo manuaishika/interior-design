@@ -270,9 +270,12 @@ class TestTheLaptopStudioFitsOneScreen:
         at = rest.index(query)
         return rest[at:rest.index("\n  }\n", at)]
 
-    def test_the_panel_takes_the_rest_of_the_screen(self):
+    def test_the_panel_grows_to_fit_its_questions(self):
+        """A fixed height cut the first and last questions off on a short
+        laptop screen, so the panel follows its content instead."""
         css = self.block("@media (min-width: 860px) {")
-        assert "#v-studio .panel-body { height: calc(100vh" in css
+        assert "#v-studio .panel-body { min-height: 470px; }" in css
+        assert "height: calc(100vh" not in css
         assert "#v-studio .controls { overflow-y: auto;" in css
 
     def test_the_button_stays_in_reach(self):

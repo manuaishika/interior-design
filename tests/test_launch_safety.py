@@ -69,3 +69,38 @@ def test_how_it_works_has_the_draggable_walkthrough_and_home_has_the_video():
     for name in ("what-you-can-do.mp4", "what-you-can-do.jpg"):
         assert (root / "static" / "videos" / name).exists()
         assert (root / "docs" / "static" / "videos" / name).exists()
+
+
+def _request():
+    from starlette.requests import Request
+    return Request({"type": "http", "headers": [], "client": ("1.2.3.4", 1), "method": "POST", "path": "/api/generate"})
+
+
+def test_a_dead_database_does_not_stop_a_design(monkeypatch):
+    """The meter and the plan lookup are soft: if the database is gone (a
+    suspended free instance, a bad URL) the design is still drawn."""
+    from app import config, main, store
+
+    def broken():
+        raise OSError("connection refused")
+
+    monkeypatch.setattr(store, "is_configured", lambda: True)
+    monkeypatch.setattr(store, "session", broken)
+    key = asyncio.run(main._usage_gate(_request(), config.Settings(), "free"))
+    assert key.startswith("ip:")
+    asyncio.run(main._credit(key, 2))                       # swallowed, not raised
+
+
+def test_an_unexpected_crash_comes_back_as_json():
+    import json
+    from app import main
+    res = asyncio.run(main._anything_else(_request(), ZeroDivisionError("x")))
+    assert res.status_code == 500
+    assert "went wrong" in json.loads(res.body)["detail"]
+
+
+def test_the_page_can_read_a_reply_that_is_not_json():
+    from pathlib import Path
+    text = (Path(__file__).resolve().parent.parent / "static" / "showcase.html").read_text()
+    assert "async function readJson(r)" in text
+    assert "await r.json();\n      if (!r.ok) throw new Error(d.detail || 'Could not draw')" not in text

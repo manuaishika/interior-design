@@ -148,6 +148,17 @@ async def _database_down(request: Request, exc: OperationalError):
                    "Please try again shortly."}, status_code=503)
 
 
+@app.exception_handler(Exception)
+async def _anything_else(request: Request, exc: Exception):
+    """An unexpected error on an API route used to come back as the plain text
+    "Internal Server Error", which the page tried to read as JSON and showed as
+    "Unexpected token 'I'". Say it properly instead, and log the real cause."""
+    log.exception("Unhandled error on %s", request.url.path)
+    return JSONResponse(
+        {"detail": "Something went wrong on our side. Please try again in a moment."},
+        status_code=500)
+
+
 @app.get("/privacy", include_in_schema=False)
 async def privacy():
     return _legal("privacy.html")
@@ -292,9 +303,23 @@ async def _tier_for(request: Request, settings: Settings) -> str:
     who = auth.current_user_id(request, settings)
     if who is None:
         return settings.tier
-    async with store.session() as db:
-        user = await store.by_id(db, who)
-        return (user.tier if user else None) or settings.tier
+    try:
+        async with store.session() as db:
+            user = await store.by_id(db, who)
+            return (user.tier if user else None) or settings.tier
+    except Exception as exc:        # noqa: BLE001 — the plan lookup must not stop a design
+        log.error("Could not read the account's plan (%s); using the default", exc)
+        return settings.tier
+
+
+async def _credit(key: str, n: int) -> None:
+    """Count designs against today's allowance. A design that was drawn is
+    handed over even if the meter cannot be written to."""
+    try:
+        async with store.session() as db:
+            await store.bump_usage(db, key, n)
+    except Exception as exc:        # noqa: BLE001
+        log.error("Could not record %d design(s) for %s (%s)", n, key, exc)
 
 
 async def _usage_gate(request: Request, settings: Settings, tier: str) -> str:
@@ -322,8 +347,12 @@ async def _usage_gate(request: Request, settings: Settings, tier: str) -> str:
     # hard outage.
     if limit is None or not store.is_configured():
         return key
-    async with store.session() as db:
-        used = await store.usage_today(db, key)
+    try:
+        async with store.session() as db:
+            used = await store.usage_today(db, key)
+    except Exception as exc:        # noqa: BLE001 — see the comment above: fail open
+        log.error("Could not read today's usage (%s); letting the request through", exc)
+        return key
     if used < limit:
         return key
     if plan is None:
@@ -839,8 +868,7 @@ async def generate_endpoint(
     except RuntimeError as exc:
         raise HTTPException(502, str(exc)) from exc
     if generations and store.is_configured():
-        async with store.session() as db:
-            await store.bump_usage(db, usage_key, len(generations))
+        await _credit(usage_key, len(generations))
     return GenerateResponse(analysis=analysis, generations=generations)
 
 
@@ -907,8 +935,7 @@ async def edit_endpoint(
     except RuntimeError as exc:
         raise HTTPException(502, str(exc)) from exc
     if store.is_configured():
-        async with store.session() as db:
-            await store.bump_usage(db, usage_key, 1)
+        await _credit(usage_key, 1)
     return {"image_base64": base64.b64encode(result).decode("ascii")}
 
 
